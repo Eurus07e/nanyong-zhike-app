@@ -92,7 +92,7 @@ input:focus, select:focus { border-color: var(--purple); box-shadow: var(--focus
 .sidebar nav button.active { color: var(--ink); background: var(--control-gray); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
 .sidebar-account { margin-top: auto; padding: 13px 5px 0; border-top: 1px solid #dedee3; display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; gap: 9px; }
 .sidebar-logout-error { grid-column: 1 / -1; margin: 0; padding: 8px 9px; border-radius: var(--radius); background: #fff0f1; color: #8e1c28; font-size: 10.5px; line-height: 1.4; }
-.account-avatar { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #d8d8dd; border-radius: 50%; color: #111; background: #fff; }
+.account-avatar { width: 36px; height: 36px; display: block; border: 1px solid #e0d9e6; border-radius: 50%; object-fit: cover; background: #fff; }
 .sidebar-account strong, .sidebar-account span { overflow: hidden; display: block; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-account strong { font-size: 12px; }
 .sidebar-account span { margin-top: 2px; color: var(--muted); font-size: 10px; }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { BookOpenCheck, CalendarDays, GraduationCap, Info, LoaderCircle, LogOut, Menu, Search, UserRound, X } from 'lucide-react'
+import { BookOpenCheck, CalendarDays, GraduationCap, Info, LoaderCircle, LogOut, Menu, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ApiError, EHALL_STATUS_EVENT } from '../api'
 import type { Session } from '../types'
@@ -89,7 +89,7 @@ export function Shell({
         </nav>
         <div className="sidebar-account">
           {logoutError && <p className="sidebar-logout-error" role="alert">{logoutError}</p>}
-          <span className="account-avatar" aria-hidden="true"><UserRound size={19} /></span>
+          <img className="account-avatar" src="/default-avatar.jpeg" alt="默认用户头像" />
           <div><strong>{session.username}</strong><span>统一身份认证已连接</span></div>
           <button type="button" className="icon-button" disabled={logoutPending} onClick={() => void handleLogout()} aria-label="退出登录" title="退出登录">
             {logoutPending ? <LoaderCircle className="spin" size={18} /> : <LogOut size={18} />}
