@@ -61,7 +61,6 @@ class Database:
                 );
                 """
             )
-
     def metadata(self, key: str) -> str | None:
         with self.connection() as connection:
             row = connection.execute(
@@ -92,4 +91,3 @@ class Database:
                     for course, teacher, review, sources, cn, tn in rows
                 ],
             )
-
