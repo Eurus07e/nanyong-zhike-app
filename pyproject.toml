@@ -1,0 +1,30 @@
+[project]
+name = "nanyong-zhike"
+version = "0.1.0"
+description = "南雍知课 - 南京大学选课与培养方案助手"
+requires-python = ">=3.11"
+dependencies = [
+  "cryptography>=48.0.1,<50",
+  "fastapi>=0.115.0,<1",
+  "pydantic-settings>=2.7.0,<3",
+  "uvicorn[standard]>=0.34.0,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28.0,<1",
+  "pytest>=9.0.3,<10",
+  "pytest-asyncio>=1.4.0,<2",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["backend*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,31 @@
+name: nanyong-zhike-local
+
+services:
+  app:
+    build:
+      context: .
+    image: nanyong-zhike-app:local
+    init: true
+    environment:
+      APP_ENV: development
+      APP_SECRET: ${APP_SECRET:-local-development-secret-not-for-production}
+      COOKIE_SECURE: "false"
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
+      DATABASE_PATH: /app/state/nanyong.db
+      REVIEW_DATA_PATH: /app/reviews/merged_data.json
+      NJU_CLI_BIN: /usr/local/bin/nju-cli
+    volumes:
+      - nanyong-local-state:/app/state
+    ports:
+      - "127.0.0.1:8000:8000"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+
+volumes:
+  nanyong-local-state:

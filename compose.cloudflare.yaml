@@ -1,0 +1,98 @@
+name: nanyong-zhike
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  app:
+    build:
+      context: .
+    image: nanyong-zhike-app:1.0
+    restart: unless-stopped
+    init: true
+    environment:
+      APP_ENV: production
+      APP_SECRET: ${APP_SECRET:?Set APP_SECRET to a random value of at least 32 characters}
+      COOKIE_SECURE: "true"
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
+      DATABASE_PATH: /app/state/nanyong.db
+      REVIEW_DATA_PATH: /app/reviews/merged_data.json
+      NJU_CLI_BIN: /usr/local/bin/nju-cli
+    volumes:
+      - nanyong-state:/app/state
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    stop_grace_period: 30s
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2.11.4-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      CADDY_ADDRESS: :8080
+    expose:
+      - "8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging: *default-logging
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.7.1
+    restart: unless-stopped
+    init: true
+    command: ["tunnel", "--metrics", "0.0.0.0:2000", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN to the token from Cloudflare}
+    depends_on:
+      caddy:
+        condition: service_healthy
+    expose:
+      - "2000"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:2000", "ready"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    logging: *default-logging
+
+volumes:
+  nanyong-state:
+  caddy-data:
+  caddy-config:

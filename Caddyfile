@@ -1,0 +1,35 @@
+{
+    servers {
+        trusted_proxies static private_ranges
+        trusted_proxies_strict
+        client_ip_headers CF-Connecting-IP X-Forwarded-For
+    }
+}
+
+{$CADDY_ADDRESS:localhost} {
+    encode zstd gzip
+
+    @api path /api/*
+    header @api Cache-Control "no-store"
+
+    # Vite fingerprints these files, so they are safe to cache indefinitely.
+    @immutable_assets path /assets/*
+    header @immutable_assets Cache-Control "public, max-age=31536000, immutable"
+
+    # Keep the SPA shell and unhashed images revalidatable after each release.
+    @frontend not path /api/* /assets/*
+    header @frontend Cache-Control "no-cache"
+
+    header -Server
+
+    log {
+        output stdout
+        format json
+    }
+
+    reverse_proxy app:8000 {
+        health_uri /api/health
+        health_interval 30s
+        health_timeout 5s
+    }
+}
