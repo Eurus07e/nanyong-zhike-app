@@ -89,10 +89,8 @@ jobs:
           test "$actual" = "$NJU_SOURCE_SHA256"
           tar -xzf .release-tools/nju-cli-v1.4.6-source.tar.gz \
             -C .release-tools/nju-cli-source --strip-components=1
-          git apply --check --directory=.release-tools/nju-cli-source \
-            third_party/patches/nju-cli-v1.4.6-cache-dir.patch
-          git apply --directory=.release-tools/nju-cli-source \
-            third_party/patches/nju-cli-v1.4.6-cache-dir.patch
+          test -f third_party/patches/nju-cli-v1.4.6-cache-dir.patch
+          python desktop/patch_nju_cli.py .release-tools/nju-cli-source
           grep -Fq 'std::env::var_os("NJU_CLI_CACHE_DIR")' \
             .release-tools/nju-cli-source/crates/cli/src/auth.rs
       - name: Build patched nju-cli from source

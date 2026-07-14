@@ -75,8 +75,7 @@ def test_release_builds_and_verifies_patched_nju_cli_from_pinned_source():
         in workflow
     )
     assert "6d7f794e87b8c22a1f6b700899f0c03c08f37a57499cc5e7014f0a80031b141c" in workflow
-    assert "apply --check" in workflow
-    assert "git apply --directory=.release-tools/nju-cli-source" in workflow
+    assert "python desktop/patch_nju_cli.py .release-tools/nju-cli-source" in workflow
     assert "git -C .release-tools/nju-cli-source apply" not in workflow
     assert 'grep -Fq \'std::env::var_os("NJU_CLI_CACHE_DIR")\'' in workflow
     assert "third_party/patches/nju-cli-v1.4.6-cache-dir.patch" in workflow
