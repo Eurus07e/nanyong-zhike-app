@@ -45,6 +45,8 @@ def test_patch_applies_to_v146_auth_cache_function(tmp_path):
     subprocess.run(["git", "apply", str(PATCH)], cwd=tmp_path, check=True)
     patched = source.read_text(encoding="utf-8")
     assert 'std::env::var_os("NJU_CLI_CACHE_DIR")' in patched
+    assert 'cfg!(target_os = "windows")' in patched
+    assert 'std::env::temp_dir().join("nju-cli")' in patched
     assert "cache_dir.is_absolute()" in patched
     assert "NJU_CLI_CACHE_DIR must be an absolute path" in patched
 
