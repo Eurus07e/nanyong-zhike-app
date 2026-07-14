@@ -16,6 +16,13 @@ else:
     from verify_nju_cli_patch import verify_nju_cli_patch
 
 
+_TEXT_PROCESS_OPTIONS = {
+    "text": True,
+    "encoding": "utf-8",
+    "errors": "replace",
+}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dist", required=True, type=Path)
@@ -67,9 +74,9 @@ def main() -> None:
     cli_check = subprocess.run(
         [str(nju_cli), "--help"],
         capture_output=True,
-        text=True,
         timeout=20,
         check=False,
+        **_TEXT_PROCESS_OPTIONS,
     )
     if cli_check.returncode != 0 or "Usage:" not in cli_check.stdout:
         raise SystemExit(f"bundled nju-cli failed:\n{cli_check.stdout}\n{cli_check.stderr}")
@@ -83,7 +90,7 @@ def main() -> None:
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+            **_TEXT_PROCESS_OPTIONS,
         )
         try:
             base_url = "http://127.0.0.1:8000"
