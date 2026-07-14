@@ -1,9 +1,9 @@
 diff --git a/crates/cli/src/auth.rs b/crates/cli/src/auth.rs
 --- a/crates/cli/src/auth.rs
 +++ b/crates/cli/src/auth.rs
-@@ -96,8 +96,18 @@ fn auth_cache_file() -> Result<PathBuf> {
+@@ -96,9 +96,19 @@ fn auth_cache_file() -> Result<PathBuf> {
  }
-
+ 
  fn auth_cache_dir() -> Result<PathBuf> {
 -    let app_dirs = AppDirs::new(Some("nju-cli"), true)
 -        .ok_or_else(|| anyhow!("failed to resolve application cache directory"))?;
@@ -21,5 +21,6 @@ diff --git a/crates/cli/src/auth.rs b/crates/cli/src/auth.rs
 +            .cache_dir,
 +    };
 +    let dir = cache_dir.join("auth");
-
+ 
      std::fs::create_dir_all(&dir).with_context(|| format!("failed to create {}", dir.display()))?;
+ 

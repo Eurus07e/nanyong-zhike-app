@@ -1,0 +1,2 @@
+# Unified diff fixtures intentionally contain blank context lines.
+third_party/patches/*.patch whitespace=-blank-at-eol,-blank-at-eof
