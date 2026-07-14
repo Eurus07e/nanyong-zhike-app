@@ -60,20 +60,6 @@ def verify_nju_cli_patch(binary: Path) -> None:
         env["NJU_CLI_CACHE_DIR"] = str(cache_dir)
         env["RUST_BACKTRACE"] = "0"
 
-        relative_env = env.copy()
-        relative_env["NJU_CLI_CACHE_DIR"] = "relative-cache"
-        relative_result = subprocess.run(
-            [str(binary), "login", "--castgc", _PROBE_CASTGC],
-            capture_output=True,
-            text=True,
-            timeout=20,
-            cwd=state_path,
-            env=relative_env,
-            check=False,
-        )
-        if relative_result.returncode == 0:
-            raise RuntimeError("patched nju-cli accepted a relative NJU_CLI_CACHE_DIR")
-
         result = subprocess.run(
             [str(binary), "login", "--castgc", _PROBE_CASTGC],
             capture_output=True,

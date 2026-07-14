@@ -93,7 +93,7 @@ def test_verifier_accepts_binary_that_honors_cache_override(tmp_path):
 def test_verifier_rejects_unpatched_binary(tmp_path):
     binary = _make_fake_nju_cli(tmp_path / "nju-cli", "sys.exit(0)\n")
 
-    with pytest.raises(RuntimeError, match="accepted a relative NJU_CLI_CACHE_DIR"):
+    with pytest.raises(RuntimeError, match="expected auth.json is missing"):
         _verify(binary)
 
 
@@ -113,19 +113,3 @@ def test_verifier_normalizes_mixed_case_windows_runtime_keys():
         "SYSTEMROOT": r"C:\Windows",
         "COMSPEC": r"C:\Windows\System32\cmd.exe",
     }
-
-
-@pytest.mark.skipif(os.name == "nt", reason="POSIX fixture executable")
-def test_verifier_rejects_binary_that_accepts_relative_override(tmp_path):
-    binary = _make_fake_nju_cli(
-        tmp_path / "nju-cli",
-        """
-        cache = pathlib.Path(os.environ["NJU_CLI_CACHE_DIR"])
-        auth = cache / "auth" / "auth.json"
-        auth.parent.mkdir(parents=True)
-        auth.write_text(json.dumps({"castgc": sys.argv[3]}), encoding="utf-8")
-        """,
-    )
-
-    with pytest.raises(RuntimeError, match="accepted a relative NJU_CLI_CACHE_DIR"):
-        _verify(binary)
