@@ -1,7 +1,8 @@
 # Cloudflare Tunnel 部署说明
 
-该方案由 Cloudflare 在公网侧终止 HTTPS，服务器只主动建立出站 Tunnel。Docker 不映射
-`80`、`443` 或应用端口，公网无法直接访问源站服务。
+该方案由 Cloudflare 在公网侧终止 HTTPS，服务器只主动建立出站 Tunnel。仅启动本编排文件且
+主机没有其他端口映射或反向代理时，Docker 不映射 `80`、`443` 或应用端口，外部流量只能经
+Tunnel 到达源站。
 
 ## 1. 准备服务器
 
@@ -55,7 +56,7 @@ docker compose -f compose.cloudflare.yaml up -d --build
 docker compose -f compose.cloudflare.yaml ps
 ```
 
-三个服务都应显示 `running`，其中健康检查最终应变为 `healthy`。随后验证：
+三个服务都应处于运行状态，其中健康检查最终应变为 `healthy`。随后验证：
 
 ```bash
 curl -fsS https://你的域名/api/health
@@ -71,7 +72,12 @@ docker compose -f compose.cloudflare.yaml logs --tail=100 app caddy cloudflared
 docker compose -f compose.cloudflare.yaml ps
 ```
 
-输出的 `PORTS` 列不应出现 `0.0.0.0:80`、`0.0.0.0:443` 或 `0.0.0.0:8000`。
+输出的 `PORTS` 列不应出现任何 `host_ip:host_port->container_port` 映射（包括 `0.0.0.0`、
+`[::]` 或指定主机 IP）。也可以执行以下命令；没有输出或返回非零状态才符合预期：
+
+```bash
+docker compose -f compose.cloudflare.yaml port app 8000
+```
 
 ## 5. 更新、备份与回滚
 
@@ -94,8 +100,9 @@ docker compose -f compose.cloudflare.yaml logs --since=30m app caddy cloudflared
 docker compose -f compose.cloudflare.yaml down
 ```
 
-不要使用 `down -v`，它会删除 SQLite 状态卷。`nanyong-state` 保存加密后的学校认证票据、会话和
-评价搜索索引；备份时应同时保护 `.env`，因为没有原 `APP_SECRET` 无法解密已有认证票据。
+不要使用 `down -v`，它会删除 SQLite 状态卷。`nanyong-state` 保存学号、会话时间、评价搜索
+索引以及使用 `APP_SECRET` 加密的学校认证票据；会话令牌只保存摘要。备份时应同时保护 `.env`，
+因为没有原 `APP_SECRET` 无法解密已有认证票据。
 
 ## 6. Cloudflare 缓存规则
 
