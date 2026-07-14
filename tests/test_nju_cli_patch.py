@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from desktop.patch_nju_cli import PATCHED_AUTH_CACHE_DIR, patch_source
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH = ROOT / "third_party" / "patches" / "nju-cli-v1.4.6-cache-dir.patch"
@@ -49,6 +51,16 @@ def test_patch_applies_to_v146_auth_cache_function(tmp_path):
     assert 'std::env::temp_dir().join("nju-cli")' in patched
     assert "cache_dir.is_absolute()" in patched
     assert "NJU_CLI_CACHE_DIR must be an absolute path" in patched
+    assert PATCHED_AUTH_CACHE_DIR in patched
+
+
+def test_python_patcher_matches_the_auditable_patch(tmp_path):
+    source = tmp_path / "crates" / "cli" / "src" / "auth.rs"
+    source.parent.mkdir(parents=True)
+    source.write_text(UPSTREAM_AUTH_TAIL, encoding="utf-8")
+
+    assert patch_source(tmp_path) == source
+    assert PATCHED_AUTH_CACHE_DIR in source.read_text(encoding="utf-8")
 
 
 def _make_fake_nju_cli(path: Path, body: str) -> Path:
