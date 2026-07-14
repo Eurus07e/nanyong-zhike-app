@@ -1,23 +1,22 @@
 # 南雍知课
 
-南京大学一站式选课与学业助手。登录南京大学统一身份认证后，可在同一个本地界面查看
-成绩与学分、培养方案、个人课表和公开课程评价。
+南京大学一站式选课与学业助手。登录南京大学统一身份认证后，可在同一本地界面查看
+成绩与学分、培养方案、个人课表和公开课程评价等。
 
 > 本项目是学生个人开发的非官方工具，与南京大学官方无隶属关系。课程、成绩与培养方案
 > 请以学校系统最终结果为准。
 
 ## 下载和启动
 
-不需要安装 Python、Node.js 或 Docker，也不用输入命令。
 
-**先点自己的系统下载：**
+**根据自己的系统下载：**
 
 - [Windows 10 / 11（64 位）](https://github.com/Eurus07e/nanyong-zhike-app/releases/latest/download/NanyongZhike-windows-x86_64.zip)
 - [Apple 芯片 Mac（M1 / M2 / M3 / M4）](https://github.com/Eurus07e/nanyong-zhike-app/releases/latest/download/NanyongZhike-macos-arm64.zip)
 - [Linux（64 位，Ubuntu 22.04+）](https://github.com/Eurus07e/nanyong-zhike-app/releases/latest/download/NanyongZhike-linux-x86_64.zip)
 - [Linux（ARM64，Ubuntu 24.04+）](https://github.com/Eurus07e/nanyong-zhike-app/releases/latest/download/NanyongZhike-linux-arm64.zip)
 
-然后只做三步：
+下载后：
 
 1. 把下载的 ZIP 压缩包完整解压。
 2. 打开解压后的文件夹，双击“启动南雍知课”。
