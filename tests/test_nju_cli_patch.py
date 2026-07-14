@@ -76,7 +76,8 @@ def test_verifier_accepts_binary_that_honors_cache_override(tmp_path):
         tmp_path / "nju-cli",
         """
         assert sys.argv[1:3] == ["login", "--castgc"]
-        cache = pathlib.Path(os.environ["NJU_CLI_CACHE_DIR"])
+        cache_key = "NJU" + "_CLI_CACHE_DIR"
+        cache = pathlib.Path(os.environ[cache_key])
         if not cache.is_absolute():
             sys.exit(2)
         auth = cache / "auth" / "auth.json"
@@ -92,7 +93,7 @@ def test_verifier_accepts_binary_that_honors_cache_override(tmp_path):
 def test_verifier_rejects_unpatched_binary(tmp_path):
     binary = _make_fake_nju_cli(tmp_path / "nju-cli", "sys.exit(0)\n")
 
-    with pytest.raises(RuntimeError, match="did not honor NJU_CLI_CACHE_DIR"):
+    with pytest.raises(RuntimeError, match="accepted a relative NJU_CLI_CACHE_DIR"):
         _verify(binary)
 
 

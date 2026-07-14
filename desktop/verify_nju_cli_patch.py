@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Mapping
 
 
-_CACHE_OVERRIDE = b"NJU_CLI_CACHE_DIR"
 _PROBE_CASTGC = "nanyong-zhike-cache-isolation-probe"
 _RUNTIME_ENV = frozenset(
     {
@@ -33,17 +32,6 @@ _SANDBOX_ENV = frozenset(
 )
 
 
-def _contains_cache_override(binary: Path) -> bool:
-    overlap = b""
-    with binary.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            data = overlap + chunk
-            if _CACHE_OVERRIDE in data:
-                return True
-            overlap = data[-(len(_CACHE_OVERRIDE) - 1) :]
-    return False
-
-
 def _runtime_environment(source: Mapping[str, str] | None = None) -> dict[str, str]:
     source = os.environ if source is None else source
     canonical = {key.casefold(): key for key in _RUNTIME_ENV}
@@ -58,11 +46,9 @@ def verify_nju_cli_patch(binary: Path) -> None:
     binary = binary.resolve()
     if not binary.is_file():
         raise RuntimeError(f"nju-cli binary does not exist: {binary}")
-    if not _contains_cache_override(binary):
-        raise RuntimeError(
-            "nju-cli did not honor NJU_CLI_CACHE_DIR: binary lacks the cache override"
-        )
 
+    # Exercise the binary instead of inspecting strings: platform linkers and
+    # optimizers may encode the same environment key differently.
     with tempfile.TemporaryDirectory(prefix="nanyong-nju-cli-probe-") as state:
         state_path = Path(state)
         cache_dir = state_path / "nju-cli"
