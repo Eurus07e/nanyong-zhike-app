@@ -10,6 +10,34 @@ from desktop import launcher, prepare_release
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_launcher_forces_utf8_console_output(monkeypatch):
+    class Stream:
+        def __init__(self):
+            self.options = None
+
+        def reconfigure(self, **options):
+            self.options = options
+
+    stdout = Stream()
+    stderr = Stream()
+    monkeypatch.setattr(launcher.sys, "stdout", stdout)
+    monkeypatch.setattr(launcher.sys, "stderr", stderr)
+
+    launcher.configure_console_encoding()
+
+    expected = {"encoding": "utf-8", "errors": "replace"}
+    assert stdout.options == expected
+    assert stderr.options == expected
+
+
+def test_windows_launcher_uses_utf8_code_page():
+    script = (ROOT / "desktop" / "launchers" / "启动南雍知课.cmd").read_text(
+        encoding="utf-8"
+    )
+
+    assert "chcp 65001 >nul" in script
+
+
 def test_secret_is_created_once_with_restricted_permissions(tmp_path):
     first = launcher.load_or_create_secret(tmp_path)
     second = launcher.load_or_create_secret(tmp_path)
