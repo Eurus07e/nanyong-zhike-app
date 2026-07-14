@@ -1,28 +1,32 @@
-南雍知课 v1.0 使用说明
+南雍知课 v1.0.0 使用说明
 =======================
 
 不需要安装 Python、Node.js 或 Docker。
 
-1. 完整解压下载的压缩包。
-2. macOS 双击“启动南雍知课.command”。
+1. 完整解压下载的压缩包，不要直接在压缩包预览窗口中运行。
+2. macOS 按住 Control 点击“启动南雍知课.command”，再选择“打开”。
    Windows 双击“启动南雍知课.cmd”。
-   Linux 双击“启动南雍知课.sh”。
+   Linux 双击“启动南雍知课.sh”；如果没有反应，请在终端运行：
+   chmod +x '启动南雍知课.sh' NanyongZhike
+   ./'启动南雍知课.sh'
 3. 等待默认浏览器自动打开。
 4. 关闭启动窗口即可停止南雍知课。
 
 程序只监听 127.0.0.1，不会向局域网或公网开放。
 
-首次运行提示未知开发者时，请先确认文件来自：
+首次运行提示未知开发者或 SmartScreen 时，请先确认文件来自：
 https://github.com/Eurus07e/nanyong-zhike-app/releases
 
-macOS 可按住 Control 点击启动文件并选择“打开”；Windows 可在 SmartScreen 中选择
-“更多信息”，确认来源后再运行。
+macOS 可在“系统设置 > 隐私与安全性”中选择“仍要打开”；Windows 可在 SmartScreen 中选择
+“更多信息”，确认来源后再运行。安装包未进行 Windows 代码签名或 Apple 公证，请不要关闭
+系统安全防护。
 
 本地数据位置：
 macOS   ~/Library/Application Support/NanyongZhike
 Windows %LOCALAPPDATA%\NanyongZhike
-Linux   ~/.local/share/NanyongZhike
+Linux   ${XDG_DATA_HOME:-~/.local/share}/NanyongZhike
 
-排名与平均学分绩来自仅支持 HTTP 的南京大学交换生旧系统，该查询不具备 HTTPS 传输保护。
+排名与平均学分绩来自仅支持 HTTP 的南京大学交换生旧系统。登录后进入“学业概览”时会自动
+查询，该链路不具备 HTTPS 传输保护。
 
-详细说明、隐私策略和故障排查请查看同目录 README.md。
+详细说明、隐私说明和故障排查请查看同目录 README.md。
