@@ -11,6 +11,16 @@ def asset_validator():
     return validator
 
 
+def test_release_smoke_decodes_child_output_portably() -> None:
+    options = getattr(smoke_test_release, "_TEXT_PROCESS_OPTIONS", None)
+
+    assert options == {
+        "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
+    }
+
+
 def test_release_smoke_rejects_spa_fallback_for_missing_image() -> None:
     with pytest.raises(RuntimeError, match="invalid frontend asset"):
         asset_validator()("login-campus-2.jpg", b"<!doctype html><html></html>", "text/html")
