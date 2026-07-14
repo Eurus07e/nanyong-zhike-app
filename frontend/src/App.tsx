@@ -7,6 +7,7 @@ import { Reviews } from './components/Reviews'
 import { Schedule } from './components/Schedule'
 import { About } from './components/About'
 import { Shell, type View } from './components/Shell'
+import { Planner } from './features/planner/Planner'
 import type { AcademicProfile, GradePage, GradeSummary, Program, ProgramCourse, ProgramNode, ScheduleCourse, Session, Term } from './types'
 import { selectOwnedProgram } from './utils'
 
@@ -53,6 +54,7 @@ export default function App() {
     {visited.has('overview') && <section hidden={view !== 'overview'}><Overview session={session} onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('program') && <section hidden={view !== 'program'}><ProgramView session={session} onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('schedule') && <section hidden={view !== 'schedule'}><Schedule onUnauthorized={handleUnauthorized} /></section>}
+    {visited.has('planner') && <section hidden={view !== 'planner'}><Planner username={session.username} onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('reviews') && <section hidden={view !== 'reviews'}><Reviews /></section>}
     {visited.has('about') && <section hidden={view !== 'about'}><About /></section>}
   </Shell>

@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react'
-import { BookOpenCheck, CalendarDays, GraduationCap, Info, LoaderCircle, LogOut, Menu, Search, X } from 'lucide-react'
+import { BookOpenCheck, CalendarDays, ClipboardList, GraduationCap, Info, LoaderCircle, LogOut, Menu, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ApiError, EHALL_STATUS_EVENT } from '../api'
 import type { Session } from '../types'
 
-export type View = 'overview' | 'program' | 'schedule' | 'reviews' | 'about'
+export type View = 'overview' | 'program' | 'schedule' | 'planner' | 'reviews' | 'about'
 
 const navigation = [
   { id: 'overview' as const, label: '学业概览', icon: GraduationCap },
   { id: 'program' as const, label: '培养方案', icon: BookOpenCheck },
   { id: 'schedule' as const, label: '我的课表', icon: CalendarDays },
+  { id: 'planner' as const, label: '我的计划', icon: ClipboardList },
   { id: 'reviews' as const, label: '课程评价', icon: Search },
   { id: 'about' as const, label: '关于本站', icon: Info },
 ]
