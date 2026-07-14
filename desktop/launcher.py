@@ -22,6 +22,18 @@ APP_NAME = "NanyongZhike"
 DEFAULT_PORT = 8000
 
 
+def configure_console_encoding() -> None:
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if not callable(reconfigure):
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):
+            pass
+
+
 def resource_path(*parts: str) -> Path:
     if getattr(sys, "frozen", False):
         root = Path(getattr(sys, "_MEIPASS"))
@@ -139,6 +151,7 @@ def open_when_ready(url: str) -> None:
 
 
 def main() -> int:
+    configure_console_encoding()
     try:
         data_dir = configure_environment()
         port, already_running = select_port()
