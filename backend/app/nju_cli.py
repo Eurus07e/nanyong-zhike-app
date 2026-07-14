@@ -52,6 +52,17 @@ class _ProcessLimiter:
 
 
 class NjuCli:
+    _WINDOWS_SANDBOX_ENV = frozenset(
+        {
+            "HOME",
+            "USERPROFILE",
+            "LOCALAPPDATA",
+            "APPDATA",
+            "TMPDIR",
+            "TEMP",
+            "TMP",
+        }
+    )
     _PASSTHROUGH_ENV = frozenset(
         {
             "HOME",
@@ -60,8 +71,18 @@ class NjuCli:
             "LC_ALL",
             "LC_CTYPE",
             "TZ",
+            "TMPDIR",
+            "TEMP",
+            "TMP",
             "SSL_CERT_FILE",
             "SSL_CERT_DIR",
+            "SYSTEMROOT",
+            "WINDIR",
+            "COMSPEC",
+            "PATHEXT",
+            "USERPROFILE",
+            "APPDATA",
+            "LOCALAPPDATA",
             "HTTP_PROXY",
             "HTTPS_PROXY",
             "NO_PROXY",
@@ -80,6 +101,12 @@ class NjuCli:
         )
 
     def _resolve_binary(self) -> Path:
+        if self.settings.app_env.casefold() == "desktop":
+            bundled = Path(self.settings.nju_cli_bin).expanduser()
+            if bundled.is_file() and (os.name == "nt" or os.access(bundled, os.X_OK)):
+                return bundled
+            raise RuntimeError("发行包不完整：内置 nju-cli 不可用，请重新下载并完整解压")
+
         candidates: list[Path] = []
         if self.settings.nju_cli_bin:
             candidates.append(Path(self.settings.nju_cli_bin).expanduser())
@@ -159,13 +186,27 @@ class NjuCli:
 
     @staticmethod
     def _base_env(cache_path: Path) -> dict[str, str]:
-        env = {
-            key: value
-            for key, value in os.environ.items()
-            if key in NjuCli._PASSTHROUGH_ENV
-        }
+        is_windows = platform.system() == "Windows"
+        if is_windows:
+            allowed = {key.casefold() for key in NjuCli._PASSTHROUGH_ENV}
+            env = {
+                key.upper(): value
+                for key, value in os.environ.items()
+                if key.casefold() in allowed
+            }
+        else:
+            env = {
+                key: value
+                for key, value in os.environ.items()
+                if key in NjuCli._PASSTHROUGH_ENV
+            }
         env.setdefault("PATH", os.defpath)
         env["XDG_CACHE_HOME"] = str(cache_path)
+        env["NJU_CLI_CACHE_DIR"] = str(cache_path / "nju-cli")
+        if is_windows:
+            sandbox = str(cache_path)
+            for key in NjuCli._WINDOWS_SANDBOX_ENV:
+                env[key] = sandbox
         env["RUST_BACKTRACE"] = "0"
         return env
 

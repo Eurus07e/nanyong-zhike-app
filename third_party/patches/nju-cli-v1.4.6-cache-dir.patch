@@ -1,0 +1,25 @@
+diff --git a/crates/cli/src/auth.rs b/crates/cli/src/auth.rs
+--- a/crates/cli/src/auth.rs
++++ b/crates/cli/src/auth.rs
+@@ -96,8 +96,18 @@ fn auth_cache_file() -> Result<PathBuf> {
+ }
+
+ fn auth_cache_dir() -> Result<PathBuf> {
+-    let app_dirs = AppDirs::new(Some("nju-cli"), true)
+-        .ok_or_else(|| anyhow!("failed to resolve application cache directory"))?;
+-    let dir = app_dirs.cache_dir.join("auth");
++    let cache_dir = match std::env::var_os("NJU_CLI_CACHE_DIR") {
++        Some(value) => {
++            let cache_dir = PathBuf::from(value);
++            if !cache_dir.is_absolute() {
++                return Err(anyhow!("NJU_CLI_CACHE_DIR must be an absolute path"));
++            }
++            cache_dir
++        }
++        None => AppDirs::new(Some("nju-cli"), true)
++            .ok_or_else(|| anyhow!("failed to resolve application cache directory"))?
++            .cache_dir,
++    };
++    let dir = cache_dir.join("auth");
+
+     std::fs::create_dir_all(&dir).with_context(|| format!("failed to create {}", dir.display()))?;

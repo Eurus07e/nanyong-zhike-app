@@ -12,15 +12,15 @@ ARG NJU_CLI_VERSION=1.4.6
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && case "${TARGETARCH}" in \
-         amd64) asset="linux-x86_64"; checksum="5e639d8e7e3281e24d4557afff78c4cd1d26dd71079d751d83e266fb41709116" ;; \
-         arm64) asset="linux-aarch64"; checksum="135e2ca2a840de9258179b1e801ba72fa9ef162f3053d07f0307103ae0964fc7" ;; \
+         amd64) asset="linux-x86_64"; checksum="18a1522ef72c551f6c0b7c66da0205f5df917dfb0a6e9384cd701ad9d8608380" ;; \
+         arm64) asset="linux-aarch64"; checksum="eff7df849ae8da55c9365c4d4160022e5ba385b0c136e39c88b5175098fef08d" ;; \
          *) echo "unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
        esac \
     && curl -fL --retry 3 -o /tmp/nju-cli.tar.gz "https://github.com/nju-cli/nju-cli/releases/download/v${NJU_CLI_VERSION}/nju-cli-${asset}.tar.gz" \
+    && echo "${checksum}  /tmp/nju-cli.tar.gz" | sha256sum -c - \
     && mkdir /tmp/nju-cli \
     && tar -xzf /tmp/nju-cli.tar.gz -C /tmp/nju-cli \
     && binary="$(find /tmp/nju-cli -type f -name nju-cli | head -n 1)" \
-    && echo "${checksum}  ${binary}" | sha256sum -c - \
     && install -m 0755 "${binary}" /usr/local/bin/nju-cli \
     && rm -rf /var/lib/apt/lists/* /tmp/nju-cli /tmp/nju-cli.tar.gz
 

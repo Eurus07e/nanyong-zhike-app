@@ -1,9 +1,10 @@
 [project]
 name = "nanyong-zhike"
-version = "0.1.0"
+version = "1.0.0"
 description = "南雍知课 - 南京大学选课与培养方案助手"
 requires-python = ">=3.11"
 dependencies = [
+  "certifi>=2026.2.25,<2027",
   "cryptography>=48.0.1,<50",
   "fastapi>=0.115.0,<1",
   "pydantic-settings>=2.7.0,<3",

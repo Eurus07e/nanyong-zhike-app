@@ -4,6 +4,7 @@ import { api } from '../api'
 import type { Session } from '../types'
 
 export function Login({ onLogin }: { onLogin: (session: Session) => void }) {
+  const [photo] = useState(() => `/login-campus-${Math.floor(Math.random() * 4) + 1}.jpg`)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -27,7 +28,7 @@ export function Login({ onLogin }: { onLogin: (session: Session) => void }) {
 
   return (
     <main className="login-page">
-      <img className="login-photo" src="/login-campus-1.jpg" alt="南京大学校园" fetchPriority="high" />
+      <img className="login-photo" src={photo} alt="南京大学校园" fetchPriority="high" />
       <div className="login-shade" aria-hidden="true" />
       <section className="login-content">
         <div className="login-brand">

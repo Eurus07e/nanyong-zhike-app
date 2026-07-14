@@ -1,5 +1,5 @@
 import { ArrowUpRight, GraduationCap } from 'lucide-react'
-import { siGithub, siGmail, siQq, siX, type SimpleIcon as SimpleIconType } from 'simple-icons'
+import { siGithub, siGmail, type SimpleIcon as SimpleIconType } from 'simple-icons'
 
 type Contact = { label: string; value: string; href: string; icon?: SimpleIconType; academic?: boolean }
 
@@ -7,8 +7,6 @@ const contacts: Contact[] = [
   { label: '南京大学邮箱', value: 'yuxuanshu@smail.nju.edu.cn', href: 'mailto:yuxuanshu@smail.nju.edu.cn', academic: true },
   { label: 'GitHub', value: '@Eurus07e', href: 'https://github.com/Eurus07e', icon: siGithub },
   { label: 'Gmail', value: 'yxshucassell@gmail.com', href: 'mailto:yxshucassell@gmail.com', icon: siGmail },
-  { label: 'QQ 邮箱', value: '180372413@qq.com', href: 'mailto:180372413@qq.com', icon: siQq },
-  { label: 'X', value: '@EurusYeZhi', href: 'https://x.com/EurusYeZhi', icon: siX },
 ]
 
 export function About() {
@@ -31,7 +29,7 @@ export function About() {
         <div className="privacy-points">
           <article><strong>密码</strong><p>仅用于发起本次南京大学统一身份认证，不会写入本站数据库、浏览器存储，或用于身份验证以外的用途。</p></article>
           <article><strong>登录状态</strong><p>为避免反复登录，服务端会保存学号、加密的学校认证票据与会话时效；浏览器仅持有随机的 HttpOnly 会话 Cookie，本站数据库只保存会话令牌的摘要。退出登录或会话到期后，本站会话即失效。</p></article>
-          <article><strong>学业数据</strong><p>成绩、课表与培养方案按需从 eHall 查询，排名与平均学分绩按需从南京大学交换生系统查询；相关结果仅在当前服务和浏览器内存中短期缓存，不作为个人档案写入本站数据库。</p></article>
+          <article><strong>学业数据</strong><p>成绩、课表与培养方案按需从 eHall 查询；排名与平均学分绩按需从南京大学交换生系统查询。相关结果仅在当前服务和浏览器内存中短期缓存，不作为个人档案写入本站数据库。交换生系统目前仅支持 HTTP，其查询链路不具备 HTTPS 传输保护。</p></article>
           <article><strong>本地偏好</strong><p>浏览器本地仅保存按学号区分的培养方案页面最近浏览选择，用于恢复界面偏好；该选择不会改变学业概览采用的本人专业培养方案。本站不会在本地存储密码或学校认证票据。公共设备使用完毕后，请主动退出登录。</p></article>
         </div>
       </section>

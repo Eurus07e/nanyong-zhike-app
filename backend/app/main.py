@@ -25,6 +25,7 @@ from .security import (
     SessionStore,
 )
 from .student_profile import StudentProfileClient, StudentProfileError
+from .version import APP_VERSION
 
 
 settings = get_settings()
@@ -63,7 +64,7 @@ async def _purge_expired_sessions() -> None:
         await asyncio.to_thread(sessions.purge_expired)
 
 
-app = FastAPI(title="南雍知课 API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="南雍知课 API", version=APP_VERSION, lifespan=lifespan)
 app.add_middleware(
     LoginBodyLimitMiddleware, max_body_bytes=settings.login_body_max_bytes
 )
@@ -124,7 +125,12 @@ async def run_cli(session: Session, args: list[str], *, timeout: int = 45) -> An
 
 @app.get("/api/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok", "service": "南雍知课"}
+    return {
+        "status": "ok",
+        "service": "南雍知课",
+        "version": APP_VERSION,
+        "deployment": settings.app_env,
+    }
 
 
 @app.post("/api/auth/login")
@@ -192,6 +198,11 @@ async def grade_summary(
 async def academic_ranking(
     session: Annotated[Session, Depends(current_session)],
 ) -> dict[str, float | int]:
+    if not settings.allow_insecure_exchange_system:
+        raise HTTPException(
+            status_code=503,
+            detail="学校排名服务暂不可安全连接",
+        )
     try:
         return await exchange_system.academic_ranking(session.castgc)
     except ExchangeSystemError as error:

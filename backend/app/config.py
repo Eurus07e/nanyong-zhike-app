@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     login_rate_window_seconds: int = Field(default=15 * 60, ge=30)
     login_rate_max_ip_entries: int = Field(default=10_000, ge=100)
     login_rate_max_username_entries: int = Field(default=50_000, ge=100)
+    allow_insecure_exchange_system: bool = False
     frontend_dist: Path = ROOT / "frontend" / "dist"
 
     @property
