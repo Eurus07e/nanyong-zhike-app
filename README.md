@@ -12,7 +12,7 @@
 
 <table>
   <tr>
-    <td align="center" width="9000">
+    <td align="center" width="900">
       <a href="docs/screenshots/academic-overview.jpeg"><img src="docs/screenshots/academic-overview.jpeg" width="900" alt="南雍知课学业概览"></a><br>
       <sub><b>学业概览</b></sub>
     </td>
