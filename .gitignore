@@ -38,5 +38,6 @@ dist/
 release/
 
 # Local planning and handoff artifacts; these are not part of the public app.
+.superpowers/
 build_course_schedule.mjs
 交接.md
