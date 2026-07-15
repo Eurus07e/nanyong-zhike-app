@@ -222,3 +222,11 @@ def test_five_education_uses_real_read_only_dashboard() -> None:
     assert "updateSearchMks" not in component
     assert "wdhdMe" not in component
     assert "电子成绩单" not in component
+
+
+def test_privacy_copy_covers_short_lived_five_education_data() -> None:
+    about = (ROOT / "frontend" / "src" / "components" / "About.tsx").read_text(encoding="utf-8")
+
+    assert "五育数据按需从南京大学五育系统查询" in about
+    assert "仅在浏览器内存中短期缓存" in about
+    assert "不会写入本站数据库" in about
