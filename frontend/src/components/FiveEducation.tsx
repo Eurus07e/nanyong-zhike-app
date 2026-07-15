@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, CheckCircle2, ChevronDown, CircleAlert, Image, LoaderCircle, RefreshCw, Search, X } from 'lucide-react'
+import { CheckCircle2, ChevronDown, CircleAlert, Image, LoaderCircle, Pentagon, RefreshCw, X } from 'lucide-react'
 import { ApiError, api } from '../api'
 import {
   filterFiveEducationActivities,
@@ -54,12 +54,9 @@ export function FiveEducation({ onUnauthorized }: { onUnauthorized: () => void }
   return <section className="service-panel five-education-panel" role="tabpanel">
     <div className="section-title service-panel-title five-education-title">
       <div><h2>我的五育</h2><p>德、智、体、美、劳活动与成长模块总览</p></div>
-      <div className="five-header-tools">
-        <div className="service-panel-actions">
-          {overview ? <a className="icon-button" href={overview.source.systemUrl} target="_blank" rel="noreferrer" aria-label="打开南京大学五育系统" title="打开原系统"><ArrowUpRight size={18} /></a> : null}
-          <button type="button" className="icon-button" onClick={() => void load(true)} disabled={loading} aria-label="刷新五育数据" title="刷新"><RefreshCw size={18} className={loading ? 'spin' : ''} /></button>
-        </div>
-        {overview ? <small>数据来自{overview.source.systemName} · 查询于 {formatFetchedAt(overview.fetchedAt)}</small> : null}
+      <div className="service-panel-actions">
+        {overview ? <a className="icon-button" href={overview.source.systemUrl} target="_blank" rel="noreferrer" aria-label="进入五育系统" title="进入五育系统"><Pentagon size={18} /></a> : null}
+        <button type="button" className="icon-button" onClick={() => void load(true)} disabled={loading} aria-label="刷新五育数据" title="刷新"><RefreshCw size={18} className={loading ? 'spin' : ''} /></button>
       </div>
     </div>
 
@@ -136,18 +133,13 @@ function FiveEducationDashboard({ overview, activities }: { overview: FiveEducat
       </article>
     </div>
 
-    <div className="five-education-secondary-grid">
-      <article className="five-education-card five-labor-card">
-        <header><strong>劳育构成</strong><button type="button" className="five-guide-button" onClick={() => setGuideOpen(true)}><Image size={15} />查看学习导引图</button></header>
-        <div className="five-labor-grid">
-          {overview.laborBreakdown.map((module) => <div key={module.moduleId}><span>{module.name}</span><strong>{formatDuration(module.actualDuration)}</strong><small>{module.displayTargetDuration === null ? '实际时长' : `目标 ${formatDuration(module.displayTargetDuration)}`}</small></div>)}
-          <div className="total"><span>总时长</span><strong>{formatDuration(overview.summary.laborTotalDuration)}</strong><small>五育系统统计</small></div>
-        </div>
-      </article>
-      <article className="five-education-card five-evaluation-card">
-        <span>学期评价</span><strong>{overview.summary.evaluatedCount}</strong><i>/ {overview.summary.evaluationTotal}</i><small>已评价 · 完成率 {evaluationPercent}%</small>
-      </article>
-    </div>
+    <article className="five-education-card five-labor-card">
+      <header><strong>劳育构成</strong><button type="button" className="five-guide-button" onClick={() => setGuideOpen(true)}><Image size={15} />查看学习导引图</button></header>
+      <div className="five-labor-grid">
+        {overview.laborBreakdown.map((module) => <div key={module.moduleId}><span>{module.name}</span><strong>{formatDuration(module.actualDuration)}</strong><small>{module.displayTargetDuration === null ? '实际时长' : `目标 ${formatDuration(module.displayTargetDuration)}`}</small></div>)}
+        <div className="total"><span>总时长</span><strong>{formatDuration(overview.summary.laborTotalDuration)}</strong><small>五育系统统计</small></div>
+      </div>
+    </article>
 
     <ActivitySection data={activities} />
     {guideOpen ? <GuideModal onClose={() => setGuideOpen(false)} /> : null}
@@ -159,51 +151,35 @@ function ActivitySection({ data }: { data: FiveEducationActivities | null }) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<FiveEducationActivityStatus>('all')
   const [sort, setSort] = useState<FiveEducationActivitySort>('time-desc')
+  const [selected, setSelected] = useState<FiveEducationActivity | null>(null)
   const items = useMemo(() => sortFiveEducationActivities(filterFiveEducationActivities(data?.items || [], query, status), sort), [data, query, status, sort])
 
   return <section className="five-activity-section" aria-labelledby="five-activity-title">
     <header><div><h3 id="five-activity-title">我的活动</h3><p>{data ? `${data.academicYear}学年 · ${data.termLabel} · ${items.length} / ${data.count} 条` : '正在读取活动记录'}</p></div></header>
-    <div className="five-activity-controls" aria-label="活动筛选与排序">
-      <label><span>搜索</span><div><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="活动名称、单位或地点" /></div></label>
+    <div className="program-toolbar five-activity-controls" aria-label="活动筛选与排序">
+      <label><span>搜索</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="活动名称、单位或地点" /></label>
       <label><span>状态</span><select value={status} onChange={(event) => setStatus(event.target.value as FiveEducationActivityStatus)}><option value="all">全部状态</option><option value="recognized">已认定</option><option value="pending-review">待评价</option></select></label>
       <label><span>排序</span><select value={sort} onChange={(event) => setSort(event.target.value as FiveEducationActivitySort)}><option value="time-desc">活动时间由近到远</option><option value="time-asc">活动时间由远到近</option><option value="title">活动名称</option></select></label>
     </div>
     <div className="five-activity-list">
       <div className="five-activity-head"><span>活动</span><span>单位</span><span>时间与地点</span><span>状态</span><span /></div>
-      {items.map((item) => <ActivityRow key={item.id} item={item} />)}
+      {items.map((item) => <ActivityRow key={item.id} item={item} onOpen={() => setSelected(item)} />)}
       {data && !items.length ? <div className="five-block-empty">没有符合当前条件的活动</div> : null}
       {!data ? <div className="five-block-empty"><LoaderCircle className="spin" size={20} />正在读取活动记录</div> : null}
     </div>
+    {selected ? <ActivityModal item={selected} onClose={() => setSelected(null)} /> : null}
   </section>
 }
 
 
-function ActivityRow({ item }: { item: FiveEducationActivity }) {
-  return <details className="five-activity-row">
-    <summary>
+function ActivityRow({ item, onOpen }: { item: FiveEducationActivity; onOpen: () => void }) {
+  return <button type="button" className="five-activity-row" onClick={onOpen} aria-label={`查看活动详情：${item.title}`}>
       <span><strong>{item.title}</strong><small>{[item.category, item.module].filter(Boolean).join(' · ') || '类型待确认'}</small></span>
       <span>{item.organizer || '发起单位待确认'}</span>
       <span><b>{formatActivityRange(item.activityStart, item.activityEnd)}</b><small>{item.location || '地点待确认'}</small></span>
       <span><em>{item.approvalStatus || '状态待确认'}</em><small>{[item.grade, item.recognizedDuration > 0 ? `${formatDuration(item.recognizedDuration)} 小时` : ''].filter(Boolean).join(' · ')}</small></span>
       <ChevronDown size={17} />
-    </summary>
-    <div className="five-activity-detail">
-      <Detail label="英文名称" value={item.englishTitle} wide />
-      <Detail label="劳动类型" value={item.laborType} />
-      <Detail label="负责人" value={item.coordinator} />
-      <Detail label="联系电话" value={item.contactPhone} />
-      <Detail label="联系邮箱" value={item.contactEmail} />
-      <Detail label="报名时间" value={formatActivityRange(item.registrationStart, item.registrationEnd)} wide />
-      <Detail label="本人报名" value={formatActivityDate(item.registeredAt)} />
-      <Detail label="报名方式" value={item.registrationMethod} />
-      <Detail label="招募人数" value={item.capacity ? `${item.capacity} 人` : ''} />
-      <Detail label="审核 / 认定" value={[item.approvalStatus, item.recognitionStatus].filter(Boolean).join(' · ')} />
-      <Detail label="参与 / 评价" value={[item.participationStatus, item.reviewStatus].filter(Boolean).join(' · ')} />
-      <Detail label="活动 / 录入时长" value={`${formatDuration(item.activityDuration)} / ${formatDuration(item.recordedDuration)} 小时`} />
-      <Detail label="活动介绍" value={item.description} wide />
-      <Detail label="考核办法" value={item.assessmentMethod} wide />
-    </div>
-  </details>
+  </button>
 }
 
 
@@ -217,7 +193,42 @@ function GuideModal({ onClose }: { onClose: () => void }) {
   return <div className="five-guide-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section className="five-guide-modal" role="dialog" aria-modal="true" aria-labelledby="five-guide-title">
       <header><div><h3 id="five-guide-title">劳动教育学习导引图</h3><p>南京大学本科生劳动教育学习参考</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭导引图"><X size={18} /></button></header>
-      <div><img src="/five-education-labor-guide.png" alt="南京大学本科生劳动教育学习导引图" /></div>
+      <div className="five-guide-canvas"><img src="/five-education-labor-guide.svg" alt="南京大学本科生劳动教育学习导引图" /></div>
+    </section>
+  </div>
+}
+
+
+function ActivityModal({ item, onClose }: { item: FiveEducationActivity; onClose: () => void }) {
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [onClose])
+
+  return <div className="five-activity-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    <section className="five-activity-modal" role="dialog" aria-modal="true" aria-labelledby="five-activity-modal-title">
+      <header><div><span>活动详情</span><h3 id="five-activity-modal-title">{item.title}</h3><p>{[item.category, item.module, item.organizer].filter(Boolean).join(' · ')}</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭活动详情"><X size={18} /></button></header>
+      <div className="five-activity-modal-body">
+        <div className="five-activity-status-strip"><span>{item.approvalStatus || '状态待确认'}</span><span>{item.recognitionStatus || '认定状态待确认'}</span><span>{item.reviewStatus}</span>{item.grade ? <strong>{item.grade}</strong> : null}</div>
+        <div className="five-activity-detail">
+          <Detail label="英文名称" value={item.englishTitle} wide />
+          <Detail label="活动时间" value={formatActivityRange(item.activityStart, item.activityEnd)} wide />
+          <Detail label="活动地点" value={item.location} />
+          <Detail label="劳动类型" value={item.laborType} />
+          <Detail label="负责人" value={item.coordinator} />
+          <Detail label="联系电话" value={item.contactPhone} />
+          <Detail label="联系邮箱" value={item.contactEmail} />
+          <Detail label="报名时间" value={formatActivityRange(item.registrationStart, item.registrationEnd)} wide />
+          <Detail label="本人报名" value={formatActivityDate(item.registeredAt)} />
+          <Detail label="报名方式" value={item.registrationMethod} />
+          <Detail label="招募人数" value={item.capacity ? `${item.capacity} 人` : ''} />
+          <Detail label="参与状态" value={item.participationStatus} />
+          <Detail label="活动 / 录入 / 认定时长" value={`${formatDuration(item.activityDuration)} / ${formatDuration(item.recordedDuration)} / ${formatDuration(item.recognizedDuration)} 小时`} wide />
+          <Detail label="活动介绍" value={item.description} wide />
+          <Detail label="考核办法" value={item.assessmentMethod} wide />
+        </div>
+      </div>
     </section>
   </div>
 }
@@ -229,7 +240,7 @@ function SummaryMetric({ label, value, note }: { label: string; value: string; n
 
 
 function FiveEducationSkeleton() {
-  return <div className="five-education-skeleton" aria-label="正在加载五育数据"><div /><div /><div /><span><LoaderCircle className="spin" size={20} />正在连接五育系统</span></div>
+  return <div className="center-loading service-panel-loading" aria-label="正在加载五育数据"><LoaderCircle className="spin" size={20} />正在连接五育系统</div>
 }
 
 
@@ -237,11 +248,6 @@ function formatActivityRange(start: string | null, end: string | null) {
   const left = formatActivityDate(start)
   if (!end) return left
   return `${left} - ${formatActivityDate(end)}`
-}
-
-
-function formatFetchedAt(timestamp: number) {
-  return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(timestamp * 1000))
 }
 
 

@@ -26,6 +26,7 @@ from .notices import NoticeService
 from .portal_snapshots import PortalSnapshotRepository
 from .reviews import ReviewRepository
 from .schedule import merge_schedule_details
+from .second_classroom import SecondClassroomClient, SecondClassroomError
 from .security import (
     LoginBodyLimitMiddleware,
     LoginRateLimiter,
@@ -56,6 +57,7 @@ notices = NoticeService(nju)
 exchange_system = ExchangeSystemClient()
 student_profiles = StudentProfileClient()
 five_education = FiveEducationClient()
+second_classroom = SecondClassroomClient()
 
 
 @asynccontextmanager
@@ -299,6 +301,19 @@ async def five_education_activities(
     try:
         return await five_education.activities(session.castgc)
     except FiveEducationError as error:
+        raise HTTPException(
+            status_code=401 if error.auth_expired else 502,
+            detail=str(error),
+        ) from error
+
+
+@app.get("/api/second-classroom/profile")
+async def second_classroom_profile(
+    session: Annotated[Session, Depends(current_session)],
+) -> dict[str, Any]:
+    try:
+        return await second_classroom.profile(session.castgc)
+    except SecondClassroomError as error:
         raise HTTPException(
             status_code=401 if error.auth_expired else 502,
             detail=str(error),

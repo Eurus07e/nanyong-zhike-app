@@ -222,7 +222,11 @@ def test_five_education_uses_real_read_only_dashboard() -> None:
     assert "劳育构成" in component
     assert "我的活动" in component
     assert "查看学习导引图" in component
-    assert "/five-education-labor-guide.png" in component
+    assert "/five-education-labor-guide.svg" in component
+    assert "five-activity-modal" in component
+    assert "活动详情" in component
+    assert "five-evaluation-card" not in component
+    assert "/five-education-labor-guide.png" not in component
     assert "我的兴趣" not in component
     assert component.count("href={overview.source.systemUrl}") == 1
     assert "five-education-source" not in component
@@ -231,9 +235,90 @@ def test_five_education_uses_real_read_only_dashboard() -> None:
     assert "电子成绩单" not in component
 
 
+def test_five_education_dimension_table_and_labor_cards_are_visually_consistent() -> None:
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert ".five-dimension-list > div { min-height: 47px; grid-template-columns: repeat(3, minmax(0, 1fr));" in styles
+    assert ".five-dimension-list > div > * { text-align: center; }" in styles
+    assert ".five-labor-grid .total { background: var(--surface-raised); }" in styles
+
+
+def test_five_education_and_second_classroom_use_semantic_system_icons() -> None:
+    components = ROOT / "frontend" / "src" / "components"
+    five = (components / "FiveEducation.tsx").read_text(encoding="utf-8")
+    second = (components / "SecondClassroom.tsx").read_text(encoding="utf-8")
+
+    assert "Pentagon" in five
+    assert "Medal" in second
+    assert 'className="icon-button" href={overview.source.systemUrl}' in five
+    assert 'className="icon-button" href={profile.sourceUrl}' in second
+    assert 'title="进入五育系统"' in five
+    assert 'title="进入第二课堂"' in second
+    assert "formatFetchedAt" not in five
+    assert "数据来自{overview.source.systemName}" not in five
+    assert "ArrowUpRight" not in five
+    assert "ArrowUpRight" not in second
+
+
+def test_campus_service_loading_states_are_centered_in_their_panels() -> None:
+    components = ROOT / "frontend" / "src" / "components"
+    campus = (components / "CampusServices.tsx").read_text(encoding="utf-8")
+    five = (components / "FiveEducation.tsx").read_text(encoding="utf-8")
+    second = (components / "SecondClassroom.tsx").read_text(encoding="utf-8")
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert 'className="center-loading service-panel-loading"' in campus
+    assert 'className="center-loading service-panel-loading"' in five
+    assert 'className="center-loading service-panel-loading"' in second
+    assert ".service-panel-loading { min-height: 330px;" in styles
+
+
+def test_five_education_activity_filters_reuse_the_site_toolbar_language() -> None:
+    component = (ROOT / "frontend" / "src" / "components" / "FiveEducation.tsx").read_text(
+        encoding="utf-8"
+    )
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert 'className="program-toolbar five-activity-controls"' in component
+    assert '<label><span>搜索</span><input' in component
+    assert ".five-activity-controls label > div" not in styles
+    assert ".five-activity-controls input {" not in styles
+
+
+def test_five_education_guide_wraps_long_green_descriptions_inside_boxes() -> None:
+    guide = (ROOT / "frontend" / "public" / "five-education-labor-guide.svg").read_text(
+        encoding="utf-8"
+    )
+
+    assert "积极参加本科生院" in guide
+    assert "勤工助学项目认定" in guide
+    assert "积极参加院系和相关" in guide
+    assert "职能部门创设的其它" in guide
+    assert "劳动教育实践项目" in guide
+
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+    assert ".five-guide-canvas { max-height: calc(92vh - 72px); overflow: hidden;" in styles
+    assert "max-height: calc(92vh - 116px)" in styles
+
+
 def test_privacy_copy_covers_short_lived_five_education_data() -> None:
     about = (ROOT / "frontend" / "src" / "components" / "About.tsx").read_text(encoding="utf-8")
 
     assert "五育数据按需从南京大学五育系统查询" in about
     assert "仅在浏览器内存中短期缓存" in about
     assert "不会写入本站数据库" in about
+    assert "第二课堂个人资料与志愿服务统计按需" in about
+    assert "同域 HTTP 兼容跳转" in about
+
+
+def test_second_classroom_replaces_placeholder_with_real_profile() -> None:
+    root = ROOT / "frontend" / "src"
+    campus = (root / "components" / "CampusServices.tsx").read_text(encoding="utf-8")
+    component = (root / "components" / "SecondClassroom.tsx").read_text(encoding="utf-8")
+    assert "<SecondClassroom onUnauthorized={onUnauthorized} />" in campus
+    assert "ServicePreparation" not in campus
+    assert "const PROFILE_PATH = '/api/second-classroom/profile'" in component
+    for label in ["学号", "姓名", "年级", "学院", "电子邮箱", "英语水平", "其他语言", "其他技能", "参加活动数", "服务总时长", "不诚信记录"]:
+        assert label in component
+    assert "报名通过率" not in component
+    assert "完成率" not in component

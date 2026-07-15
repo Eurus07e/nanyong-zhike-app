@@ -237,3 +237,19 @@ export type FiveEducationActivities = {
   count: number
   items: FiveEducationActivity[]
 }
+
+export type SecondClassroomProfile = {
+  fetchedAt: number
+  studentId: string
+  name: string
+  grade: string
+  college: string
+  email: string
+  englishLevel: string
+  otherLanguages: string
+  otherSkills: string
+  activityCount: number
+  serviceHours: number
+  dishonestyCount: number
+  sourceUrl: string
+}

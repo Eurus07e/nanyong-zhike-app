@@ -3,7 +3,6 @@ import {
   ArrowUpRight,
   BellRing,
   BookmarkPlus,
-  BookOpen,
   Check,
   Landmark,
   LoaderCircle,
@@ -19,6 +18,7 @@ import type { Memo, MemoListResponse, Notice, NoticeDetail, NoticeResponse } fro
 import { NjuTabs } from './NjuTabs'
 import { FiveEducation } from './FiveEducation'
 import { SegmentedControl } from './SegmentedControl'
+import { SecondClassroom } from './SecondClassroom'
 
 type ServiceTab = 'notices' | 'links' | 'five' | 'second-class' | 'mail'
 
@@ -140,7 +140,7 @@ export function CampusServices({ username, onUnauthorized }: { username: string;
         </div>
       </div>
       {error && <div className="error-banner">{error}</div>}
-      {loading && !notices.length ? <div className="center-loading"><LoaderCircle className="spin" />正在加载通知</div> : <div className="notice-list">
+      {loading && !notices.length ? <div className="center-loading service-panel-loading"><LoaderCircle className="spin" />正在加载通知</div> : <div className="notice-list">
         {notices.map((notice) => {
           const memoState = memoStates[notice.id]
           return <article key={notice.id}>
@@ -166,13 +166,7 @@ export function CampusServices({ username, onUnauthorized }: { username: string;
 
     {active === 'five' && <FiveEducation onUnauthorized={onUnauthorized} />}
 
-    {active === 'second-class' && <ServicePreparation
-      icon={BookOpen}
-      title="第二课堂"
-      system="南京大学第二课堂"
-      href="https://youth.nju.edu.cn"
-      fields={['个人概览', '最近记录', '可参与活动']}
-    />}
+    {active === 'second-class' && <SecondClassroom onUnauthorized={onUnauthorized} />}
 
     {active === 'mail' && <section className="service-panel mail-service" role="tabpanel">
       <div className="service-hero-icon"><Mail size={27} /></div>
@@ -232,33 +226,4 @@ function resolveNoticeUrl(url: string | undefined, baseUrl: string) {
     return ''
   }
   return ''
-}
-
-function ServicePreparation({
-  icon: Icon,
-  title,
-  system,
-  href,
-  fields,
-}: {
-  icon: typeof BookOpen
-  title: string
-  system: string
-  href: string
-  fields: string[]
-}) {
-  return <section className="service-panel" role="tabpanel">
-    <div className="section-title service-panel-title">
-      <div><h2>{title}</h2><p>{system}</p></div>
-      <a className="secondary-button" href={href} target="_blank" rel="noreferrer">打开原系统<ArrowUpRight size={16} /></a>
-    </div>
-    <div className="service-preparation">
-      <div className="service-hero-icon"><Icon size={27} /></div>
-      <strong>数据接口准备中</strong>
-      <span>统一身份认证链路已确认，待完成登录后接口字段核验。</span>
-    </div>
-    <div className="service-field-list" aria-label={`${title}待接入信息`}>
-      {fields.map((field) => <div key={field}><span>{field}</span><strong>—</strong></div>)}
-    </div>
-  </section>
 }
