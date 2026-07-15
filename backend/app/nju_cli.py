@@ -184,6 +184,48 @@ class NjuCli:
         except json.JSONDecodeError as error:
             raise NjuCliError("学校服务返回了无法解析的数据") from error
 
+    async def text(
+        self,
+        args: list[str],
+        *,
+        owner: str = "public",
+        timeout: int = 45,
+    ) -> str:
+        with tempfile.TemporaryDirectory(prefix="nanyong-public-") as cache:
+            return await self._execute(
+                args,
+                env=self._base_env(Path(cache)),
+                owner=owner.casefold(),
+                timeout=timeout,
+            )
+
+    async def public_cache_json(
+        self,
+        args: list[str],
+        cache_file: str,
+        *,
+        owner: str = "public",
+        timeout: int = 45,
+    ) -> Any:
+        relative = Path(cache_file)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("cache_file must be a safe relative path")
+        with tempfile.TemporaryDirectory(prefix="nanyong-public-") as cache:
+            cache_path = Path(cache)
+            await self._execute(
+                args,
+                env=self._base_env(cache_path),
+                owner=owner.casefold(),
+                timeout=timeout,
+            )
+            target = cache_path / relative
+            if not target.is_file():
+                raise NjuCliError("学校服务未返回公告列表")
+            try:
+                return json.loads(target.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as error:
+                raise NjuCliError("学校服务返回了无法解析的公告列表") from error
+
     @staticmethod
     def _base_env(cache_path: Path) -> dict[str, str]:
         is_windows = platform.system() == "Windows"

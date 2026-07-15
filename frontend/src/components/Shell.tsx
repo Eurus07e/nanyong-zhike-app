@@ -1,16 +1,18 @@
 import type { ReactNode } from 'react'
-import { BookOpenCheck, CalendarDays, GraduationCap, Info, LoaderCircle, LogOut, Menu, Search, X } from 'lucide-react'
+import { BellRing, BookOpenCheck, CalendarDays, GraduationCap, Info, LoaderCircle, LogOut, Menu, Power, Search, StickyNote, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ApiError, EHALL_STATUS_EVENT } from '../api'
 import type { Session } from '../types'
 
-export type View = 'overview' | 'program' | 'schedule' | 'reviews' | 'about'
+export type View = 'overview' | 'program' | 'schedule' | 'reviews' | 'campus' | 'memos' | 'about'
 
 const navigation = [
   { id: 'overview' as const, label: '学业概览', icon: GraduationCap },
   { id: 'program' as const, label: '培养方案', icon: BookOpenCheck },
   { id: 'schedule' as const, label: '我的课表', icon: CalendarDays },
-  { id: 'reviews' as const, label: '课程评价', icon: Search },
+  { id: 'reviews' as const, label: '红黑榜', icon: Search },
+  { id: 'campus' as const, label: '校园服务', icon: BellRing },
+  { id: 'memos' as const, label: '备忘录', icon: StickyNote },
   { id: 'about' as const, label: '关于本站', icon: Info },
 ]
 
@@ -19,12 +21,14 @@ export function Shell({
   active,
   onNavigate,
   onLogout,
+  onQuit,
   children,
 }: {
   session: Session
   active: View
   onNavigate: (view: View) => void
   onLogout: () => Promise<void>
+  onQuit?: () => Promise<void>
   children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -94,6 +98,7 @@ export function Shell({
           <button type="button" className="icon-button" disabled={logoutPending} onClick={() => void handleLogout()} aria-label="退出登录" title="退出登录">
             {logoutPending ? <LoaderCircle className="spin" size={18} /> : <LogOut size={18} />}
           </button>
+          {onQuit && <button type="button" className="icon-button" onClick={() => void onQuit()} aria-label="退出本地应用" title="退出本地应用"><Power size={18} /></button>}
         </div>
       </aside>
       {open && <button type="button" className="sidebar-backdrop" aria-label="关闭菜单" onClick={() => setOpen(false)} />}

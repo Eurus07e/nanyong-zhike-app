@@ -6,12 +6,16 @@ import { ProgramView } from './components/Program'
 import { Reviews } from './components/Reviews'
 import { Schedule } from './components/Schedule'
 import { About } from './components/About'
+import { Memos } from './components/Memos'
+import { CampusServices } from './components/CampusServices'
 import { Shell, type View } from './components/Shell'
-import type { AcademicProfile, GradePage, GradeSummary, Program, ProgramCourse, ProgramNode, ScheduleCourse, Session, Term } from './types'
+import type { AcademicOverview, AcademicProfile, Health, Program, ProgramCourse, ProgramNode, ScheduleCourse, Session, Term } from './types'
 import { selectOwnedProgram } from './utils'
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
+  const [deployment, setDeployment] = useState('')
+  const [stopping, setStopping] = useState(false)
   const [view, setView] = useState<View>('overview')
   const [visited, setVisited] = useState<Set<View>>(() => new Set(['overview']))
   const handleUnauthorized = useCallback(() => setSession(null), [])
@@ -19,7 +23,7 @@ export default function App() {
     api.clearCache()
     setVisited(new Set(['overview']))
     setView('overview')
-    setSession(next)
+    void hydrateSession(next, setSession)
   }, [])
 
   const navigate = useCallback((next: View) => {
@@ -29,7 +33,8 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    api.get<Session>('/api/auth/session').then(setSession).catch((error) => {
+    api.get<Health>('/api/health').then((health) => setDeployment(health.deployment)).catch(() => undefined)
+    api.get<Session>('/api/auth/session').then((next) => hydrateSession(next, setSession)).catch((error) => {
       if (error instanceof ApiError && error.status === 401) setSession(null)
       else setSession(null)
     })
@@ -46,23 +51,45 @@ export default function App() {
     setSession(null)
   }
 
-  if (session === undefined) return <div className="boot-screen"><div className="brand-mark">雍</div><span>南雍知课</span></div>
-  if (!session) return <Login onLogin={handleLogin} />
+  async function quitDesktop() {
+    setStopping(true)
+    try {
+      await api.post('/api/desktop/quit')
+    } catch {
+      setStopping(false)
+      throw new Error('退出本地应用失败')
+    }
+  }
 
-  return <Shell session={session} active={view} onNavigate={navigate} onLogout={logout}>
+  if (stopping) return <div className="boot-screen"><div className="brand-mark">雍</div><span>南雍知课已退出，可以关闭此页面</span></div>
+  if (session === undefined) return <div className="boot-screen"><div className="brand-mark">雍</div><span>南雍知课</span></div>
+  if (!session) return <Login onLogin={handleLogin} onQuit={deployment === 'desktop' ? quitDesktop : undefined} />
+
+  return <Shell session={session} active={view} onNavigate={navigate} onLogout={logout} onQuit={deployment === 'desktop' ? quitDesktop : undefined}>
     {visited.has('overview') && <section hidden={view !== 'overview'}><Overview session={session} onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('program') && <section hidden={view !== 'program'}><ProgramView session={session} onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('schedule') && <section hidden={view !== 'schedule'}><Schedule onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('reviews') && <section hidden={view !== 'reviews'}><Reviews /></section>}
+    {visited.has('campus') && <section hidden={view !== 'campus'}><CampusServices username={session.username} /></section>}
+    {visited.has('memos') && <section hidden={view !== 'memos'}><Memos onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('about') && <section hidden={view !== 'about'}><About /></section>}
   </Shell>
 }
 
+async function hydrateSession(next: Session, apply: (session: Session) => void) {
+  try {
+    const bootstrap = await api.get<{ entries: Record<string, { value: unknown; updatedAt: number }> }>('/api/bootstrap')
+    api.seedCache(bootstrap.entries)
+  } catch {
+    // Cached bootstrap is an optimization; live endpoints remain available.
+  }
+  apply(next)
+}
+
 async function prefetchAcademicData() {
   try {
-    const [, , terms, profile] = await Promise.all([
-      api.cached<GradeSummary>('/api/grades/summary'),
-      api.cached<GradePage>('/api/grades'),
+    const [, terms, profile] = await Promise.all([
+      api.cached<AcademicOverview>('/api/academic/overview'),
       api.cached<Term[]>('/api/schedule/terms', { ttl: 30 * 60_000 }),
       api.cached<AcademicProfile>('/api/academic/profile', { ttl: 30 * 60_000 }),
     ])

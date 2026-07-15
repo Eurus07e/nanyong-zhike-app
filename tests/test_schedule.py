@@ -26,6 +26,10 @@ def test_merge_schedule_details_uses_course_classification_not_selection_source(
                         "KCFLDM_DISPLAY": "学科基础课程",
                         "KCFL1": "1",
                         "KCFL1_DISPLAY": "理论类课程",
+                        "BY9": "0034",
+                        "BY9_DISPLAY": "通识课-自然科学与技术",
+                        "XGXKLBDM": "09",
+                        "XGXKLBDM_DISPLAY": "科学之光",
                     }
                 ]
             },
@@ -37,6 +41,8 @@ def test_merge_schedule_details_uses_course_classification_not_selection_source(
     assert merged["rows"][0]["KCM"] == "数据结构与算法"
     assert merged["rows"][0]["KCFLDM_DISPLAY"] == "学科基础课程"
     assert merged["rows"][0]["KCFL1_DISPLAY"] == "理论类课程"
+    assert merged["rows"][0]["BY9_DISPLAY"] == "通识课-自然科学与技术"
+    assert merged["rows"][0]["XGXKLBDM_DISPLAY"] == "科学之光"
     assert merged["rows"][0]["XKLY_DISPLAY"] == "自选"
 
 

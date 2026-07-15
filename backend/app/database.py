@@ -55,12 +55,50 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_reviews_teacher
                     ON reviews(teacher_normalized);
 
+                CREATE TABLE IF NOT EXISTS memos (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    tags_json TEXT NOT NULL DEFAULT '[]',
+                    pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
+                    link_url TEXT,
+                    link_label TEXT,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_memos_timeline
+                    ON memos(username, pinned DESC, updated_at DESC, id DESC);
+
+                CREATE TABLE IF NOT EXISTS academic_snapshots (
+                    username TEXT PRIMARY KEY,
+                    encrypted_payload TEXT NOT NULL,
+                    grade_count INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS portal_snapshots (
+                    username TEXT NOT NULL,
+                    cache_key TEXT NOT NULL,
+                    encrypted_payload TEXT NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    PRIMARY KEY(username, cache_key)
+                );
+
                 CREATE TABLE IF NOT EXISTS metadata (
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL
                 );
                 """
             )
+            memo_columns = {
+                str(row[1])
+                for row in connection.execute("PRAGMA table_info(memos)")
+            }
+            if "link_url" not in memo_columns:
+                connection.execute("ALTER TABLE memos ADD COLUMN link_url TEXT")
+            if "link_label" not in memo_columns:
+                connection.execute("ALTER TABLE memos ADD COLUMN link_label TEXT")
+
     def metadata(self, key: str) -> str | None:
         with self.connection() as connection:
             row = connection.execute(

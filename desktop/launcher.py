@@ -4,10 +4,13 @@ import json
 import os
 import platform
 import secrets
+import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.request
 import webbrowser
@@ -20,6 +23,7 @@ from backend.app.version import APP_VERSION
 
 APP_NAME = "NanyongZhike"
 DEFAULT_PORT = 8000
+_LOG_STREAMS: list[object] = []
 
 
 def configure_console_encoding() -> None:
@@ -32,6 +36,54 @@ def configure_console_encoding() -> None:
             reconfigure(encoding="utf-8", errors="replace")
         except (OSError, ValueError):
             pass
+
+
+def configure_file_logging(directory: Path) -> Path:
+    log_path = directory / "launcher.log"
+    frozen = getattr(sys, "frozen", False)
+    if not frozen and sys.stdout is not None and sys.stderr is not None:
+        return log_path
+
+    stream = log_path.open("a", encoding="utf-8", buffering=1)
+    _LOG_STREAMS.append(stream)
+    if frozen or sys.stdout is None:
+        sys.stdout = stream
+    if frozen or sys.stderr is None:
+        sys.stderr = stream
+    return log_path
+
+
+def show_error_dialog(message: str) -> None:
+    title = "南雍知课启动失败"
+    system = platform.system()
+    try:
+        if system == "Windows":
+            import ctypes
+
+            ctypes.windll.user32.MessageBoxW(None, message, title, 0x10)
+            return
+        if system == "Darwin":
+            subprocess.run(
+                [
+                    "/usr/bin/osascript",
+                    "-e", "on run argv",
+                    "-e", 'display dialog (item 1 of argv) with title "南雍知课启动失败" buttons {"好"} default button "好" with icon stop',
+                    "-e", "end run",
+                    message,
+                ],
+                check=False,
+                timeout=30,
+            )
+            return
+        zenity = shutil.which("zenity")
+        if zenity:
+            subprocess.run(
+                [zenity, "--error", f"--title={title}", f"--text={message}"],
+                check=False,
+                timeout=30,
+            )
+    except (OSError, subprocess.SubprocessError):
+        pass
 
 
 def resource_path(*parts: str) -> Path:
@@ -152,6 +204,9 @@ def open_when_ready(url: str) -> None:
 
 def main() -> int:
     configure_console_encoding()
+    data_dir = user_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    log_path = configure_file_logging(data_dir)
     try:
         data_dir = configure_environment()
         port, already_running = select_port()
@@ -163,7 +218,7 @@ def main() -> int:
 
         print("南雍知课正在启动……", flush=True)
         print(f"本地数据：{data_dir}", flush=True)
-        print("关闭此窗口或按 Ctrl+C 即可停止。", flush=True)
+        print("本地服务仅监听 127.0.0.1。", flush=True)
         open_when_ready(url)
 
         import uvicorn
@@ -182,6 +237,8 @@ def main() -> int:
         return 0
     except Exception as error:
         print(f"启动失败：{error}", file=sys.stderr, flush=True)
+        traceback.print_exc(file=sys.stderr)
+        show_error_dialog(f"{error}\n\n详细日志：{log_path}")
         return 1
 
 

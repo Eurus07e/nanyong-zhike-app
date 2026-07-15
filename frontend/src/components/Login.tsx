@@ -1,9 +1,9 @@
 import { FormEvent, useState } from 'react'
-import { Eye, EyeOff, LoaderCircle, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, LoaderCircle, Power, ShieldCheck } from 'lucide-react'
 import { api } from '../api'
 import type { Session } from '../types'
 
-export function Login({ onLogin }: { onLogin: (session: Session) => void }) {
+export function Login({ onLogin, onQuit }: { onLogin: (session: Session) => void; onQuit?: () => Promise<void> }) {
   const [photo] = useState(() => `/login-campus-${Math.floor(Math.random() * 4) + 1}.jpg`)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -28,6 +28,7 @@ export function Login({ onLogin }: { onLogin: (session: Session) => void }) {
 
   return (
     <main className="login-page">
+      {onQuit && <button type="button" className="icon-button desktop-exit-button" onClick={() => void onQuit()} aria-label="退出本地应用" title="退出本地应用"><Power size={18} /></button>}
       <img className="login-photo" src={photo} alt="南京大学校园" fetchPriority="high" />
       <div className="login-shade" aria-hidden="true" />
       <section className="login-content">

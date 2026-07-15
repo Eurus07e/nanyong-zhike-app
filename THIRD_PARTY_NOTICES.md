@@ -33,11 +33,22 @@ patch 文件是这项变更的等价完整 diff，供审阅和重建参考；构
 `data/reviews/merged_data.json` 来自
 [carottX/nju-class](https://github.com/carottX/nju-class)。本项目将其导入本地 SQLite，并
 重新实现字面量安全搜索、规范化与去重。上游仓库以 GNU GPL v3 发布；本仓库中保留的 JSON
-即发行时使用的数据源形式。v1.0.0 所用文件的 SHA-256 为
+即发行时使用的数据源形式。v1.0.0 与 v1.1.0 共用该文件，其 SHA-256 为
 `d2bca651d07a1765a29de1bdb19d48d31bfa76eed326be42def7157141da4c8e`。评价仅代表原作者观点，
 使用前应自行核实。
 
-## Campus images and interface assets
+## Memos
+
+南雍知课的备忘录在快速记录、标签、置顶和时间线交互上受到
+[usememos/memos](https://github.com/usememos/memos) 启发。Memos 由 Memos 社区维护，当前以
+[MIT License](https://github.com/usememos/memos/blob/main/LICENSE) 发布，版权声明为
+`Copyright (c) 2025 Memos`。
+
+南雍知课没有嵌入或运行完整的 Memos 服务，也不复制其账户、同步、附件、评论或权限系统；
+本项目在现有 FastAPI、React 与 SQLite 架构内独立实现了一个小型中文备忘录，数据格式和 API
+不承诺与 Memos 兼容，使用南雍知课时也不会把备忘录发送到 Memos 服务。
+
+## Campus images and account avatar
 
 以下界面素材由项目维护者提供或整理，仅用于南雍知课的登录页和默认头像展示，不代表南京大学
 官方授权或背书：
@@ -50,3 +61,9 @@ patch 文件是这项变更的等价完整 diff，供审阅和重建参考；构
 
 南京大学名称、标识与校园影像的相关权利归各自权利人所有；本站为学生个人开发的非官方工具，
 不暗示南京大学认可或背书。如权利人对素材使用有异议，请联系项目维护者处理。
+
+## Support-development asset
+
+`frontend/public/alipay-support.jpeg` 是项目维护者提供的支付宝自愿支持二维码。付款由支付宝处理，
+南雍知课不接入支付接口、交易回调或付款人追踪。支付宝名称、标识及相关权利归其权利人所有；
+二维码的展示不表示支付宝认可、运营或背书南雍知课。

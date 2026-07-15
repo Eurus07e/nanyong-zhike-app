@@ -9,6 +9,12 @@ COURSE_DETAIL_FIELDS = (
     "KCFLDM_DISPLAY",
     "KCFL1",
     "KCFL1_DISPLAY",
+    "BY9",
+    "BY9_DISPLAY",
+    "XGXKLBDM",
+    "XGXKLBDM_DISPLAY",
+    "SFXGXK",
+    "SFXGXK_DISPLAY",
 )
 
 

@@ -4,6 +4,24 @@ from collections import defaultdict
 from typing import Any
 
 
+def passed_course_detail_requests(payload: dict[str, Any]) -> dict[str, list[str]]:
+    """Group unique passed course IDs by term for detail lookup."""
+    grouped: dict[str, set[str]] = defaultdict(set)
+    rows = payload.get("rows", []) if isinstance(payload, dict) else []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        passed = str(row.get("SFJG", "")) == "1" or row.get("SFJG_DISPLAY") == "是"
+        term = str(row.get("XNXQDM") or "").strip()
+        course_id = str(row.get("KCH") or "").strip()
+        if passed and term and course_id:
+            grouped[term].add(course_id)
+    return {
+        term: sorted(course_ids)
+        for term, course_ids in sorted(grouped.items())
+    }
+
+
 def _number(value: Any) -> float:
     try:
         return float(value or 0)

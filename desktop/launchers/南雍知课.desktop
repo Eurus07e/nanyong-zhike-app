@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=南雍知课
+Comment=南京大学选课与学业助手
+Exec=sh -c 'cd -- "$(dirname -- "$1")" && exec ./NanyongZhike' sh %k
+Terminal=false
+Categories=Education;
+StartupNotify=true

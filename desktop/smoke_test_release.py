@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -20,6 +22,45 @@ _TEXT_PROCESS_OPTIONS = {
     "text": True,
     "encoding": "utf-8",
     "errors": "replace",
+}
+
+REQUIRED_FRONTEND_ASSETS = (
+    "login-campus-1.jpg",
+    "login-campus-2.jpg",
+    "login-campus-3.jpg",
+    "login-campus-4.jpg",
+    "default-avatar.jpeg",
+    "alipay-support.jpeg",
+    "favicon.svg",
+    "favicon-32x32.png",
+    "favicon.ico",
+    "apple-touch-icon.png",
+    "apple-touch-icon-precomposed.png",
+)
+REQUIRED_FRONTEND_ASSET_SHA256 = {
+    "alipay-support.jpeg": "91b2b166ef13806317ca1823afd5adaa28d992bc10b7c7f61e094fefbd3cb625",
+}
+REQUIRED_MEMO_COLUMNS = {
+    "username",
+    "content",
+    "tags_json",
+    "pinned",
+    "link_url",
+    "link_label",
+    "created_at",
+    "updated_at",
+}
+REQUIRED_ACADEMIC_SNAPSHOT_COLUMNS = {
+    "username",
+    "encrypted_payload",
+    "grade_count",
+    "updated_at",
+}
+REQUIRED_PORTAL_SNAPSHOT_COLUMNS = {
+    "username",
+    "cache_key",
+    "encrypted_payload",
+    "updated_at",
 }
 
 
@@ -58,6 +99,59 @@ def validate_frontend_asset(filename: str, payload: bytes, content_type: str) ->
     ):
         raise RuntimeError(
             f"invalid frontend asset: {filename} ({content_type}, {len(payload)} bytes)"
+        )
+    expected_sha256 = REQUIRED_FRONTEND_ASSET_SHA256.get(filename)
+    if expected_sha256 and hashlib.sha256(payload).hexdigest() != expected_sha256:
+        raise RuntimeError(f"invalid frontend asset checksum: {filename}")
+
+
+def validate_database_schema(path: Path) -> None:
+    required = {
+        "sessions", "reviews", "metadata", "memos",
+        "academic_snapshots", "portal_snapshots",
+    }
+    with sqlite3.connect(path) as connection:
+        tables = {
+            str(row[0])
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+        memo_columns = {
+            str(row[1]) for row in connection.execute("PRAGMA table_info(memos)")
+        }
+        snapshot_columns = {
+            str(row[1])
+            for row in connection.execute("PRAGMA table_info(academic_snapshots)")
+        }
+        portal_snapshot_columns = {
+            str(row[1])
+            for row in connection.execute("PRAGMA table_info(portal_snapshots)")
+        }
+    missing = sorted(required - tables)
+    if missing:
+        raise RuntimeError(f"desktop database is missing tables: {', '.join(missing)}")
+    missing_memo_columns = sorted(REQUIRED_MEMO_COLUMNS - memo_columns)
+    if missing_memo_columns:
+        raise RuntimeError(
+            "desktop database memos table is missing columns: "
+            + ", ".join(missing_memo_columns)
+        )
+    missing_snapshot_columns = sorted(
+        REQUIRED_ACADEMIC_SNAPSHOT_COLUMNS - snapshot_columns
+    )
+    if missing_snapshot_columns:
+        raise RuntimeError(
+            "desktop database academic_snapshots table is missing columns: "
+            + ", ".join(missing_snapshot_columns)
+        )
+    missing_portal_snapshot_columns = sorted(
+        REQUIRED_PORTAL_SNAPSHOT_COLUMNS - portal_snapshot_columns
+    )
+    if missing_portal_snapshot_columns:
+        raise RuntimeError(
+            "desktop database portal_snapshots table is missing columns: "
+            + ", ".join(missing_portal_snapshot_columns)
         )
 
 
@@ -104,7 +198,7 @@ def main() -> None:
                     if health == {
                         "status": "ok",
                         "service": "南雍知课",
-                        "version": "1.0.0",
+                        "version": "1.1.5",
                         "deployment": "desktop",
                     }:
                         break
@@ -119,18 +213,7 @@ def main() -> None:
                 or b'<div id="root"></div>' not in index
             ):
                 raise RuntimeError("frontend index was not served")
-            for asset in (
-                "login-campus-1.jpg",
-                "login-campus-2.jpg",
-                "login-campus-3.jpg",
-                "login-campus-4.jpg",
-                "default-avatar.jpeg",
-                "favicon.svg",
-                "favicon-32x32.png",
-                "favicon.ico",
-                "apple-touch-icon.png",
-                "apple-touch-icon-precomposed.png",
-            ):
+            for asset in REQUIRED_FRONTEND_ASSETS:
                 payload, content_type = get(f"{base_url}/{asset}")
                 validate_frontend_asset(asset, payload, content_type)
 
@@ -139,6 +222,7 @@ def main() -> None:
                 raise RuntimeError("desktop secret was not created in the user data directory")
             if not (state_path / "nanyong.db").is_file():
                 raise RuntimeError("desktop database was not created in the user data directory")
+            validate_database_schema(state_path / "nanyong.db")
         finally:
             if process.poll() is None:
                 process.terminate()

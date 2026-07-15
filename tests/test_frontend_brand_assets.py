@@ -58,3 +58,10 @@ def test_docker_build_context_keeps_all_random_login_images() -> None:
 
     for number in range(1, 5):
         assert f"frontend/public/login-campus-{number}.jpg" not in ignored
+
+
+def test_optional_support_qr_is_a_real_jpeg_asset() -> None:
+    qr = PUBLIC / "alipay-support.jpeg"
+    assert qr.is_file()
+    assert qr.read_bytes().startswith(b"\xff\xd8\xff")
+    assert len(qr.read_bytes()) > 1000

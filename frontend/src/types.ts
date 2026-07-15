@@ -1,4 +1,5 @@
 export type Session = { username: string; expiresAt: number }
+export type Health = { status: string; service: string; version: string; deployment: string }
 
 export type Grade = {
   XNXQDM?: string
@@ -7,9 +8,17 @@ export type Grade = {
   KCM?: string
   XF?: string
   KCXZDM_DISPLAY?: string
+  KCFLDM_DISPLAY?: string
+  KCFL1_DISPLAY?: string
   ZCJ?: string
   SFJG?: string
   SFJG_DISPLAY?: string
+  BY9?: string
+  BY9_DISPLAY?: string
+  XGXKLBDM?: string
+  XGXKLBDM_DISPLAY?: string
+  SFXGXK?: string
+  SFXGXK_DISPLAY?: string
 }
 
 export type GradePage = { totalSize: number; rows: Grade[] }
@@ -24,6 +33,14 @@ export type GradeSummary = {
   categories: { name: string; credits: number }[]
   graduationCategories: { name: string; credits: number }[]
   terms: { name: string; credits: number }[]
+}
+
+export type AcademicOverview = {
+  grades: GradePage
+  summary: GradeSummary
+  source: 'cache' | 'fresh'
+  cachedAt: number
+  newGradeCount: number
 }
 
 export type AcademicRanking = {
@@ -85,9 +102,10 @@ export type ProgramNode = {
   KZLXDM?: string
   KZLXDM_DISPLAY?: string
   KCLBDM_DISPLAY?: string
-  KCZXF?: number | null
-  ZSXDXF?: number | null
-  KCZMS?: number | null
+  KCZXF?: number | string | null
+  ZSXDXF?: number | string | null
+  KCZMS?: number | string | null
+  ZSXDMS?: number | string | null
   XDYQC?: string | null
   XDYQ?: string | null
   BZ?: string | null
@@ -117,4 +135,26 @@ export type ReviewResponse = {
   items: ReviewResult[]
   total: number
   query: string
+}
+
+export type Memo = {
+  id: number
+  content: string
+  tags: string[]
+  pinned: boolean
+  linkUrl: string | null
+  linkLabel: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export type MemoListResponse = { items: Memo[] }
+
+export type Notice = { id: string; date: string; title: string; url: string }
+
+export type NoticeDetail = Notice & { content: string }
+
+export type NoticeResponse = {
+  items: Notice[]
+  source: 'cache' | 'fresh'
 }

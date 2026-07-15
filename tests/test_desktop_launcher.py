@@ -62,7 +62,7 @@ def test_launcher_only_reuses_same_version_desktop_instance():
     expected = {
         "status": "ok",
         "service": "南雍知课",
-        "version": "1.0.0",
+        "version": "1.1.5",
         "deployment": "desktop",
     }
     assert compatible(expected) is True
@@ -112,7 +112,15 @@ def test_release_builds_and_verifies_patched_nju_cli_from_pinned_source():
     assert "desktop/verify_nju_cli_patch.py" in workflow
     assert "releases/download/v1.4.6" not in workflow
     assert "NJU_CLI_PATH=" in workflow
-    assert 'tags:\n      - "v1.0.0"' in workflow
+    assert 'tags:\n      - "v1.1.5"' in workflow
+    assert "NJU_CLI_BIN: /bin/true" in workflow
+    assert "console=False" in (ROOT / "desktop" / "nanyong_zhike.spec").read_text(
+        encoding="utf-8"
+    )
+    assert "NanyongZhike-macos-arm64.dmg" in workflow
+    assert "windows-installer.iss" in workflow
+    assert "choco install" not in workflow
+    assert "release-assets/*" in workflow
     assert "contents: read" in workflow
     assert workflow.count("persist-credentials: false") == 2
     assert "34e114876b0b11c390a56381ad16ebd13914f8d5" in workflow
@@ -142,6 +150,8 @@ def test_prepare_release_bundles_upstream_source_and_cache_patch(
     launcher_path = tmp_path / "desktop" / "launchers" / "启动南雍知课.sh"
     launcher_path.parent.mkdir(parents=True)
     launcher_path.write_text("#!/bin/sh\n", encoding="utf-8")
+    desktop_entry = tmp_path / "desktop" / "launchers" / "南雍知课.desktop"
+    desktop_entry.write_text("[Desktop Entry]\n", encoding="utf-8")
     usage = tmp_path / "desktop" / "使用说明.txt"
     usage.write_text("usage", encoding="utf-8")
     for document in ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "SECURITY.md"):
@@ -182,6 +192,59 @@ def test_prepare_release_bundles_upstream_source_and_cache_patch(
     )
     assert (third_party / "nju-cli-v1.4.6.tar.gz").read_bytes() == source.read_bytes()
     assert (third_party / patch.name).read_bytes() == patch.read_bytes()
+    assert (third_party.parent / "南雍知课.desktop").is_file()
+
+
+def test_launcher_uses_file_logging_when_no_console_is_available(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setattr(launcher.sys, "stdout", None)
+    monkeypatch.setattr(launcher.sys, "stderr", None)
+
+    log_path = launcher.configure_file_logging(tmp_path)
+
+    print("launcher ready", flush=True)
+    assert log_path.read_text(encoding="utf-8") == "launcher ready\n"
+
+
+def test_frozen_launcher_always_writes_a_diagnostic_log(monkeypatch, tmp_path):
+    class Stream:
+        pass
+
+    monkeypatch.setattr(launcher.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(launcher.sys, "stdout", Stream())
+    monkeypatch.setattr(launcher.sys, "stderr", Stream())
+
+    log_path = launcher.configure_file_logging(tmp_path)
+
+    print("desktop launch", flush=True)
+    assert log_path.read_text(encoding="utf-8") == "desktop launch\n"
+
+
+def test_windows_installer_creates_native_shortcuts_without_a_terminal() -> None:
+    installer = (ROOT / "desktop" / "windows-installer.iss").read_text(
+        encoding="utf-8"
+    )
+
+    assert "PrivilegesRequired=lowest" in installer
+    assert 'Name: "desktopicon"' in installer
+    assert "NanyongZhike.exe" in installer
+    assert "cmd.exe" not in installer
+
+
+def test_macos_spec_builds_a_windowed_application_bundle() -> None:
+    spec = (ROOT / "desktop" / "nanyong_zhike.spec").read_text(encoding="utf-8")
+
+    assert "console=False" in spec
+    assert "BUNDLE(" in spec
+    assert 'name="南雍知课.app"' in spec
+    assert '"CFBundleShortVersionString": "1.1.5"' in spec
+
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
+    assert 'xattr -cr "dist/南雍知课.app"' in workflow
+    assert 'codesign --verify --deep --strict "dist/南雍知课.app"' in workflow
 
 
 def test_third_party_notice_documents_patched_nju_cli_source_build():

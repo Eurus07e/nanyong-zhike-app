@@ -1,39 +1,59 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { GraduationCap, Info, LayoutList, LoaderCircle, Search, X } from 'lucide-react'
+import { GraduationCap, Info, LayoutList, LoaderCircle, RotateCcw, Search, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { api, ApiError, query } from '../api'
+import { adjustMapScale, formatMapScale } from '../map-scale'
+import {
+  aggregateNodeCourses,
+  buildProgramTree,
+  classifyProgramNodesForYear,
+  resolveProgramRequirements,
+  summarizeProgramNode,
+  type ProgramNodeSummary,
+  type ProgramTreeNode,
+} from '../program-requirements'
 import type { AcademicProfile, Program, ProgramCourse, ProgramNode, Session } from '../types'
 import { courseTerm, gradeYear, programBrowserStorageKey, selectOwnedProgram } from '../utils'
+import { SegmentedControl } from './SegmentedControl'
 
 type Mode = 'structure' | 'year'
-type TreeItem = ProgramNode & { children: TreeItem[] }
 type NodeCourseSort = 'default' | 'course-asc' | 'course-desc' | 'credit-desc' | 'credit-asc' | 'term-asc'
 
 export function ProgramView({ session, onUnauthorized }: { session: Session; onUnauthorized: () => void }) {
-  const [programs, setPrograms] = useState<Program[]>([])
-  const [allPrograms, setAllPrograms] = useState<Program[]>([])
-  const [programId, setProgramId] = useState('')
-  const [detail, setDetail] = useState<Program | null>(null)
-  const [nodes, setNodes] = useState<ProgramNode[]>([])
-  const [courses, setCourses] = useState<Record<string, ProgramCourse[]>>({})
+  const initialYear = gradeYear(session.username)
+  const initialProgramsPath = query('/api/programs', { grade: initialYear })
+  const initialPrograms = api.peek<Program[]>(initialProgramsPath) || []
+  const initialProgramId = localStorage.getItem(programBrowserStorageKey(session.username)) || ''
+  const initialProgramPath = initialProgramId ? `/api/programs/${encodeURIComponent(initialProgramId)}` : ''
+  const initialDetail = initialProgramPath ? api.peek<Program>(initialProgramPath) || null : null
+  const initialNodes = initialProgramPath ? api.peek<ProgramNode[]>(`${initialProgramPath}/nodes`) || [] : []
+  const initialCourses = Object.fromEntries(initialNodes.flatMap((node) => {
+    const value = api.peek<ProgramCourse[]>(`${initialProgramPath}/nodes/${encodeURIComponent(node.KZH)}/courses`)
+    return value ? [[node.KZH, value]] : []
+  }))
+  const [programs, setPrograms] = useState<Program[]>(initialPrograms)
+  const [allPrograms, setAllPrograms] = useState<Program[]>(initialPrograms)
+  const [programId, setProgramId] = useState(initialProgramId)
+  const [detail, setDetail] = useState<Program | null>(initialDetail)
+  const [nodes, setNodes] = useState<ProgramNode[]>(initialNodes)
+  const [courses, setCourses] = useState<Record<string, ProgramCourse[]>>(initialCourses)
   const [selectedNode, setSelectedNode] = useState('')
   const [searchText, setSearchText] = useState('')
-  const [year, setYear] = useState(gradeYear(session.username))
-  const [loadedProgramYear, setLoadedProgramYear] = useState('')
+  const [year, setYear] = useState(initialYear)
+  const [loadedProgramYear, setLoadedProgramYear] = useState(initialPrograms.length ? initialYear : '')
   const [department, setDepartment] = useState('')
   const [studyType, setStudyType] = useState('')
   const [mode, setMode] = useState<Mode>('structure')
+  const [mapScale, setMapScale] = useState(1)
   const [showDetail, setShowDetail] = useState(false)
   const [showNodeDetail, setShowNodeDetail] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<ProgramCourse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [nodeCourseLoading, setNodeCourseLoading] = useState(false)
-  const [yearCourseLoading, setYearCourseLoading] = useState(false)
-  const [progress, setProgress] = useState('')
+  const [loading, setLoading] = useState(!initialDetail || !initialNodes.length)
+  const [courseRetryLoading, setCourseRetryLoading] = useState(false)
+  const [courseErrors, setCourseErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const programListRequestRef = useRef(0)
   const programRequestRef = useRef(0)
-  const nodeCourseRequestRef = useRef(0)
-  const yearCourseRequestRef = useRef(0)
+  const courseRetryRequestRef = useRef(0)
   const profileRef = useRef<AcademicProfile | null>(null)
 
   const applyProgramFilters = useCallback((items: Program[], keyword: string, targetDepartment: string, targetType: string) => {
@@ -51,7 +71,8 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
 
   const loadPrograms = useCallback(async (targetYear: string, keyword = '', targetDepartment = '', targetType = '') => {
     const requestId = ++programListRequestRef.current
-    setLoading(true)
+    const path = query('/api/programs', { grade: targetYear })
+    if (!api.hasCache(path)) setLoading(true)
     setError('')
     try {
       const items = await api.cached<Program[]>(query('/api/programs', {
@@ -99,23 +120,38 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
 
   useEffect(() => {
     const requestId = ++programRequestRef.current
-    nodeCourseRequestRef.current += 1
-    yearCourseRequestRef.current += 1
-    setNodeCourseLoading(false)
-    setYearCourseLoading(false)
+    setMapScale(1)
+    courseRetryRequestRef.current += 1
+    setCourseRetryLoading(false)
     if (!programId) {
       setDetail(null)
       setNodes([])
       setCourses({})
+      setCourseErrors({})
       setSelectedNode('')
       return
     }
     setLoading(true)
     setError('')
-    setDetail(null)
-    setNodes([])
-    setCourses({})
-    setSelectedNode('')
+    const programPath = `/api/programs/${encodeURIComponent(programId)}`
+    const cachedDetail = api.peek<Program>(programPath)
+    const cachedNodes = api.peek<ProgramNode[]>(`${programPath}/nodes`)
+    if (cachedDetail && cachedNodes) {
+      setDetail(cachedDetail)
+      setNodes(cachedNodes)
+      setCourses(Object.fromEntries(cachedNodes.flatMap((node) => {
+        const value = api.peek<ProgramCourse[]>(`${programPath}/nodes/${encodeURIComponent(node.KZH)}/courses`)
+        return value ? [[node.KZH, value]] : []
+      })))
+      setSelectedNode(cachedNodes.find((node) => node.KZLXDM === '01')?.KZH || '')
+      setLoading(false)
+    } else {
+      setDetail(null)
+      setNodes([])
+      setCourses({})
+      setCourseErrors({})
+      setSelectedNode('')
+    }
     void (async () => {
       try {
         const [program, nodeItems] = await Promise.all([
@@ -126,6 +162,7 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
 
         const courseNodes = nodeItems.filter((node) => node.KZLXDM === '01')
         const prefetchedCourses: Record<string, ProgramCourse[]> = {}
+        const failedCourses: Record<string, string> = {}
         for (let index = 0; index < courseNodes.length; index += 4) {
           if (requestId !== programRequestRef.current) return
           const batch = courseNodes.slice(index, index + 4)
@@ -133,9 +170,12 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
             api.cached<ProgramCourse[]>(`/api/programs/${encodeURIComponent(programId)}/nodes/${encodeURIComponent(node.KZH)}/courses`, { ttl: 30 * 60_000 })
           ))
           if (requestId !== programRequestRef.current) return
+          const authFailure = responses.find((response) => response.status === 'rejected' && response.reason instanceof ApiError && response.reason.status === 401)
+          if (authFailure?.status === 'rejected') throw authFailure.reason
           batch.forEach((node, batchIndex) => {
             const response = responses[batchIndex]
             if (response.status === 'fulfilled') prefetchedCourses[node.KZH] = response.value
+            else failedCourses[node.KZH] = response.reason instanceof Error ? response.reason.message : '课程加载失败'
           })
         }
 
@@ -143,6 +183,7 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
         setDetail(program)
         setNodes(nodeItems)
         setCourses(prefetchedCourses)
+        setCourseErrors(failedCourses)
         setSelectedNode(courseNodes[0]?.KZH || '')
       } catch (caught) {
         if (requestId !== programRequestRef.current) return
@@ -164,64 +205,52 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
     setShowNodeDetail(true)
   }
 
-  const selectedCourses = selectedNode ? courses[selectedNode] : undefined
-
-  useEffect(() => {
-    const requestId = ++nodeCourseRequestRef.current
-    if (!selectedNode || selectedCourses || !programId) {
-      setNodeCourseLoading(false)
-      return
-    }
-    setNodeCourseLoading(true)
-    api.cached<ProgramCourse[]>(`/api/programs/${encodeURIComponent(programId)}/nodes/${encodeURIComponent(selectedNode)}/courses`, { ttl: 30 * 60_000 }).then((items) => {
-      if (requestId !== nodeCourseRequestRef.current) return
-      setCourses((current) => ({ ...current, [selectedNode]: items }))
-    }).catch((caught) => {
-      if (requestId !== nodeCourseRequestRef.current) return
-      if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
-      setError(caught instanceof Error ? caught.message : '课程加载失败')
-    }).finally(() => {
-      if (requestId === nodeCourseRequestRef.current) setNodeCourseLoading(false)
-    })
-  }, [onUnauthorized, programId, selectedCourses, selectedNode])
-
-  async function switchMode(next: Mode) {
-    const requestId = ++yearCourseRequestRef.current
+  function switchMode(next: Mode) {
     setMode(next)
-    if (next !== 'year') {
-      setYearCourseLoading(false)
-      setProgress('')
-      return
-    }
+  }
+
+  async function retryCourseNodes(nodeIds: string[]) {
+    if (!programId || !nodeIds.length || courseRetryLoading) return
+    const requestId = ++courseRetryRequestRef.current
     const activeProgramId = programId
-    const missing = nodes.filter((node) => node.KZLXDM === '01' && !courses[node.KZH])
-    if (!missing.length) return
-    setYearCourseLoading(true)
+    setCourseRetryLoading(true)
     try {
-      for (let index = 0; index < missing.length; index += 4) {
-        if (requestId !== yearCourseRequestRef.current) return
-        const batch = missing.slice(index, index + 4)
-        setProgress(`正在整理课程 ${Math.min(index + 4, missing.length)} / ${missing.length}`)
-        const responses = await Promise.all(batch.map((node) =>
-          api.cached<ProgramCourse[]>(`/api/programs/${encodeURIComponent(activeProgramId)}/nodes/${encodeURIComponent(node.KZH)}/courses`, { ttl: 30 * 60_000 })
-        ))
-        if (requestId !== yearCourseRequestRef.current) return
-        const additions: Record<string, ProgramCourse[]> = {}
-        batch.forEach((node, batchIndex) => { additions[node.KZH] = responses[batchIndex] })
-        setCourses((current) => ({ ...current, ...additions }))
-      }
+      const responses = await Promise.allSettled(nodeIds.map((nodeId) =>
+        api.cached<ProgramCourse[]>(`/api/programs/${encodeURIComponent(activeProgramId)}/nodes/${encodeURIComponent(nodeId)}/courses`, { ttl: 30 * 60_000, force: true })
+      ))
+      if (requestId !== courseRetryRequestRef.current || activeProgramId !== programId) return
+      const authFailure = responses.find((response) => response.status === 'rejected' && response.reason instanceof ApiError && response.reason.status === 401)
+      if (authFailure?.status === 'rejected') throw authFailure.reason
+      const additions: Record<string, ProgramCourse[]> = {}
+      const failures: Record<string, string> = {}
+      responses.forEach((response, index) => {
+        const nodeId = nodeIds[index]
+        if (response.status === 'fulfilled') additions[nodeId] = response.value
+        else failures[nodeId] = response.reason instanceof Error ? response.reason.message : '课程加载失败'
+      })
+      setCourses((current) => ({ ...current, ...additions }))
+      setCourseErrors((current) => {
+        const next = { ...current }
+        Object.keys(additions).forEach((nodeId) => delete next[nodeId])
+        return { ...next, ...failures }
+      })
     } catch (caught) {
-      if (requestId !== yearCourseRequestRef.current) return
-      setError(caught instanceof Error ? caught.message : '学年模式加载失败')
+      if (requestId !== courseRetryRequestRef.current) return
+      if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
+      else setError(caught instanceof Error ? caught.message : '课程加载失败')
     } finally {
-      if (requestId === yearCourseRequestRef.current) {
-        setYearCourseLoading(false)
-        setProgress('')
+      if (requestId === courseRetryRequestRef.current) {
+        setCourseRetryLoading(false)
       }
     }
   }
 
-  const tree = useMemo(() => buildTree(nodes), [nodes])
+  const tree = useMemo(() => buildProgramTree(nodes), [nodes])
+  const requirements = useMemo(() => resolveProgramRequirements(detail?.XDYQ || '', nodes), [detail?.XDYQ, nodes])
+  const nodeSummaries = useMemo(() => new Map(nodes.map((node) => [
+    node.KZH,
+    summarizeProgramNode(node, nodes, courses, requirements),
+  ])), [courses, nodes, requirements])
   const departments = useMemo(() => [...new Set(allPrograms.map((item) => item.DWDM_DISPLAY).filter(Boolean) as string[])].sort(), [allPrograms])
   const years = useMemo(() => {
     const current = new Date().getFullYear()
@@ -230,13 +259,17 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
     return values.sort((a, b) => Number(b) - Number(a))
   }, [session.username])
   const selected = nodes.find((node) => node.KZH === selectedNode)
-  const allCourses = useMemo(() => {
-    const unique = new Map<string, ProgramCourse>()
-    Object.values(courses).flat().forEach((course) => {
-      unique.set(`${course.KCH}-${course.KCM}-${course.XNXQ || ''}`, course)
-    })
-    return [...unique.values()]
-  }, [courses])
+  const selectedCourseData = useMemo(() => selectedNode
+    ? aggregateNodeCourses(nodes, courses, selectedNode)
+    : { courses: [], leafIds: [], missingLeafIds: [] }, [courses, nodes, selectedNode])
+  const selectedSummary = selectedNode ? nodeSummaries.get(selectedNode) : undefined
+  const yearNodeGroups = useMemo(() => classifyProgramNodesForYear(nodes, nodeSummaries), [nodeSummaries, nodes])
+  const fixedCourses = useMemo(() => deduplicateCourses(yearNodeGroups.fixedCourseNodes
+    .flatMap((node) => courses[node.KZH] || [])), [courses, yearNodeGroups])
+  const electiveGroups = useMemo(() => yearNodeGroups.electivePoolNodes.map((node) => ({
+    node,
+    summary: nodeSummaries.get(node.KZH) || summarizeProgramNode(node, nodes, courses, requirements),
+  })), [courses, nodeSummaries, nodes, requirements, yearNodeGroups])
   const academicYears = useMemo(() => {
     const start = Number(detail?.NJDM_DISPLAY || year)
     if (!Number.isFinite(start)) return []
@@ -259,11 +292,16 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
     <div className="page-stack">
       <div className="page-heading">
         <div><h1>培养方案</h1></div>
-        <div className="segmented segmented-two" role="group" aria-label="培养方案展示模式" data-active-index={mode === 'structure' ? 0 : 1}>
-          <span className="segmented-indicator" aria-hidden="true" />
-          <button type="button" aria-pressed={mode === 'structure'} className={mode === 'structure' ? 'active' : ''} onClick={() => void switchMode('structure')}><LayoutList size={15} />结构模式</button>
-          <button type="button" aria-pressed={mode === 'year'} className={mode === 'year' ? 'active' : ''} onClick={() => void switchMode('year')}><GraduationCap size={15} />学年模式</button>
-        </div>
+        <SegmentedControl
+          value={mode}
+          options={[
+            { value: 'structure', label: '结构模式', icon: <LayoutList size={15} /> },
+            { value: 'year', label: '学年模式', icon: <GraduationCap size={15} /> },
+          ]}
+          onChange={switchMode}
+          label="培养方案展示模式"
+          className="segmented-two"
+        />
       </div>
       <form className="program-toolbar" onSubmit={(event) => { event.preventDefault(); void searchPrograms() }}>
         <label><span>关键词</span><input value={searchText} onChange={(event) => setSearchText(event.target.value)} placeholder="输入专业、院系或培养方案名称" /></label>
@@ -280,22 +318,25 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
         </select>
       </section>
       {error && <div className="error-banner">{error}</div>}
+      {Object.keys(courseErrors).length > 0 && <div className="warning-banner program-course-warning">
+        <span>有 {Object.keys(courseErrors).length} 个课程组暂未加载，已保留其余可用内容。</span>
+        <button type="button" className="secondary-button" disabled={courseRetryLoading} onClick={() => void retryCourseNodes(Object.keys(courseErrors))}>{courseRetryLoading && <LoaderCircle size={15} className="spin" />}重试</button>
+      </div>}
       {loading && <div className="center-loading"><LoaderCircle className="spin" />正在连接培养方案服务</div>}
 
       {!loading && mode === 'structure' && <>
         <section className="curriculum-map-section">
-          <div className="section-title program-structure-title"><div><h2>培养方案结构</h2><p>点击节点查看课程；橙色标记表示节点包含修读说明</p></div>{detail && <button type="button" className="program-detail-button" onClick={() => setShowDetail(true)}><Info size={16} />查看方案内容</button>}</div>
-          <div className="curriculum-map"><CurriculumMap title={detail?.PYFAMC || '培养方案'} nodes={tree} selected={selectedNode} onSelect={selectNode} /></div>
+          <div className="section-title program-structure-title"><div><h2>培养方案结构</h2><p>点击节点查看课程；橙色标记表示节点包含修读说明</p></div><div className="program-structure-actions"><div className="map-zoom-controls" role="group" aria-label="结构图缩放"><button type="button" className="icon-button" onClick={() => setMapScale((current) => adjustMapScale(current, -1))} disabled={mapScale <= 0.7} aria-label="缩小结构图" title="缩小"><ZoomOut size={17} /></button><button type="button" className="map-zoom-reset" onClick={() => setMapScale(1)} disabled={mapScale === 1} aria-label="重置结构图缩放" title="重置为 100%"><RotateCcw size={15} /><span>{formatMapScale(mapScale)}</span></button><button type="button" className="icon-button" onClick={() => setMapScale((current) => adjustMapScale(current, 1))} disabled={mapScale >= 1} aria-label="放大结构图" title="放大至 100%"><ZoomIn size={17} /></button></div>{detail && <button type="button" className="program-detail-button" onClick={() => setShowDetail(true)}><Info size={16} />查看方案内容</button>}</div></div>
+          <div className="curriculum-map"><CurriculumMap title={detail?.PYFAMC || '培养方案'} nodes={tree} summaries={nodeSummaries} selected={selectedNode} scale={mapScale} onSelect={selectNode} /></div>
         </section>
       </>}
 
       {!loading && mode === 'year' && <section className="year-mode">
-        {yearCourseLoading && <div className="progress-line"><LoaderCircle size={17} className="spin" />{progress || '正在整理学年课程'}</div>}
         <div className="year-roadmap">
           {academicYears.map((academicYear, index) => <article className="academic-year" key={academicYear.code}>
             <div className="year-label"><span>第{['一', '二', '三', '四'][index] || index + 1}学年</span><strong>{academicYear.label}</strong></div>
             <div className="term-columns">{academicYear.terms.map((term) => {
-              const items = allCourses.filter((course) => course.XNXQ === term.code || courseTerm(course) === term.code)
+              const items = fixedCourses.filter((course) => course.XNXQ === term.code || courseTerm(course) === term.code)
               const credits = items.reduce((sum, item) => sum + Number(item.XF || 0), 0)
               return <section className="term-column" key={term.code}>
                 <header><div><strong>{term.label}</strong><span>{term.code}</span></div><small>{items.length} 门 · {formatCredits(credits)} 学分</small></header>
@@ -303,10 +344,26 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
               </section>
             })}</div>
           </article>)}
-          {!yearCourseLoading && allCourses.filter((course) => !course.XNXQ).length > 0 && <article className="unscheduled-courses"><div><strong>未指定学期</strong><span>选修模块或由学生自主安排</span></div><CourseTable courses={allCourses.filter((course) => !course.XNXQ)} compact onSelect={setSelectedCourse} /></article>}
+          {fixedCourses.filter((course) => !courseTerm(course)).length > 0 && <article className="unscheduled-courses"><div><strong>未指定学期</strong><span>培养方案未注明建议修读时间</span></div><CourseTable courses={fixedCourses.filter((course) => !courseTerm(course))} compact onSelect={setSelectedCourse} /></article>}
+          {electiveGroups.length > 0 && <section className="year-elective-pools">
+            <header><div><h2>选修课程池</h2><p>下列课程为可选范围，不代表需要全部修读</p></div></header>
+            <div>{electiveGroups.map(({ node, summary }) => <button type="button" key={node.KZH} onClick={() => selectNode(node.KZH)}>
+              <span><strong>{node.KZM}</strong><small>{formatRequiredSummary(summary)}</small></span>
+              <b>{formatPoolSummary(summary)}</b>
+            </button>)}</div>
+          </section>}
         </div>
       </section>}
-      {showNodeDetail && selected && <NodeDetailModal node={selected} courses={courses[selectedNode] || []} loading={nodeCourseLoading} onClose={() => setShowNodeDetail(false)} onCourse={setSelectedCourse} />}
+      {showNodeDetail && selected && selectedSummary && <NodeDetailModal
+        node={selected}
+        summary={selectedSummary}
+        courses={selectedCourseData.courses}
+        loading={courseRetryLoading}
+        missingCount={selectedCourseData.missingLeafIds.length}
+        onRetry={() => void retryCourseNodes(selectedCourseData.missingLeafIds)}
+        onClose={() => setShowNodeDetail(false)}
+        onCourse={setSelectedCourse}
+      />}
       {selectedCourse && <ProgramCourseModal course={selectedCourse} onClose={() => setSelectedCourse(null)} />}
       {showDetail && detail && <ProgramDetail program={detail} onClose={() => setShowDetail(false)} />}
     </div>
@@ -342,20 +399,7 @@ function fuzzyContains(value: string, term: string) {
   return false
 }
 
-function buildTree(nodes: ProgramNode[]): TreeItem[] {
-  const map = new Map(nodes.map((node) => [node.KZH, { ...node, children: [] as TreeItem[] }]))
-  const roots: TreeItem[] = []
-  map.forEach((node) => {
-    const parent = map.get(node.FKZH)
-    if (parent) parent.children.push(node)
-    else roots.push(node)
-  })
-  const sort = (items: TreeItem[]) => items.sort((a, b) => (a.PX || 0) - (b.PX || 0)).forEach((item) => sort(item.children))
-  sort(roots)
-  return roots
-}
-
-function CurriculumMap({ title, nodes, selected, onSelect }: { title: string; nodes: TreeItem[]; selected: string; onSelect: (id: string) => void }) {
+function CurriculumMap({ title, nodes, summaries, selected, scale, onSelect }: { title: string; nodes: ProgramTreeNode[]; summaries: Map<string, ProgramNodeSummary>; selected: string; scale: number; onSelect: (id: string) => void }) {
   const treeRef = useRef<HTMLDivElement>(null)
   const [connectors, setConnectors] = useState({ path: '', width: 0, height: 0 })
 
@@ -403,27 +447,36 @@ function CurriculumMap({ title, nodes, selected, onSelect }: { title: string; no
       cancelAnimationFrame(frame)
       observer.disconnect()
     }
-  }, [nodes, title])
+  }, [nodes, scale, title])
 
-  return <div className="curriculum-tree" ref={treeRef}>
+  return <div className="curriculum-tree" ref={treeRef} style={{ zoom: scale }}>
     <svg className="curriculum-connectors" width={connectors.width} height={connectors.height} aria-hidden="true"><path d={connectors.path} /></svg>
-    <ul><li><div className="map-node root-node" data-map-id="program-root"><strong>{title}</strong></div><ul>{nodes.map((node) => <MapBranch key={node.KZH} node={node} parentId="program-root" selected={selected} onSelect={onSelect} />)}</ul></li></ul>
+    <ul><li><div className="map-node root-node" data-map-id="program-root"><strong>{title}</strong></div><ul>{nodes.map((node) => <MapBranch key={node.KZH} node={node} parentId="program-root" summaries={summaries} selected={selected} onSelect={onSelect} />)}</ul></li></ul>
   </div>
 }
 
-function MapBranch({ node, parentId, selected, onSelect }: { node: TreeItem; parentId: string; selected: string; onSelect: (id: string) => void }) {
+function MapBranch({ node, parentId, summaries, selected, onSelect }: { node: ProgramTreeNode; parentId: string; summaries: Map<string, ProgramNodeSummary>; selected: string; onSelect: (id: string) => void }) {
   const hasNote = Boolean(node.XDYQC || node.XDYQ || node.BZ)
+  const summary = summaries.get(node.KZH)
   return <li><button type="button" className={`map-node ${selected === node.KZH ? 'selected' : ''}`} data-map-id={node.KZH} data-parent-id={parentId} onClick={() => void onSelect(node.KZH)}>
-    <span>{node.KZM}</span><small>{requirementText(node)}</small>{hasNote && <i title="包含修读说明" aria-label="包含修读说明" />}
-  </button>{node.children.length > 0 && <ul>{node.children.map((child) => <MapBranch key={child.KZH} node={child} parentId={node.KZH} selected={selected} onSelect={onSelect} />)}</ul>}</li>
+    <span>{node.KZM}</span><small>{summary ? formatRequiredSummary(summary) : '要求以方案说明为准'}</small>{hasNote && <i title="包含修读说明" aria-label="包含修读说明" />}
+  </button>{node.children.length > 0 && <ul>{node.children.map((child) => <MapBranch key={child.KZH} node={child} parentId={node.KZH} summaries={summaries} selected={selected} onSelect={onSelect} />)}</ul>}</li>
 }
 
-function requirementText(node: ProgramNode) {
+function formatRequiredSummary(summary: ProgramNodeSummary) {
   const parts = []
-  if (node.KCZMS) parts.push(`${node.KCZMS} 门`)
-  if (node.KCZXF) parts.push(`共 ${node.KCZXF} 学分`)
-  if (node.ZSXDXF != null) parts.push(`至少 ${node.ZSXDXF} 学分`)
-  return parts.join(' · ') || node.KZLXDM_DISPLAY || '课程节点'
+  if (summary.requiredCourses != null) parts.push(`应修 ${formatCredits(summary.requiredCourses)} 门`)
+  if (summary.requiredCredits != null) parts.push(`应修 ${formatCredits(summary.requiredCredits)} 学分`)
+  if (parts.length) return parts.join(' · ')
+  if (summary.moduleCount > 0) return `${summary.moduleCount} 个课程模块`
+  return '要求以方案说明为准'
+}
+
+function formatPoolSummary(summary: ProgramNodeSummary) {
+  const parts = []
+  if (summary.poolCourses != null) parts.push(`${formatCredits(summary.poolCourses)} 门`)
+  if (summary.poolCredits != null) parts.push(`${formatCredits(summary.poolCredits)} 学分`)
+  return parts.length ? `课程池 ${parts.join(' · ')}` : '未提供固定课程清单'
 }
 
 function formatCredits(value: number) {
@@ -435,7 +488,7 @@ function CourseTable({ courses, compact = false, onSelect }: { courses: ProgramC
   return <div className={`data-table-wrap ${compact ? 'compact' : ''}`}><table className="data-table"><thead><tr><th>课程</th><th>学分</th><th>建议学期</th><th>开课单位</th></tr></thead><tbody>{courses.map((course, index) => <tr key={`${course.KCH}-${index}`}><td><button type="button" className="course-table-button" onClick={() => onSelect?.(course)}><strong>{course.KCM}</strong><small>{course.KCH}</small></button></td><td>{String(course.XF ?? '—')}</td><td>{courseTerm(course) || '—'}</td><td>{String(course.KKYX_DISPLAY || course.KKDWDM_DISPLAY || course.KKDW_DISPLAY || '—')}</td></tr>)}</tbody></table></div>
 }
 
-function NodeDetailModal({ node, courses, loading, onClose, onCourse }: { node: ProgramNode; courses: ProgramCourse[]; loading: boolean; onClose: () => void; onCourse: (course: ProgramCourse) => void }) {
+function NodeDetailModal({ node, summary, courses, loading, missingCount, onRetry, onClose, onCourse }: { node: ProgramNode; summary: ProgramNodeSummary; courses: ProgramCourse[]; loading: boolean; missingCount: number; onRetry: () => void; onClose: () => void; onCourse: (course: ProgramCourse) => void }) {
   const [courseQuery, setCourseQuery] = useState('')
   const [courseUnit, setCourseUnit] = useState('')
   const [courseSort, setCourseSort] = useState<NodeCourseSort>('default')
@@ -452,7 +505,12 @@ function NodeDetailModal({ node, courses, loading, onClose, onCourse }: { node: 
   return <div className="modal-backdrop" role="presentation" onKeyDown={(event) => event.key === 'Escape' && onClose()} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="program-modal node-modal" role="dialog" aria-modal="true" aria-labelledby="node-detail-title">
       <header><div><h2 id="node-detail-title">{node.KZM}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭课程组详情" autoFocus><X size={20} /></button></header>
-      <div className="node-modal-summary"><strong>{requirementText(node)}</strong>{(node.XDYQC || node.XDYQ || node.BZ) && <p>{node.XDYQC || node.XDYQ || node.BZ}</p>}</div>
+      <div className="node-modal-summary">
+        <div><span>毕业要求</span><strong>{formatRequiredSummary(summary)}</strong></div>
+        <div><span>课程清单</span><strong>{formatPoolSummary(summary)}</strong></div>
+        {(node.XDYQC || node.XDYQ || node.BZ) && <p>{node.XDYQC || node.XDYQ || node.BZ}</p>}
+      </div>
+      {missingCount > 0 && <div className="warning-banner node-course-warning"><span>有 {missingCount} 个下级课程组暂未加载，当前结果可能不完整。</span><button type="button" className="secondary-button" onClick={onRetry} disabled={loading}>{loading && <LoaderCircle size={15} className="spin" />}重试</button></div>}
       <div className="node-modal-content">{loading ? <div className="center-loading"><LoaderCircle className="spin" />加载课程</div> : <>
         {courses.length > 0 && <>
           <section className="program-toolbar node-course-filter-toolbar" aria-label="课程组筛选与排序">
@@ -469,6 +527,15 @@ function NodeDetailModal({ node, courses, loading, onClose, onCourse }: { node: 
       <footer><button type="button" className="secondary-button" onClick={onClose}>关闭</button></footer>
     </section>
   </div>
+}
+
+function deduplicateCourses(items: ProgramCourse[]) {
+  const unique = new Map<string, ProgramCourse>()
+  items.forEach((course) => {
+    const key = course.KCH ? `code:${course.KCH}` : `name:${course.KCM}|term:${courseTerm(course) || ''}`
+    if (!unique.has(key)) unique.set(key, course)
+  })
+  return [...unique.values()]
 }
 
 function courseUnitLabel(course: ProgramCourse) {
