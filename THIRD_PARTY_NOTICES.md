@@ -28,6 +28,21 @@ patch 文件是这项变更的等价完整 diff，供审阅和重建参考；构
 `6d7f794e87b8c22a1f6b700899f0c03c08f37a57499cc5e7014f0a80031b141c`。将源码归档解压后应用
 随包补丁，再执行上述 Cargo 命令，即可重建对应的修改版 nju-cli。
 
+## Inno Setup
+
+Windows 安装程序使用 [Inno Setup](https://jrsoftware.org/isinfo.php) 构建。Inno Setup 由
+Jordan Russell、Martijn Laan 等贡献者维护，其许可允许在保留现有版权与来源说明的条件下使用、
+修改和再分发；安装器的“关于”信息保留上游版权和网站地址。
+
+简体中文安装界面使用 jrsoftware
+[官方源码仓库](https://github.com/jrsoftware/issrc)中收录的用户贡献翻译，维护者为
+Zhenghan Yang。构建固定到提交
+`cfdf48923178df4b4f040e038b423aa555a61ffc` 中的
+`Files/Languages/Unofficial/ChineseSimplified.isl`，并在使用前校验 SHA-256
+`7d544b9bb1d142cfa11f2e5d3cc8abe2e55f8e066c5124e3772675aa236e1278`。该 20 KB 文件以原始
+UTF-8 内容随仓库保存，并在 Windows 构建时再次校验，不依赖网络下载或 GitHub runner 是否
+预装可选语言文件。
+
 ## nju-class
 
 `data/reviews/merged_data.json` 来自

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import sys
 from pathlib import Path
@@ -62,7 +63,7 @@ def test_launcher_only_reuses_same_version_desktop_instance():
     expected = {
         "status": "ok",
         "service": "南雍知课",
-        "version": "1.1.6",
+        "version": "1.1.7",
         "deployment": "desktop",
     }
     assert compatible(expected) is True
@@ -112,7 +113,7 @@ def test_release_builds_and_verifies_patched_nju_cli_from_pinned_source():
     assert "desktop/verify_nju_cli_patch.py" in workflow
     assert "releases/download/v1.4.6" not in workflow
     assert "NJU_CLI_PATH=" in workflow
-    assert 'tags:\n      - "v1.1.6"' in workflow
+    assert 'tags:\n      - "v1.1.7"' in workflow
     assert "NJU_CLI_BIN: /bin/true" in workflow
     assert "console=False" in (ROOT / "desktop" / "nanyong_zhike.spec").read_text(
         encoding="utf-8"
@@ -232,13 +233,128 @@ def test_windows_installer_creates_native_shortcuts_without_a_terminal() -> None
     assert "cmd.exe" not in installer
 
 
+def test_windows_installer_uses_pinned_local_simplified_chinese_messages() -> None:
+    installer = (ROOT / "desktop" / "windows-installer.iss").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        '#define ChineseSimplifiedMessagesFile AddBackslash(SourcePath) + '
+        '"Languages\\ChineseSimplified.isl"'
+    ) in installer
+    assert 'MessagesFile: "{#ChineseSimplifiedMessagesFile}"' in installer
+    assert "compiler:Languages" not in installer
+    assert '#ifndef AppOutputDir' in installer
+    assert '#define AppOutputDir "..\\release"' in installer
+    assert "OutputDir={#AppOutputDir}" in installer
+
+
+def test_windows_installer_preflight_pins_and_verifies_translation() -> None:
+    script_path = ROOT / "desktop" / "preflight_windows_installer.ps1"
+    language_path = ROOT / "desktop" / "Languages" / "ChineseSimplified.isl"
+    attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+    assert script_path.is_file(), "shared Windows installer preflight must exist"
+    assert language_path.is_file(), "pinned Simplified Chinese messages must be bundled"
+    script = script_path.read_text(encoding="utf-8")
+    language = language_path.read_bytes()
+
+    expected_hash = "7d544b9bb1d142cfa11f2e5d3cc8abe2e55f8e066c5124e3772675aa236e1278"
+    assert hashlib.sha256(language).hexdigest() == expected_hash
+    assert b"Maintained by Zhenghan Yang" in language
+    assert "desktop/Languages/ChineseSimplified.isl -text" in attributes
+    assert expected_hash in script
+    assert "desktop/Languages/ChineseSimplified.isl" not in script
+    assert 'Join-Path $DesktopDirectory "Languages\\ChineseSimplified.isl"' in script
+    assert "curl.exe" not in script
+    assert "$LASTEXITCODE" in script
+    assert "Get-FileHash" in script
+    assert "SHA256" in script
+
+
+def test_windows_installer_preflight_compiles_and_cleans_only_synthetic_outputs() -> None:
+    script_path = ROOT / "desktop" / "preflight_windows_installer.ps1"
+    assert script_path.is_file(), "shared Windows installer preflight must exist"
+    script = script_path.read_text(encoding="utf-8")
+
+    assert "$PSScriptRoot" in script
+    assert 'Resolve-Path (Join-Path $PSScriptRoot "..")' in script
+    assert "Inno Setup 6\\ISCC.exe" in script
+    assert 'Join-Path $RepositoryRoot "dist\\NanyongZhike\\NanyongZhike.exe"' in script
+    assert 'if (Test-Path -LiteralPath $PlaceholderDirectory)' in script
+    assert "[byte[]](0)" in script
+    assert "try {" in script
+    assert "finally {" in script
+    assert "& $Compiler" in script
+    assert "/DAppVersion" not in script
+    assert '"/DAppOutputDir=..\\release-preflight"' in script
+    assert "$LASTEXITCODE" in script
+    assert 'Join-Path $RepositoryRoot "release-preflight"' in script
+    assert (
+        'Join-Path $PreflightOutputDirectory '
+        '"NanyongZhike-windows-x86_64-setup.exe"'
+    ) in script
+    assert "Test-Path -LiteralPath $SetupPath -PathType Leaf" in script
+    first_cleanup = script.index(
+        "Remove-Item -LiteralPath $PreflightOutputDirectory -Recurse -Force"
+    )
+    create_output = script.index(
+        "New-Item -ItemType Directory -Path $PreflightOutputDirectory"
+    )
+    assert first_cleanup < create_output
+    assert "Remove-Item -LiteralPath $PlaceholderDirectory -Recurse -Force" in script
+    assert "Remove-Item -LiteralPath $PreflightOutputDirectory -Recurse -Force" in script
+    assert 'Join-Path $RepositoryRoot "release\\NanyongZhike-windows-x86_64-setup.exe"' not in script
+    assert "Remove-Item -LiteralPath $LanguageFile" not in script
+
+
+def test_windows_workflows_run_shared_installer_preflight_early() -> None:
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "  windows-installer-preflight:" in ci
+    ci_preflight = ci[ci.index("  windows-installer-preflight:") :]
+    assert "runs-on: windows-latest" in ci_preflight
+    assert "desktop/preflight_windows_installer.ps1" in ci_preflight
+
+    package = release[release.index("  package:") : release.index("  publish:")]
+    checkout_index = package.index("actions/checkout@")
+    preflight_index = package.index("desktop/preflight_windows_installer.ps1")
+    toolchain_indices = (
+        package.index("actions/setup-python@"),
+        package.index("actions/setup-node@"),
+        package.index("dtolnay/rust-toolchain@"),
+    )
+    assert checkout_index < preflight_index < min(toolchain_indices)
+    preflight_step = package[package.rfind("- name:", 0, preflight_index) : preflight_index]
+    assert "if: matrix.platform == 'windows'" in preflight_step
+    assert "shell: pwsh" in preflight_step
+
+
+def test_release_windows_installer_build_checks_exit_code_and_exact_output() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
+    build_start = workflow.index("      - name: Build Windows installer")
+    build_end = workflow.index("      - uses: actions/upload-artifact@", build_start)
+    build_step = workflow[build_start:build_end]
+
+    assert '& $compiler "/DAppVersion=1.1.7" "desktop\\windows-installer.iss"' in build_step
+    assert "$LASTEXITCODE" in build_step
+    assert (
+        'Test-Path -LiteralPath "release\\NanyongZhike-windows-x86_64-setup.exe" '
+        "-PathType Leaf"
+    ) in build_step
+
+
 def test_macos_spec_builds_a_windowed_application_bundle() -> None:
     spec = (ROOT / "desktop" / "nanyong_zhike.spec").read_text(encoding="utf-8")
 
     assert "console=False" in spec
     assert "BUNDLE(" in spec
     assert 'name="南雍知课.app"' in spec
-    assert '"CFBundleShortVersionString": "1.1.6"' in spec
+    assert '"CFBundleShortVersionString": "1.1.7"' in spec
 
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
         encoding="utf-8"
@@ -263,6 +379,18 @@ def test_third_party_notice_documents_patched_nju_cli_source_build():
     ):
         assert filename in notice
     assert "项目维护者提供" in notice
+
+
+def test_third_party_notice_documents_pinned_user_contributed_inno_translation():
+    notice = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+
+    assert "jrsoftware/issrc" in notice
+    assert "cfdf48923178df4b4f040e038b423aa555a61ffc" in notice
+    assert "Files/Languages/Unofficial/ChineseSimplified.isl" in notice
+    assert "7d544b9bb1d142cfa11f2e5d3cc8abe2e55f8e066c5124e3772675aa236e1278" in notice
+    assert "用户贡献翻译" in notice
+    assert "Zhenghan Yang" in notice
+    assert "官方翻译" not in notice
 
 
 def test_readme_describes_patched_source_build_without_calling_it_official_binary():

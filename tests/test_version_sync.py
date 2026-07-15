@@ -6,10 +6,10 @@ from backend.app.version import APP_VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = "1.1.6"
+RELEASE_VERSION = "1.1.7"
 
 
-def test_v1_1_6_release_version_is_synchronized() -> None:
+def test_v1_1_7_release_version_is_synchronized() -> None:
     package = json.loads(
         (ROOT / "frontend" / "package.json").read_text(encoding="utf-8")
     )
@@ -27,7 +27,7 @@ def test_v1_1_6_release_version_is_synchronized() -> None:
     assert usage.startswith(f"南雍知课 v{APP_VERSION} 使用说明")
 
 
-def test_v1_1_6_desktop_release_metadata_is_synchronized() -> None:
+def test_v1_1_7_desktop_release_metadata_is_synchronized() -> None:
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
         encoding="utf-8"
     )
@@ -40,14 +40,17 @@ def test_v1_1_6_desktop_release_metadata_is_synchronized() -> None:
     )
 
     assert f'tags:\n      - "v{RELEASE_VERSION}"' in workflow
-    assert f'& $compiler "/DAppVersion={RELEASE_VERSION}"' in workflow
+    assert (
+        f'& $compiler "/DAppVersion={RELEASE_VERSION}" '
+        '"desktop\\windows-installer.iss"'
+    ) in workflow
     assert f'"CFBundleShortVersionString": "{RELEASE_VERSION}"' in spec
     assert f'"CFBundleVersion": "{RELEASE_VERSION}"' in spec
     assert f'#define AppVersion "{RELEASE_VERSION}"' in installer
     assert f'"version": "{RELEASE_VERSION}"' in smoke
 
 
-def test_readme_identifies_v1_1_6_as_current_release_and_preserves_history() -> None:
+def test_readme_identifies_v1_1_7_as_current_release_and_preserves_history() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert f"本 README 对应南雍知课 v{RELEASE_VERSION}。" in readme
@@ -56,9 +59,13 @@ def test_readme_identifies_v1_1_6_as_current_release_and_preserves_history() -> 
         f"v{RELEASE_VERSION}"
     ) in readme
     assert f"发布工作流仅监听准确的 `v{RELEASE_VERSION}` 标签" in readme
-    for patch_version in range(7):
+    for patch_version in range(8):
         assert f"- `v1.1.{patch_version}`：" in readme
     assert (
         "- `v1.1.6`：Windows 冒烟测试显式关闭 SQLite 连接，"
         "开发环境优先解析插件缓存中的原生 nju-cli。"
+    ) in readme
+    assert (
+        "- `v1.1.7`：固定并校验 Windows 安装器简体中文语言文件，"
+        "在 CI 与发布构建前用真实 Inno Setup 提前验证安装脚本。"
     ) in readme

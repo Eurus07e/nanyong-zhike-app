@@ -1,6 +1,12 @@
 #ifndef AppVersion
-  #define AppVersion "1.1.6"
+  #define AppVersion "1.1.7"
 #endif
+
+#ifndef AppOutputDir
+  #define AppOutputDir "..\release"
+#endif
+
+#define ChineseSimplifiedMessagesFile AddBackslash(SourcePath) + "Languages\ChineseSimplified.isl"
 
 [Setup]
 AppId={{E2133B3E-AC9A-4D1F-9433-14D985A305EA}
@@ -12,7 +18,7 @@ DefaultDirName={localappdata}\Programs\NanyongZhike
 DefaultGroupName=南雍知课
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputDir=..\release
+OutputDir={#AppOutputDir}
 OutputBaseFilename=NanyongZhike-windows-x86_64-setup
 Compression=lzma2
 SolidCompression=yes
@@ -22,7 +28,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
-Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinesesimp"; MessagesFile: "{#ChineseSimplifiedMessagesFile}"
 
 [Tasks]
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "快捷方式："; Flags: checkedonce

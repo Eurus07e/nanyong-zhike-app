@@ -29,3 +29,11 @@ jobs:
       - run: npm run test:unit --prefix frontend
       - run: npm run build --prefix frontend
       - run: pytest -q
+
+  windows-installer-preflight:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preflight Windows installer
+        shell: pwsh
+        run: ./desktop/preflight_windows_installer.ps1
