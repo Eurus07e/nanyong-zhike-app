@@ -215,7 +215,7 @@ def test_five_education_uses_real_read_only_dashboard() -> None:
     assert "<CampusServices username={session.username} onUnauthorized={handleUnauthorized}" in app
     assert "const OVERVIEW_PATH = '/api/five-education/overview'" in component
     assert "const ACTIVITIES_PATH = '/api/five-education/activities'" in component
-    assert "api.cached<FiveEducationOverview>(OVERVIEW_PATH" in component
+    assert "api.cached<FiveEducationOverview>(`${OVERVIEW_PATH}?refresh=true`" in component
     assert 'aria-label="五育活动分布雷达图"' in component
     assert "同年级平均" in component
     assert "成长模块" in component
@@ -273,6 +273,25 @@ def test_campus_service_loading_states_are_centered_in_their_panels() -> None:
     assert ".service-panel-loading { min-height: 330px;" in styles
 
 
+def test_five_education_and_second_classroom_render_snapshots_then_refresh() -> None:
+    components = ROOT / "frontend" / "src" / "components"
+    five = (components / "FiveEducation.tsx").read_text(encoding="utf-8")
+    second = (components / "SecondClassroom.tsx").read_text(encoding="utf-8")
+    app = (ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+    api = (ROOT / "frontend" / "src" / "api.ts").read_text(encoding="utf-8")
+
+    assert "api.peek<FiveEducationOverview>(OVERVIEW_PATH)" in five
+    assert "api.peek<FiveEducationActivities>(ACTIVITIES_PATH)" in five
+    assert "?refresh=true" in five
+    assert "api.setCache(OVERVIEW_PATH" in five
+    assert "api.peek<SecondClassroomProfile>(PROFILE_PATH)" in second
+    assert "?refresh=true" in second
+    assert "api.setCache(PROFILE_PATH" in second
+    assert "void prefetchCampusData()" in app
+    assert "async function prefetchCampusData()" in app
+    assert "setCache," in api
+
+
 def test_five_education_activity_filters_reuse_the_site_toolbar_language() -> None:
     component = (ROOT / "frontend" / "src" / "components" / "FiveEducation.tsx").read_text(
         encoding="utf-8"
@@ -290,24 +309,30 @@ def test_five_education_guide_wraps_long_green_descriptions_inside_boxes() -> No
         encoding="utf-8"
     )
 
-    assert "积极参加本科生院" in guide
-    assert "勤工助学项目认定" in guide
-    assert "积极参加院系和相关" in guide
-    assert "职能部门创设的其它" in guide
-    assert "劳动教育实践项目" in guide
+    assert "南京大学本科生劳动教育学习导引图（2025版）" in guide
+    assert 'viewBox="0 0 1600 1000"' in guide
+    assert 'class="scroll-body"' in guide
+    assert 'class="scroll-curl"' not in guide
+    assert "<style>" not in guide
+    assert guide.count('lengthAdjust="spacingAndGlyphs"') >= 12
+    assert "学工部勤工助学项目" in guide
+    assert "志愿服务项目可以认定" in guide
+    assert "和相关职能部门创设的其它劳动教育" in guide
+    assert "实践项目获得劳动时长" in guide
+    assert "适用于 2021 级及以后入学" not in guide
 
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
     assert ".five-guide-canvas { max-height: calc(92vh - 72px); overflow: hidden;" in styles
     assert "max-height: calc(92vh - 116px)" in styles
 
 
-def test_privacy_copy_covers_short_lived_five_education_data() -> None:
+def test_privacy_copy_covers_encrypted_campus_service_snapshots() -> None:
     about = (ROOT / "frontend" / "src" / "components" / "About.tsx").read_text(encoding="utf-8")
 
     assert "五育数据按需从南京大学五育系统查询" in about
-    assert "仅在浏览器内存中短期缓存" in about
-    assert "不会写入本站数据库" in about
+    assert "最近一次五育总览和活动记录的加密快照" in about
     assert "第二课堂个人资料与志愿服务统计按需" in about
+    assert "最近一次第二课堂数据的加密快照" in about
     assert "同域 HTTP 兼容跳转" in about
 
 

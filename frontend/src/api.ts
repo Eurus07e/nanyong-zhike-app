@@ -67,6 +67,10 @@ function hasCache(path: string) {
   return responseCache.get(path)?.value !== undefined
 }
 
+function setCache<T>(path: string, value: T, ttl = 5 * 60_000) {
+  responseCache.set(path, { expiresAt: Date.now() + ttl, value })
+}
+
 async function cached<T>(path: string, options: { ttl?: number; force?: boolean } = {}): Promise<T> {
   const ttl = options.ttl ?? 5 * 60_000
   const current = responseCache.get(path)
@@ -95,6 +99,7 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   cached,
   seedCache,
+  setCache,
   peek,
   hasCache,
   clearCache,

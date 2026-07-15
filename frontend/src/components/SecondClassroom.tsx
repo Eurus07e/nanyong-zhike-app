@@ -9,13 +9,15 @@ const CACHE_TTL = 5 * 60_000
 
 
 export function SecondClassroom({ onUnauthorized }: { onUnauthorized: () => void }) {
-  const [profile, setProfile] = useState<SecondClassroomProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<SecondClassroomProfile | null>(() => api.peek<SecondClassroomProfile>(PROFILE_PATH) || null)
+  const [loading, setLoading] = useState(() => !api.hasCache(PROFILE_PATH))
   const [error, setError] = useState('')
   const load = useCallback(async (force = false) => {
     setLoading(true); setError('')
     try {
-      setProfile(await api.cached<SecondClassroomProfile>(PROFILE_PATH, { ttl: CACHE_TTL, force }))
+      const nextProfile = await api.cached<SecondClassroomProfile>(`${PROFILE_PATH}?refresh=true`, { ttl: CACHE_TTL, force })
+      api.setCache(PROFILE_PATH, nextProfile, CACHE_TTL)
+      setProfile(nextProfile)
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) return onUnauthorized()
       setError(caught instanceof Error ? caught.message : '第二课堂暂时不可用')

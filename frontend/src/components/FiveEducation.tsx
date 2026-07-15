@@ -23,9 +23,9 @@ const CHART_RADIUS = 108
 
 
 export function FiveEducation({ onUnauthorized }: { onUnauthorized: () => void }) {
-  const [overview, setOverview] = useState<FiveEducationOverview | null>(null)
-  const [activities, setActivities] = useState<FiveEducationActivities | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [overview, setOverview] = useState<FiveEducationOverview | null>(() => api.peek<FiveEducationOverview>(OVERVIEW_PATH) || null)
+  const [activities, setActivities] = useState<FiveEducationActivities | null>(() => api.peek<FiveEducationActivities>(ACTIVITIES_PATH) || null)
+  const [loading, setLoading] = useState(() => !api.hasCache(OVERVIEW_PATH))
   const [error, setError] = useState('')
 
   const load = useCallback(async (force = false) => {
@@ -33,9 +33,11 @@ export function FiveEducation({ onUnauthorized }: { onUnauthorized: () => void }
     setError('')
     try {
       const [nextOverview, nextActivities] = await Promise.all([
-        api.cached<FiveEducationOverview>(OVERVIEW_PATH, { ttl: CACHE_TTL, force }),
-        api.cached<FiveEducationActivities>(ACTIVITIES_PATH, { ttl: CACHE_TTL, force }),
+        api.cached<FiveEducationOverview>(`${OVERVIEW_PATH}?refresh=true`, { ttl: CACHE_TTL, force }),
+        api.cached<FiveEducationActivities>(`${ACTIVITIES_PATH}?refresh=true`, { ttl: CACHE_TTL, force }),
       ])
+      api.setCache(OVERVIEW_PATH, nextOverview, CACHE_TTL)
+      api.setCache(ACTIVITIES_PATH, nextActivities, CACHE_TTL)
       setOverview(nextOverview)
       setActivities(nextActivities)
     } catch (caught) {

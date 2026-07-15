@@ -1,4 +1,8 @@
+from fastapi.testclient import TestClient
+
+from backend.app import main
 from backend.app.second_classroom import parse_second_classroom_profile
+from backend.app.security import Session
 
 
 def test_parses_second_classroom_profile_without_auth_material() -> None:
@@ -25,3 +29,30 @@ def test_parses_second_classroom_profile_without_auth_material() -> None:
         "sourceUrl": "https://youth.nju.edu.cn/tw/",
     }
     assert "CASTGC" not in repr(result)
+
+
+def test_second_classroom_route_uses_encrypted_portal_snapshot(monkeypatch) -> None:
+    expected = {"sourceUrl": "https://youth.nju.edu.cn/tw/"}
+    calls: list[tuple[str, bool]] = []
+
+    async def cache_first(session, cache_key, refresh, loader):
+        assert session.username == "alice"
+        calls.append((cache_key, refresh))
+        return expected
+
+    async def should_not_load(_):
+        raise AssertionError("portal_cache_first should control the loader")
+
+    monkeypatch.setattr(main, "portal_cache_first", cache_first)
+    monkeypatch.setattr(main.second_classroom, "profile", should_not_load)
+    main.app.dependency_overrides[main.current_session] = lambda: Session(
+        username="alice", castgc="CASTGC-test", expires_at=9_999_999_999
+    )
+    client = TestClient(main.app)
+    try:
+        response = client.get("/api/second-classroom/profile?refresh=true")
+        assert response.status_code == 200
+        assert response.json() == expected
+        assert calls == [("/api/second-classroom/profile", True)]
+    finally:
+        main.app.dependency_overrides.clear()

@@ -274,7 +274,7 @@ def test_activity_route_uses_current_encrypted_session(monkeypatch) -> None:
     )
     client = TestClient(main.app)
     try:
-        response = client.get("/api/five-education/activities")
+        response = client.get("/api/five-education/activities?refresh=true")
         assert response.status_code == 200
         assert response.json() == expected
     finally:
@@ -298,7 +298,7 @@ def test_activity_route_maps_safe_upstream_errors(monkeypatch, error, status_cod
     )
     client = TestClient(main.app)
     try:
-        response = client.get("/api/five-education/activities")
+        response = client.get("/api/five-education/activities?refresh=true")
         assert response.status_code == status_code
         assert response.json() == {"detail": str(error)}
     finally:
@@ -326,9 +326,45 @@ def test_overview_route_uses_current_encrypted_session(monkeypatch) -> None:
     )
     client = TestClient(main.app)
     try:
-        response = client.get("/api/five-education/overview")
+        response = client.get("/api/five-education/overview?refresh=true")
         assert response.status_code == 200
         assert response.json() == expected
+    finally:
+        main.app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize(
+    ("path", "cache_key", "client_method"),
+    [
+        ("/api/five-education/overview?refresh=true", "/api/five-education/overview", "overview"),
+        ("/api/five-education/activities?refresh=true", "/api/five-education/activities", "activities"),
+    ],
+)
+def test_five_education_routes_use_encrypted_portal_snapshots(
+    monkeypatch, path, cache_key, client_method
+) -> None:
+    expected = {"source": cache_key}
+    calls: list[tuple[str, bool]] = []
+
+    async def cache_first(session, next_key, refresh, loader):
+        assert session.username == "alice"
+        calls.append((next_key, refresh))
+        return expected
+
+    async def should_not_load(_):
+        raise AssertionError("portal_cache_first should control the loader")
+
+    monkeypatch.setattr(main, "portal_cache_first", cache_first)
+    monkeypatch.setattr(main.five_education, client_method, should_not_load)
+    main.app.dependency_overrides[main.current_session] = lambda: Session(
+        username="alice", castgc="CASTGC-test", expires_at=9_999_999_999
+    )
+    client = TestClient(main.app)
+    try:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.json() == expected
+        assert calls == [(cache_key, True)]
     finally:
         main.app.dependency_overrides.clear()
 
@@ -350,7 +386,7 @@ def test_overview_route_maps_safe_upstream_errors(monkeypatch, error, status_cod
     )
     client = TestClient(main.app)
     try:
-        response = client.get("/api/five-education/overview")
+        response = client.get("/api/five-education/overview?refresh=true")
         assert response.status_code == status_code
         assert response.json() == {"detail": str(error)}
     finally:

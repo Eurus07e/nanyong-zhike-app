@@ -9,7 +9,7 @@ import { About } from './components/About'
 import { Memos } from './components/Memos'
 import { CampusServices } from './components/CampusServices'
 import { Shell, type View } from './components/Shell'
-import type { AcademicOverview, AcademicProfile, Health, Program, ProgramCourse, ProgramNode, ScheduleCourse, Session, Term } from './types'
+import type { AcademicOverview, AcademicProfile, FiveEducationActivities, FiveEducationOverview, Health, Program, ProgramCourse, ProgramNode, ScheduleCourse, SecondClassroomProfile, Session, Term } from './types'
 import { selectOwnedProgram } from './utils'
 
 export default function App() {
@@ -43,6 +43,7 @@ export default function App() {
   useEffect(() => {
     if (!session) return
     void prefetchAcademicData()
+    void prefetchCampusData()
   }, [session])
 
   async function logout() {
@@ -110,4 +111,16 @@ async function prefetchAcademicData() {
   } catch {
     // Prefetch is best-effort; the active view still reports actionable errors.
   }
+}
+
+async function prefetchCampusData() {
+  const ttl = 5 * 60_000
+  const [overview, activities, secondClassroom] = await Promise.allSettled([
+    api.cached<FiveEducationOverview>('/api/five-education/overview?refresh=true', { ttl }),
+    api.cached<FiveEducationActivities>('/api/five-education/activities?refresh=true', { ttl }),
+    api.cached<SecondClassroomProfile>('/api/second-classroom/profile?refresh=true', { ttl }),
+  ])
+  if (overview.status === 'fulfilled') api.setCache('/api/five-education/overview', overview.value, ttl)
+  if (activities.status === 'fulfilled') api.setCache('/api/five-education/activities', activities.value, ttl)
+  if (secondClassroom.status === 'fulfilled') api.setCache('/api/second-classroom/profile', secondClassroom.value, ttl)
 }

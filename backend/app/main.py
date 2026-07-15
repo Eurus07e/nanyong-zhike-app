@@ -284,40 +284,58 @@ async def important_notice_detail(notice_id: int) -> dict[str, str]:
 @app.get("/api/five-education/overview")
 async def five_education_overview(
     session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
 ) -> dict[str, Any]:
-    try:
-        return await five_education.overview(session.castgc)
-    except FiveEducationError as error:
-        raise HTTPException(
-            status_code=401 if error.auth_expired else 502,
-            detail=str(error),
-        ) from error
+    async def load() -> dict[str, Any]:
+        try:
+            return await five_education.overview(session.castgc)
+        except FiveEducationError as error:
+            raise HTTPException(
+                status_code=401 if error.auth_expired else 502,
+                detail=str(error),
+            ) from error
+
+    return await portal_cache_first(
+        session, "/api/five-education/overview", refresh, load
+    )
 
 
 @app.get("/api/five-education/activities")
 async def five_education_activities(
     session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
 ) -> dict[str, Any]:
-    try:
-        return await five_education.activities(session.castgc)
-    except FiveEducationError as error:
-        raise HTTPException(
-            status_code=401 if error.auth_expired else 502,
-            detail=str(error),
-        ) from error
+    async def load() -> dict[str, Any]:
+        try:
+            return await five_education.activities(session.castgc)
+        except FiveEducationError as error:
+            raise HTTPException(
+                status_code=401 if error.auth_expired else 502,
+                detail=str(error),
+            ) from error
+
+    return await portal_cache_first(
+        session, "/api/five-education/activities", refresh, load
+    )
 
 
 @app.get("/api/second-classroom/profile")
 async def second_classroom_profile(
     session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
 ) -> dict[str, Any]:
-    try:
-        return await second_classroom.profile(session.castgc)
-    except SecondClassroomError as error:
-        raise HTTPException(
-            status_code=401 if error.auth_expired else 502,
-            detail=str(error),
-        ) from error
+    async def load() -> dict[str, Any]:
+        try:
+            return await second_classroom.profile(session.castgc)
+        except SecondClassroomError as error:
+            raise HTTPException(
+                status_code=401 if error.auth_expired else 502,
+                detail=str(error),
+            ) from error
+
+    return await portal_cache_first(
+        session, "/api/second-classroom/profile", refresh, load
+    )
 
 
 @app.post("/api/auth/login")
