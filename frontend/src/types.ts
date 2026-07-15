@@ -158,3 +158,42 @@ export type NoticeResponse = {
   items: Notice[]
   source: 'cache' | 'fresh'
 }
+
+export type FiveEducationDimension = {
+  key: 'moral' | 'intellectual' | 'physical' | 'aesthetic' | 'labor'
+  label: '德' | '智' | '体' | '美' | '劳'
+  personalCount: number
+  cohortAverage: number
+}
+
+export type FiveEducationGrowthModule = {
+  id: number
+  name: string
+  actualDuration: number
+  requiredDuration: number
+  displayTargetDuration: number | null
+  achieved: boolean
+}
+
+export type FiveEducationLaborModule = {
+  moduleId: number
+  name: string
+  actualDuration: number
+  displayTargetDuration: number | null
+}
+
+export type FiveEducationOverview = {
+  fetchedAt: number
+  dimensions: FiveEducationDimension[]
+  summary: {
+    totalActivities: number
+    laborTotalDuration: number
+    evaluatedCount: number
+    evaluationTotal: number
+    evaluationRate: number
+  }
+  growthModules: FiveEducationGrowthModule[]
+  laborBreakdown: FiveEducationLaborModule[]
+  interests: { key: FiveEducationDimension['key']; label: FiveEducationDimension['label'] }[]
+  source: { systemName: string; systemUrl: string }
+}
