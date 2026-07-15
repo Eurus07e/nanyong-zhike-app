@@ -292,6 +292,19 @@ async def five_education_overview(
         ) from error
 
 
+@app.get("/api/five-education/activities")
+async def five_education_activities(
+    session: Annotated[Session, Depends(current_session)],
+) -> dict[str, Any]:
+    try:
+        return await five_education.activities(session.castgc)
+    except FiveEducationError as error:
+        raise HTTPException(
+            status_code=401 if error.auth_expired else 502,
+            detail=str(error),
+        ) from error
+
+
 @app.post("/api/auth/login")
 async def login(body: LoginBody, request: Request, response: Response) -> dict[str, Any]:
     client_ip = request.client.host if request.client else "unknown"
