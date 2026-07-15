@@ -19,6 +19,7 @@ from .academic_snapshots import AcademicSnapshotRepository, count_graded_courses
 from .config import get_settings
 from .database import Database
 from .exchange_system import ExchangeSystemClient, ExchangeSystemError
+from .five_education import FiveEducationClient, FiveEducationError
 from .memos import MemoRepository
 from .nju_cli import NjuCli, NjuCliError
 from .notices import NoticeService
@@ -54,6 +55,7 @@ nju = NjuCli(settings)
 notices = NoticeService(nju)
 exchange_system = ExchangeSystemClient()
 student_profiles = StudentProfileClient()
+five_education = FiveEducationClient()
 
 
 @asynccontextmanager
@@ -275,6 +277,19 @@ async def important_notice_detail(notice_id: int) -> dict[str, str]:
     if detail is None:
         raise HTTPException(status_code=404, detail="未找到该通知")
     return detail
+
+
+@app.get("/api/five-education/overview")
+async def five_education_overview(
+    session: Annotated[Session, Depends(current_session)],
+) -> dict[str, Any]:
+    try:
+        return await five_education.overview(session.castgc)
+    except FiveEducationError as error:
+        raise HTTPException(
+            status_code=401 if error.auth_expired else 502,
+            detail=str(error),
+        ) from error
 
 
 @app.post("/api/auth/login")

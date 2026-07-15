@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import pytest
+from fastapi.testclient import TestClient
 
+from backend.app import main
 from backend.app.five_education import (
     FiveEducationError,
     _allowed_url,
     normalize_five_education,
 )
+from backend.app.security import Session
 
 
 def sample_payload() -> dict:
@@ -138,3 +141,47 @@ def test_only_cas_and_five_education_hosts_are_allowed() -> None:
     assert not _allowed_url("http://ndwy.nju.edu.cn/dztml/wdwy")
     assert not _allowed_url("https://ndwy.nju.edu.cn.evil.example/wdwy")
     assert not _allowed_url("https://example.com/")
+
+
+def test_overview_route_uses_current_encrypted_session(monkeypatch) -> None:
+    expected = normalize_five_education(sample_payload(), fetched_at=1)
+
+    async def overview(castgc: str) -> dict:
+        assert castgc == "CASTGC-test"
+        return expected
+
+    monkeypatch.setattr(main.five_education, "overview", overview)
+    main.app.dependency_overrides[main.current_session] = lambda: Session(
+        username="alice", castgc="CASTGC-test", expires_at=9_999_999_999
+    )
+    client = TestClient(main.app)
+    try:
+        response = client.get("/api/five-education/overview")
+        assert response.status_code == 200
+        assert response.json() == expected
+    finally:
+        main.app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize(
+    ("error", "status_code"),
+    [
+        (FiveEducationError("统一身份认证登录已过期", auth_expired=True), 401),
+        (FiveEducationError("南京大学五育系统暂时不可用"), 502),
+    ],
+)
+def test_overview_route_maps_safe_upstream_errors(monkeypatch, error, status_code) -> None:
+    async def overview(_: str) -> dict:
+        raise error
+
+    monkeypatch.setattr(main.five_education, "overview", overview)
+    main.app.dependency_overrides[main.current_session] = lambda: Session(
+        username="alice", castgc="CASTGC-test", expires_at=9_999_999_999
+    )
+    client = TestClient(main.app)
+    try:
+        response = client.get("/api/five-education/overview")
+        assert response.status_code == status_code
+        assert response.json() == {"detail": str(error)}
+    finally:
+        main.app.dependency_overrides.clear()
