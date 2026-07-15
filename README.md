@@ -13,11 +13,11 @@
 - [Linux（64 位，Ubuntu 22.04+）](https://github.com/Eurus07e/nanyong-zhike-app/releases/latest/download/NanyongZhike-linux-x86_64.zip)
 - [Linux（ARM64，Ubuntu 24.04+）](https://github.com/Eurus07e/nanyong-zhike-app/releases/latest/download/NanyongZhike-linux-arm64.zip)
 
-> Mac 版本目前仅支持 Apple 芯片，不支持 Intel 芯片。可在苹果菜单的“关于本机”中查看芯片类型。
+> Mac 版本目前仅支持 Apple 芯片，您可在苹果菜单的“关于本机”中查看芯片类型。
 
-**第二步：完整解压 ZIP 压缩包**
+**第二步：解压 ZIP 压缩包**
 
-不要直接在压缩包预览窗口中运行。解压后，请保持启动文件、主程序和 `_internal` 文件夹在同一目录。
+注意：解压后，请保持启动文件、主程序和 `_internal` 文件夹在同一目录。
 
 **第三步：双击启动**
 
@@ -25,7 +25,7 @@
 - macOS：按住 Control 点击 `启动南雍知课.command`，再选择“打开”。
 - Linux：双击 `启动南雍知课.sh`。
 
-浏览器会自动打开南雍知课。关闭名为“南雍知课”的启动窗口即可停止程序。
+浏览器会自动打开南雍知课。关闭启动窗口即可停止程序。
 
 ### 首次打开提示
 
