@@ -8,40 +8,14 @@
 
 ## 界面预览
 
-<p align="center"><sub>← 左右滑动浏览 · 点击图片查看原图 →</sub></p>
+<p align="center">
+  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="docs/screenshots/academic-overview.jpeg" width="1100" alt="打开南雍知课完整界面画廊"></a>
+</p>
 
-<table>
-  <tr>
-    <td align="center" width="900">
-      <a href="docs/screenshots/academic-overview.jpeg"><img src="docs/screenshots/academic-overview.jpeg" width="900" alt="南雍知课学业概览"></a><br>
-      <sub><b>学业概览</b></sub>
-    </td>
-    <td align="center" width="900">
-      <a href="docs/screenshots/program.jpeg"><img src="docs/screenshots/program.jpeg" width="900" alt="南雍知课培养方案"></a><br>
-      <sub><b>培养方案</b></sub>
-    </td>
-    <td align="center" width="900">
-      <a href="docs/screenshots/schedule.jpeg"><img src="docs/screenshots/schedule.jpeg" width="900" alt="南雍知课我的课表"></a><br>
-      <sub><b>我的课表</b></sub>
-    </td>
-    <td align="center" width="900">
-      <a href="docs/screenshots/reviews.jpeg"><img src="docs/screenshots/reviews.jpeg" width="900" alt="南雍知课红黑榜"></a><br>
-      <sub><b>红黑榜</b></sub>
-    </td>
-    <td align="center" width="900">
-      <a href="docs/screenshots/notices.jpeg"><img src="docs/screenshots/notices.jpeg" width="900" alt="南雍知课重要通知"></a><br>
-      <sub><b>重要通知</b></sub>
-    </td>
-    <td align="center" width="900">
-      <a href="docs/screenshots/nju-tabs.jpeg"><img src="docs/screenshots/nju-tabs.jpeg" width="900" alt="南雍知课 NJU Tabs"></a><br>
-      <sub><b>NJU Tabs</b></sub>
-    </td>
-    <td align="center" width="900">
-      <a href="docs/screenshots/memos.jpeg"><img src="docs/screenshots/memos.jpeg" width="900" alt="南雍知课备忘录"></a><br>
-      <sub><b>备忘录</b></sub>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <strong><a href="https://eurus07e.github.io/nanyong-zhike-app/">打开完整界面画廊 →</a></strong><br>
+  <sub>支持触控左右滑动、滚轮、键盘方向键与按钮切换</sub>
+</p>
 
 ## 下载和启动
 

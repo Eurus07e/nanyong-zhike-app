@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="南雍知课界面预览：学业概览、培养方案、课表、红黑榜、校园服务与备忘录。">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>南雍知课 · 界面预览</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color: #1d1d1f;
+      background: #f5f5f7;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --ink: #1d1d1f;
+      --muted: #6e6e73;
+      --line: #d2d2d7;
+      --surface: #fff;
+      --soft: #f5f5f7;
+      --purple: #5a2d82;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--soft); }
+    body { margin: 0; min-width: 320px; overflow: hidden; background: var(--soft); color: var(--ink); -webkit-font-smoothing: antialiased; }
+    button, a { font: inherit; }
+    button { color: inherit; }
+    a { color: inherit; }
+    :focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
+
+    .page {
+      height: 100vh;
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: 68px minmax(0, 1fr) 72px;
+      overflow: hidden;
+    }
+
+    .site-header {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 clamp(20px, 4vw, 64px);
+      border-bottom: 1px solid rgba(210, 210, 215, .78);
+      background: rgba(250, 250, 252, .88);
+      backdrop-filter: saturate(155%) blur(22px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; text-decoration: none; }
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius);
+      color: #fff;
+      background: var(--purple);
+      font-family: "Songti SC", "STSong", serif;
+      font-size: 21px;
+    }
+    .brand-copy strong { display: block; font-size: 14px; line-height: 1.25; }
+    .brand-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+
+    .page-title { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: 14px; font-weight: 650; }
+    .repo-link {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .76);
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: border-color .18s ease, background-color .18s ease;
+    }
+    .repo-link:hover { border-color: #b8b8bd; background: #fff; }
+    .repo-link svg { width: 15px; height: 15px; }
+
+    .gallery {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      touch-action: pan-x pan-y;
+    }
+    .gallery::-webkit-scrollbar { display: none; }
+
+    .gallery-slide {
+      width: 100%;
+      min-width: 100%;
+      flex: 0 0 100%;
+      scroll-snap-align: center;
+      scroll-snap-stop: always;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 14px;
+      padding: 20px clamp(20px, 4vw, 64px) 18px;
+    }
+
+    .slide-heading {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .slide-heading h2 { margin: 0; font-size: clamp(22px, 2.5vw, 34px); line-height: 1.08; letter-spacing: -.02em; }
+    .slide-heading span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    .shot-frame {
+      width: min(1480px, 100%);
+      min-height: 0;
+      margin: 0 auto;
+      display: grid;
+      place-items: center;
+    }
+    .shot-frame img {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      border: 1px solid rgba(210, 210, 215, .92);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: 0 18px 54px rgba(0, 0, 0, .10);
+      object-fit: contain;
+    }
+
+    .gallery-controls {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 18px;
+      padding: 0 clamp(20px, 4vw, 64px);
+      border-top: 1px solid rgba(210, 210, 215, .78);
+      background: rgba(250, 250, 252, .92);
+      backdrop-filter: saturate(155%) blur(22px);
+    }
+    .current-label { min-width: 0; display: flex; align-items: baseline; gap: 10px; }
+    .current-label strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+    .current-label span { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+    .dots { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .dot {
+      width: 7px;
+      height: 7px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: #c7c7cc;
+      cursor: pointer;
+      transition: width .18s ease, border-radius .18s ease, background-color .18s ease;
+    }
+    .dot[aria-current="true"] { width: 24px; border-radius: 999px; background: var(--purple); }
+
+    .arrow-controls { display: flex; justify-content: flex-end; gap: 8px; }
+    .arrow-button {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      cursor: pointer;
+      transition: border-color .18s ease, background-color .18s ease, opacity .18s ease;
+    }
+    .arrow-button:hover:not(:disabled) { border-color: #b8b8bd; background: #f8f8fa; }
+    .arrow-button:disabled { cursor: default; opacity: .32; }
+    .arrow-button svg { width: 18px; height: 18px; }
+
+    @media (max-width: 720px) {
+      .page { grid-template-rows: 58px minmax(0, 1fr) 66px; }
+      .site-header { gap: 12px; padding-inline: 14px; }
+      .brand-mark { width: 34px; height: 34px; flex-basis: 34px; font-size: 18px; }
+      .brand-copy span, .page-title { display: none; }
+      .repo-link { min-height: 34px; padding-inline: 10px; }
+      .gallery-slide { gap: 10px; padding: 14px 12px 12px; }
+      .slide-heading h2 { font-size: 23px; }
+      .shot-frame { align-items: start; }
+      .shot-frame img { width: 100%; margin-top: 4px; box-shadow: 0 12px 34px rgba(0, 0, 0, .10); }
+      .gallery-controls { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding-inline: 14px; }
+      .dots { display: none; }
+      .arrow-button { width: 40px; height: 40px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .gallery { scroll-behavior: auto; }
+      .dot, .repo-link, .arrow-button { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <a class="brand" href="https://github.com/Eurus07e/nanyong-zhike-app" aria-label="返回南雍知课 GitHub 仓库">
+        <span class="brand-mark" aria-hidden="true">雍</span>
+        <span class="brand-copy"><strong>南雍知课</strong><span>南京大学一站式选课助手</span></span>
+      </a>
+      <h1 class="page-title">界面预览</h1>
+      <a class="repo-link" href="https://github.com/Eurus07e/nanyong-zhike-app">
+        返回仓库
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+      </a>
+    </header>
+
+    <main class="gallery" aria-label="南雍知课界面画廊" tabindex="0">
+      <article class="gallery-slide" data-title="学业概览">
+        <header class="slide-heading"><h2>学业概览</h2><span>01 / 07</span></header>
+        <figure class="shot-frame"><img src="screenshots/academic-overview.jpeg" alt="南雍知课学业概览"></figure>
+      </article>
+      <article class="gallery-slide" data-title="培养方案">
+        <header class="slide-heading"><h2>培养方案</h2><span>02 / 07</span></header>
+        <figure class="shot-frame"><img src="screenshots/program.jpeg" alt="南雍知课培养方案" loading="lazy"></figure>
+      </article>
+      <article class="gallery-slide" data-title="我的课表">
+        <header class="slide-heading"><h2>我的课表</h2><span>03 / 07</span></header>
+        <figure class="shot-frame"><img src="screenshots/schedule.jpeg" alt="南雍知课我的课表" loading="lazy"></figure>
+      </article>
+      <article class="gallery-slide" data-title="红黑榜">
+        <header class="slide-heading"><h2>红黑榜</h2><span>04 / 07</span></header>
+        <figure class="shot-frame"><img src="screenshots/reviews.jpeg" alt="南雍知课红黑榜" loading="lazy"></figure>
+      </article>
+      <article class="gallery-slide" data-title="重要通知">
+        <header class="slide-heading"><h2>重要通知</h2><span>05 / 07</span></header>
+        <figure class="shot-frame"><img src="screenshots/notices.jpeg" alt="南雍知课重要通知" loading="lazy"></figure>
+      </article>
+      <article class="gallery-slide" data-title="NJU Tabs">
+        <header class="slide-heading"><h2>NJU Tabs</h2><span>06 / 07</span></header>
+        <figure class="shot-frame"><img src="screenshots/nju-tabs.jpeg" alt="南雍知课NJU Tabs" loading="lazy"></figure>
+      </article>
+      <article class="gallery-slide" data-title="备忘录">
+        <header class="slide-heading"><h2>备忘录</h2><span>07 / 07</span></header>
+        <figure class="shot-frame"><img src="screenshots/memos.jpeg" alt="南雍知课备忘录" loading="lazy"></figure>
+      </article>
+    </main>
+
+    <footer class="gallery-controls">
+      <div class="current-label" aria-live="polite"><strong>学业概览</strong><span>1 / 7</span></div>
+      <div class="dots" aria-label="选择预览页面">
+        <button class="dot" type="button" data-index="0" aria-label="查看学业概览" aria-current="true"></button>
+        <button class="dot" type="button" data-index="1" aria-label="查看培养方案" aria-current="false"></button>
+        <button class="dot" type="button" data-index="2" aria-label="查看我的课表" aria-current="false"></button>
+        <button class="dot" type="button" data-index="3" aria-label="查看红黑榜" aria-current="false"></button>
+        <button class="dot" type="button" data-index="4" aria-label="查看重要通知" aria-current="false"></button>
+        <button class="dot" type="button" data-index="5" aria-label="查看 NJU Tabs" aria-current="false"></button>
+        <button class="dot" type="button" data-index="6" aria-label="查看备忘录" aria-current="false"></button>
+      </div>
+      <div class="arrow-controls">
+        <button class="arrow-button" type="button" data-action="previous" aria-label="上一张" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button class="arrow-button" type="button" data-action="next" aria-label="下一张">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const gallery = document.querySelector(".gallery")
+    const slides = Array.from(document.querySelectorAll(".gallery-slide"))
+    const dots = Array.from(document.querySelectorAll(".dot"))
+    const previousButton = document.querySelector('[data-action="previous"]')
+    const nextButton = document.querySelector('[data-action="next"]')
+    const currentTitle = document.querySelector(".current-label strong")
+    const currentCount = document.querySelector(".current-label span")
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
+    let activeIndex = 0
+    let frameRequest = 0
+
+    function updateControls(index) {
+      activeIndex = Math.max(0, Math.min(index, slides.length - 1))
+      currentTitle.textContent = slides[activeIndex].dataset.title
+      currentCount.textContent = `${activeIndex + 1} / ${slides.length}`
+      previousButton.disabled = activeIndex === 0
+      nextButton.disabled = activeIndex === slides.length - 1
+      dots.forEach((dot, dotIndex) => dot.setAttribute("aria-current", String(dotIndex === activeIndex)))
+    }
+
+    function goToSlide(index) {
+      const targetIndex = Math.max(0, Math.min(index, slides.length - 1))
+      slides[targetIndex].scrollIntoView({
+        behavior: reducedMotion.matches ? "auto" : "smooth",
+        block: "nearest",
+        inline: "center",
+      })
+      updateControls(targetIndex)
+    }
+
+    function syncToScroll() {
+      cancelAnimationFrame(frameRequest)
+      frameRequest = requestAnimationFrame(() => {
+        const nextIndex = Math.round(gallery.scrollLeft / Math.max(gallery.clientWidth, 1))
+        if (nextIndex !== activeIndex) updateControls(nextIndex)
+      })
+    }
+
+    previousButton.addEventListener("click", () => goToSlide(activeIndex - 1))
+    nextButton.addEventListener("click", () => goToSlide(activeIndex + 1))
+    dots.forEach((dot) => dot.addEventListener("click", () => goToSlide(Number(dot.dataset.index))))
+    gallery.addEventListener("scroll", syncToScroll, { passive: true })
+    gallery.addEventListener("wheel", (event) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+      event.preventDefault()
+      gallery.scrollBy({ left: event.deltaY, behavior: "auto" })
+    }, { passive: false })
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") goToSlide(activeIndex - 1)
+      if (event.key === "ArrowRight") goToSlide(activeIndex + 1)
+    })
+    window.addEventListener("resize", () => goToSlide(activeIndex), { passive: true })
+  </script>
+</body>
+</html>
