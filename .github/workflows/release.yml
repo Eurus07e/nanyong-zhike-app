@@ -3,7 +3,7 @@ name: Release desktop packages
 on:
   push:
     tags:
-      - "v1.0.0"
+      - "v1.1.5"
 
 permissions:
   contents: read
@@ -11,6 +11,8 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      NJU_CLI_BIN: /bin/true
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -27,6 +29,7 @@ jobs:
       - run: python -m pip install -e '.[dev]'
       - run: npm ci --prefix frontend
       - run: npm run lint --prefix frontend
+      - run: npm run test:unit --prefix frontend
       - run: npm run build --prefix frontend
       - run: npm audit --prefix frontend --registry=https://registry.npmjs.org
       - run: pytest -q
@@ -75,7 +78,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
       - run: npm ci --prefix frontend
       - run: npm run build --prefix frontend
-      - run: python -m pip install . pyinstaller==6.21.0
+      - run: python -m pip install . pyinstaller==6.21.0 pillow==11.3.0
       - name: Download and patch pinned nju-cli source
         shell: bash
         env:
@@ -127,10 +130,37 @@ jobs:
             --platform "$RELEASE_PLATFORM" \
             --arch "$RELEASE_ARCH" \
             --nju-source .release-tools/nju-cli-v1.4.6-source.tar.gz
+      - name: Build macOS disk image
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xattr -cr "dist/南雍知课.app"
+          xattr -dr com.apple.FinderInfo "dist/南雍知课.app" 2>/dev/null || true
+          xattr -dr 'com.apple.fileprovider.fpfs#P' "dist/南雍知课.app" 2>/dev/null || true
+          codesign --force --deep --sign - "dist/南雍知课.app"
+          codesign --verify --deep --strict "dist/南雍知课.app"
+          staging="release/dmg-root"
+          mkdir -p "$staging"
+          cp -R "dist/南雍知课.app" "$staging/南雍知课.app"
+          ln -s /Applications "$staging/Applications"
+          hdiutil create -volname "南雍知课" -srcfolder "$staging" -ov -format UDZO \
+            "release/NanyongZhike-macos-arm64.dmg"
+          rm -rf "$staging"
+      - name: Build Windows installer
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compiler)) { throw "Inno Setup is unavailable on this runner" }
+          & $compiler "/DAppVersion=1.1.5" "desktop\windows-installer.iss"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: NanyongZhike-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/*.zip
+          path: |
+            release/*.zip
+            release/*.dmg
+            release/*-setup.exe
           if-no-files-found: error
 
   publish:
@@ -149,7 +179,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           gh release create "${GITHUB_REF_NAME}"
-          release-assets/*.zip
+          release-assets/*
           --repo "${GITHUB_REPOSITORY}"
           --title "南雍知课 ${GITHUB_REF_NAME}"
           --generate-notes

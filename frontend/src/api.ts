@@ -9,7 +9,7 @@ export class ApiError extends Error {
 export const EHALL_STATUS_EVENT = 'nanyong-ehall-status'
 
 function isEhallRequest(path: string) {
-  return /^\/api\/(grades|schedule|programs|academic\/profile)(?:[/?]|$)/.test(path)
+  return /^\/api\/(grades|schedule|programs|academic\/(profile|overview))(?:[/?]|$)/.test(path)
 }
 
 function reportEhallStatus(connected: boolean) {
@@ -44,11 +44,28 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(message, response.status)
   }
   if (eHallRequest) reportEhallStatus(true)
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
 type CacheEntry = { expiresAt: number; value?: unknown; promise?: Promise<unknown> }
 const responseCache = new Map<string, CacheEntry>()
+
+type BootstrapEntry = { value: unknown; updatedAt: number }
+
+function seedCache(entries: Record<string, BootstrapEntry>) {
+  Object.entries(entries).forEach(([path, entry]) => {
+    responseCache.set(path, { expiresAt: Number.POSITIVE_INFINITY, value: entry.value })
+  })
+}
+
+function peek<T>(path: string): T | undefined {
+  return responseCache.get(path)?.value as T | undefined
+}
+
+function hasCache(path: string) {
+  return responseCache.get(path)?.value !== undefined
+}
 
 async function cached<T>(path: string, options: { ttl?: number; force?: boolean } = {}): Promise<T> {
   const ttl = options.ttl ?? 5 * 60_000
@@ -77,9 +94,15 @@ function clearCache(prefix?: string) {
 export const api = {
   get: <T>(path: string) => request<T>(path),
   cached,
+  seedCache,
+  peek,
+  hasCache,
   clearCache,
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  patch: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  delete: (path: string) => request<void>(path, { method: 'DELETE' }),
 }
 
 export function query(path: string, params: Record<string, string | undefined>) {

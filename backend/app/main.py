@@ -1,20 +1,28 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import threading
+import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Annotated, Any, Literal
+from urllib.parse import quote, urlencode
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from .academic import summarize_grades
+from .academic import passed_course_detail_requests, summarize_grades
+from .academic_snapshots import AcademicSnapshotRepository, count_graded_courses
 from .config import get_settings
 from .database import Database
 from .exchange_system import ExchangeSystemClient, ExchangeSystemError
+from .memos import MemoRepository
 from .nju_cli import NjuCli, NjuCliError
+from .notices import NoticeService
+from .portal_snapshots import PortalSnapshotRepository
 from .reviews import ReviewRepository
 from .schedule import merge_schedule_details
 from .security import (
@@ -32,6 +40,9 @@ settings = get_settings()
 database = Database(settings.database_path)
 sessions = SessionStore(database, settings)
 reviews = ReviewRepository(database, settings.review_data_path)
+memo_repository = MemoRepository(database)
+academic_snapshots = AcademicSnapshotRepository(database, settings)
+portal_snapshots = PortalSnapshotRepository(database, settings)
 rate_limiter = LoginRateLimiter(
     ip_attempts=settings.login_ip_attempts,
     username_attempts=settings.login_username_attempts,
@@ -40,6 +51,7 @@ rate_limiter = LoginRateLimiter(
     max_username_entries=settings.login_rate_max_username_entries,
 )
 nju = NjuCli(settings)
+notices = NoticeService(nju)
 exchange_system = ExchangeSystemClient()
 student_profiles = StudentProfileClient()
 
@@ -102,6 +114,19 @@ class LoginBody(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class MemoCreateBody(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    content: str = Field(min_length=1, max_length=10_000)
+    link_url: str | None = Field(default=None, alias="linkUrl", max_length=2048)
+    link_label: str | None = Field(default=None, alias="linkLabel", max_length=80)
+
+
+class MemoUpdateBody(BaseModel):
+    content: str | None = Field(default=None, min_length=1, max_length=10_000)
+    pinned: bool | None = None
+
+
 def current_session(
     token: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None,
 ) -> Session:
@@ -123,6 +148,65 @@ async def run_cli(session: Session, args: list[str], *, timeout: int = 45) -> An
         ) from error
 
 
+async def enrich_passed_course_details(session: Session, payload: dict[str, Any]) -> dict[str, Any]:
+    """Attach official course classifications to passed grades."""
+    requests = passed_course_detail_requests(payload)
+    if not requests:
+        return payload
+
+    limiter = asyncio.Semaphore(settings.nju_cli_user_concurrency)
+    auth_error: HTTPException | None = None
+
+    async def fetch(term: str, course_ids: list[str]) -> list[Any]:
+        nonlocal auth_error
+        async with limiter:
+            if auth_error is not None:
+                return []
+            try:
+                detail = await run_cli(
+                    session,
+                    [
+                        "ehall",
+                        "my-course-schedule",
+                        "detail",
+                        *course_ids,
+                        "--term",
+                        term,
+                    ],
+                    timeout=45 if len(course_ids) == 1 else 90,
+                )
+                return [detail]
+            except HTTPException as error:
+                if error.status_code == 401 and auth_error is None:
+                    auth_error = error
+                    return []
+                if len(course_ids) == 1:
+                    return []
+
+        # A failed batch should not hide every other course in that term.
+        fallback = await asyncio.gather(
+            *(fetch(term, [course_id]) for course_id in course_ids)
+        )
+        return [detail for group in fallback for detail in group]
+
+    detail_groups = await asyncio.gather(
+        *(fetch(term, course_ids) for term, course_ids in requests.items())
+    )
+    if auth_error is not None:
+        raise auth_error
+    for detail in (item for group in detail_groups for item in group):
+        merge_schedule_details(payload, detail)
+    return payload
+
+
+async def fresh_academic_overview(session: Session) -> dict[str, Any]:
+    grades = await run_cli(
+        session, ["ehall", "grades", "list", "--json", "--page-size", "500"]
+    )
+    grades = await enrich_passed_course_details(session, grades)
+    return {"grades": grades, "summary": summarize_grades(grades)}
+
+
 @app.get("/api/health")
 async def health() -> dict[str, str]:
     return {
@@ -131,6 +215,66 @@ async def health() -> dict[str, str]:
         "version": APP_VERSION,
         "deployment": settings.app_env,
     }
+
+
+def _schedule_desktop_exit() -> None:
+    timer = threading.Timer(0.25, os._exit, args=(0,))
+    timer.daemon = True
+    timer.start()
+
+
+@app.post("/api/desktop/quit")
+async def quit_desktop(request: Request) -> dict[str, bool]:
+    client_host = request.client.host if request.client else ""
+    if settings.app_env != "desktop":
+        raise HTTPException(status_code=404, detail="仅本地桌面版支持退出应用")
+    if client_host not in {"127.0.0.1", "::1"}:
+        raise HTTPException(status_code=403, detail="仅允许从本机退出应用")
+    _schedule_desktop_exit()
+    return {"ok": True}
+
+
+@app.get("/api/notices")
+async def important_notices(
+    limit: int = Query(default=8, ge=1, le=20),
+    refresh: bool = False,
+) -> dict[str, Any]:
+    try:
+        return await notices.list(limit=limit, force=refresh)
+    except NjuCliError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+
+async def save_portal_snapshot(session: Session, cache_key: str, value: Any) -> Any:
+    await asyncio.to_thread(portal_snapshots.save, session.username, cache_key, value)
+    return value
+
+
+async def portal_cache_first(
+    session: Session,
+    cache_key: str,
+    refresh: bool,
+    loader: Any,
+) -> Any:
+    if not refresh:
+        cached = await asyncio.to_thread(
+            portal_snapshots.get, session.username, cache_key
+        )
+        if cached is not None:
+            return cached["value"]
+    value = await loader()
+    return await save_portal_snapshot(session, cache_key, value)
+
+
+@app.get("/api/notices/{notice_id}")
+async def important_notice_detail(notice_id: int) -> dict[str, str]:
+    try:
+        detail = await notices.detail(str(notice_id))
+    except NjuCliError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+    if detail is None:
+        raise HTTPException(status_code=404, detail="未找到该通知")
+    return detail
 
 
 @app.post("/api/auth/login")
@@ -163,6 +307,25 @@ async def auth_session(session: Annotated[Session, Depends(current_session)]) ->
     return {"username": session.username, "expiresAt": session.expires_at}
 
 
+@app.get("/api/bootstrap")
+async def bootstrap_cache(
+    session: Annotated[Session, Depends(current_session)],
+) -> dict[str, Any]:
+    entries = await asyncio.to_thread(portal_snapshots.list, session.username)
+    academic = await asyncio.to_thread(academic_snapshots.get, session.username)
+    if academic is not None:
+        entries["/api/academic/overview"] = {
+            "value": {
+                **academic["payload"],
+                "source": "cache",
+                "cachedAt": academic["updatedAt"],
+                "newGradeCount": 0,
+            },
+            "updatedAt": academic["updatedAt"],
+        }
+    return {"entries": entries}
+
+
 @app.post("/api/auth/logout")
 async def logout(
     response: Response,
@@ -181,7 +344,8 @@ async def grades(
     args = ["ehall", "grades", "list", "--json", "--page-size", "500"]
     if term:
         args.extend(["--term", term])
-    return await run_cli(session, args)
+    payload = await run_cli(session, args)
+    return await enrich_passed_course_details(session, payload)
 
 
 @app.get("/api/grades/summary")
@@ -194,35 +358,80 @@ async def grade_summary(
     return summarize_grades(payload)
 
 
+@app.get("/api/academic/overview")
+async def academic_overview(
+    session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
+) -> dict[str, Any]:
+    if not refresh:
+        cached = await asyncio.to_thread(academic_snapshots.get, session.username)
+        if cached is not None:
+            return {
+                **cached["payload"],
+                "source": "cache",
+                "cachedAt": cached["updatedAt"],
+                "newGradeCount": 0,
+            }
+
+    payload = await fresh_academic_overview(session)
+    grade_count = count_graded_courses(payload["grades"])
+    previous_count = await asyncio.to_thread(
+        academic_snapshots.save, session.username, payload, grade_count
+    )
+    return {
+        **payload,
+        "source": "fresh",
+        "cachedAt": int(time.time()),
+        "newGradeCount": (
+            max(grade_count - previous_count, 0)
+            if previous_count is not None
+            else 0
+        ),
+    }
+
+
 @app.get("/api/academic/ranking")
 async def academic_ranking(
     session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
 ) -> dict[str, float | int]:
     if not settings.allow_insecure_exchange_system:
         raise HTTPException(
             status_code=503,
             detail="学校排名服务暂不可安全连接",
         )
-    try:
-        return await exchange_system.academic_ranking(session.castgc)
-    except ExchangeSystemError as error:
-        raise HTTPException(
-            status_code=401 if error.auth_expired else 502,
-            detail=str(error),
-        ) from error
+
+    async def load() -> dict[str, float | int]:
+        try:
+            return await exchange_system.academic_ranking(session.castgc)
+        except ExchangeSystemError as error:
+            raise HTTPException(
+                status_code=401 if error.auth_expired else 502,
+                detail=str(error),
+            ) from error
+
+    return await portal_cache_first(
+        session, "/api/academic/ranking", refresh, load
+    )
 
 
 @app.get("/api/academic/profile")
 async def academic_profile(
     session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
 ) -> dict[str, str]:
-    try:
-        return await student_profiles.profile(session.castgc)
-    except StudentProfileError as error:
-        raise HTTPException(
-            status_code=401 if error.auth_expired else 502,
-            detail=str(error),
-        ) from error
+    async def load() -> dict[str, str]:
+        try:
+            return await student_profiles.profile(session.castgc)
+        except StudentProfileError as error:
+            raise HTTPException(
+                status_code=401 if error.auth_expired else 502,
+                detail=str(error),
+            ) from error
+
+    return await portal_cache_first(
+        session, "/api/academic/profile", refresh, load
+    )
 
 
 @app.get("/api/grades/terms")
@@ -231,9 +440,17 @@ async def grade_terms(session: Annotated[Session, Depends(current_session)]) -> 
 
 
 @app.get("/api/schedule/terms")
-async def schedule_terms(session: Annotated[Session, Depends(current_session)]) -> Any:
-    return await run_cli(
-        session, ["ehall", "my-course-schedule", "terms", "--json"]
+async def schedule_terms(
+    session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
+) -> Any:
+    return await portal_cache_first(
+        session,
+        "/api/schedule/terms",
+        refresh,
+        lambda: run_cli(
+            session, ["ehall", "my-course-schedule", "terms", "--json"]
+        ),
     )
 
 
@@ -241,34 +458,40 @@ async def schedule_terms(session: Annotated[Session, Depends(current_session)]) 
 async def schedule(
     session: Annotated[Session, Depends(current_session)],
     term: str | None = Query(default=None, pattern=r"^\d{4}-\d{4}-[123]$"),
+    refresh: bool = False,
 ) -> Any:
-    args = [
-        "ehall", "my-course-schedule", "list", "--json", "--page-size", "200"
-    ]
-    if term:
-        args.extend(["--term", term])
-    payload = await run_cli(session, args)
-    rows = payload.get("rows") if isinstance(payload, dict) else None
-    course_ids = list(
-        dict.fromkeys(
-            str(row.get("JXBID") or row.get("KCH"))
-            for row in rows or []
-            if isinstance(row, dict) and (row.get("JXBID") or row.get("KCH"))
-        )
-    )
-    if not course_ids:
-        return payload
+    cache_key = f"/api/schedule?{urlencode({'term': term})}" if term else "/api/schedule"
 
-    detail_args = ["ehall", "my-course-schedule", "detail", *course_ids]
-    if term:
-        detail_args.extend(["--term", term])
-    try:
-        details = await run_cli(session, detail_args, timeout=90)
-    except HTTPException as error:
-        if error.status_code == 401:
-            raise
-        return payload
-    return merge_schedule_details(payload, details)
+    async def load() -> Any:
+        args = [
+            "ehall", "my-course-schedule", "list", "--json", "--page-size", "200"
+        ]
+        if term:
+            args.extend(["--term", term])
+        payload = await run_cli(session, args)
+        rows = payload.get("rows") if isinstance(payload, dict) else None
+        course_ids = list(
+            dict.fromkeys(
+                str(row.get("JXBID") or row.get("KCH"))
+                for row in rows or []
+                if isinstance(row, dict) and (row.get("JXBID") or row.get("KCH"))
+            )
+        )
+        if not course_ids:
+            return payload
+
+        detail_args = ["ehall", "my-course-schedule", "detail", *course_ids]
+        if term:
+            detail_args.extend(["--term", term])
+        try:
+            details = await run_cli(session, detail_args, timeout=90)
+        except HTTPException as error:
+            if error.status_code == 401:
+                raise
+            return payload
+        return merge_schedule_details(payload, details)
+
+    return await portal_cache_first(session, cache_key, refresh, load)
 
 
 @app.get("/api/programs")
@@ -277,6 +500,7 @@ async def programs(
     name: str | None = Query(default=None, max_length=80),
     grade: str | None = Query(default=None, pattern=r"^\d{4}$"),
     department: str | None = Query(default=None, max_length=24),
+    refresh: bool = False,
 ) -> Any:
     args = ["ehall", "training-program", "list", "--json"]
     if name and name.strip():
@@ -285,24 +509,51 @@ async def programs(
         args.extend(["--grade", grade])
     if department:
         args.extend(["--department", department])
-    return await run_cli(session, args, timeout=60)
+    params = [("name", name.strip())] if name and name.strip() else []
+    if grade:
+        params.append(("grade", grade))
+    if department:
+        params.append(("department", department))
+    cache_key = f"/api/programs?{urlencode(params)}" if params else "/api/programs"
+    return await portal_cache_first(
+        session,
+        cache_key,
+        refresh,
+        lambda: run_cli(session, args, timeout=60),
+    )
 
 
 @app.get("/api/programs/{program_id}")
 async def program_detail(
-    program_id: str, session: Annotated[Session, Depends(current_session)]
+    program_id: str,
+    session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
 ) -> Any:
-    return await run_cli(
-        session, ["ehall", "training-program", "detail", program_id, "--json"]
+    cache_key = f"/api/programs/{quote(program_id, safe='')}"
+    return await portal_cache_first(
+        session,
+        cache_key,
+        refresh,
+        lambda: run_cli(
+            session, ["ehall", "training-program", "detail", program_id, "--json"]
+        ),
     )
 
 
 @app.get("/api/programs/{program_id}/nodes")
 async def program_nodes(
-    program_id: str, session: Annotated[Session, Depends(current_session)]
+    program_id: str,
+    session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
 ) -> Any:
-    return await run_cli(
-        session, ["ehall", "training-program", "nodes", program_id, "--json"]
+    cache_key = f"/api/programs/{quote(program_id, safe='')}/nodes"
+    return await portal_cache_first(
+        session,
+        cache_key,
+        refresh,
+        lambda: run_cli(
+            session, ["ehall", "training-program", "nodes", program_id, "--json"]
+        ),
     )
 
 
@@ -311,11 +562,21 @@ async def program_courses(
     program_id: str,
     node_id: str,
     session: Annotated[Session, Depends(current_session)],
+    refresh: bool = False,
 ) -> Any:
-    return await run_cli(
+    cache_key = (
+        f"/api/programs/{quote(program_id, safe='')}/nodes/"
+        f"{quote(node_id, safe='')}/courses"
+    )
+    return await portal_cache_first(
         session,
-        ["ehall", "training-program", "courses", program_id, node_id, "--json"],
-        timeout=60,
+        cache_key,
+        refresh,
+        lambda: run_cli(
+            session,
+            ["ehall", "training-program", "courses", program_id, node_id, "--json"],
+            timeout=60,
+        ),
     )
 
 
@@ -327,6 +588,72 @@ async def review_search(
     offset: int = Query(default=0, ge=0, le=100_000),
 ) -> dict[str, Any]:
     return await asyncio.to_thread(reviews.search, q, field, limit, offset)
+
+
+@app.get("/api/memos")
+async def list_memos(
+    session: Annotated[Session, Depends(current_session)],
+    q: str = Query(default="", max_length=100),
+) -> dict[str, Any]:
+    items = await asyncio.to_thread(memo_repository.list, session.username, q)
+    return {"items": items}
+
+
+@app.post("/api/memos", status_code=201)
+async def create_memo(
+    body: MemoCreateBody,
+    session: Annotated[Session, Depends(current_session)],
+) -> dict[str, Any]:
+    if not body.content.strip():
+        raise HTTPException(status_code=422, detail="备忘录内容不能为空")
+    try:
+        return await asyncio.to_thread(
+            memo_repository.create,
+            session.username,
+            body.content,
+            link_url=body.link_url,
+            link_label=body.link_label,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.patch("/api/memos/{memo_id}")
+async def update_memo(
+    memo_id: int,
+    body: MemoUpdateBody,
+    session: Annotated[Session, Depends(current_session)],
+) -> dict[str, Any]:
+    fields = body.model_fields_set
+    if not fields:
+        raise HTTPException(status_code=422, detail="没有需要更新的内容")
+    if "content" in fields and (body.content is None or not body.content.strip()):
+        raise HTTPException(status_code=422, detail="备忘录内容不能为空")
+    if "pinned" in fields and body.pinned is None:
+        raise HTTPException(status_code=422, detail="置顶状态无效")
+    item = await asyncio.to_thread(
+        memo_repository.update,
+        session.username,
+        memo_id,
+        content=body.content if "content" in fields else None,
+        pinned=body.pinned if "pinned" in fields else None,
+    )
+    if item is None:
+        raise HTTPException(status_code=404, detail="未找到该备忘录")
+    return item
+
+
+@app.delete("/api/memos/{memo_id}", status_code=204)
+async def delete_memo(
+    memo_id: int,
+    session: Annotated[Session, Depends(current_session)],
+) -> Response:
+    deleted = await asyncio.to_thread(
+        memo_repository.delete, session.username, memo_id
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="未找到该备忘录")
+    return Response(status_code=204)
 
 
 if settings.frontend_dist.exists():

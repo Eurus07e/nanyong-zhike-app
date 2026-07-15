@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { BookOpenText, Search, SlidersHorizontal, UserRoundSearch } from 'lucide-react'
 import { api, query } from '../api'
 import type { ReviewResponse } from '../types'
+import { SegmentedControl } from './SegmentedControl'
 
 type Field = 'all' | 'course' | 'teacher'
 
@@ -86,15 +87,20 @@ export function Reviews() {
   return (
     <div className="page-stack reviews-page">
       <div className="page-heading">
-        <div><h1>课程评价</h1></div>
+        <div><h1>红黑榜</h1></div>
       </div>
       <section className="review-search-band">
-        <div className="segmented segmented-three" role="group" aria-label="搜索范围" data-active-index={field === 'all' ? 0 : field === 'course' ? 1 : 2}>
-          <span className="segmented-indicator" aria-hidden="true" />
-          <button type="button" aria-pressed={field === 'all'} className={field === 'all' ? 'active' : ''} onClick={() => changeField('all')}><SlidersHorizontal size={15} />全部</button>
-          <button type="button" aria-pressed={field === 'course'} className={field === 'course' ? 'active' : ''} onClick={() => changeField('course')}><BookOpenText size={15} />课程</button>
-          <button type="button" aria-pressed={field === 'teacher'} className={field === 'teacher' ? 'active' : ''} onClick={() => changeField('teacher')}><UserRoundSearch size={15} />教师</button>
-        </div>
+        <SegmentedControl
+          value={field}
+          options={[
+            { value: 'all', label: '全部', icon: <SlidersHorizontal size={15} /> },
+            { value: 'course', label: '课程', icon: <BookOpenText size={15} /> },
+            { value: 'teacher', label: '教师', icon: <UserRoundSearch size={15} /> },
+          ]}
+          onChange={changeField}
+          label="搜索范围"
+          className="segmented-three"
+        />
         <form className="large-search" onSubmit={search}>
           <Search size={20} />
           <input value={text} onChange={(event) => setText(event.target.value)} placeholder={copy.placeholder} maxLength={80} aria-label={copy.placeholder} />

@@ -22,5 +22,6 @@ def test_production_accepts_non_placeholder_app_secret():
     assert settings.resolved_secret() == "M9e2GqQv_b4Q1cF8zS7yUdP6nL3xW0rK5aTj"
 
 
-def test_insecure_exchange_system_is_disabled_by_default():
-    assert Settings().allow_insecure_exchange_system is False
+def test_insecure_exchange_system_is_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("ALLOW_INSECURE_EXCHANGE_SYSTEM", raising=False)
+    assert Settings(_env_file=None).allow_insecure_exchange_system is False

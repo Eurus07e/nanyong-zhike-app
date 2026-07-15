@@ -9,9 +9,12 @@ const colors = ['violet', 'teal', 'orange', 'blue', 'rose', 'green']
 type CourseSelection = { course: ScheduleCourse; slot?: ScheduleSlot }
 
 export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
-  const [terms, setTerms] = useState<Term[]>([])
-  const [term, setTerm] = useState('')
-  const [courses, setCourses] = useState<ScheduleCourse[]>([])
+  const cachedTerms = api.peek<Term[]>('/api/schedule/terms') || []
+  const initialTerm = cachedTerms[0]?.DM || ''
+  const initialSchedulePath = initialTerm ? query('/api/schedule', { term: initialTerm }) : ''
+  const [terms, setTerms] = useState<Term[]>(cachedTerms)
+  const [term, setTerm] = useState(initialTerm)
+  const [courses, setCourses] = useState<ScheduleCourse[]>(() => initialSchedulePath ? api.peek<{ rows: ScheduleCourse[] }>(initialSchedulePath)?.rows || [] : [])
   const [selected, setSelected] = useState<CourseSelection | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -32,8 +35,15 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
     setLoading(true)
     setError('')
     try {
-      const data = await api.cached<{ rows: ScheduleCourse[] }>(query('/api/schedule', { term }), { ttl: 2 * 60_000, force })
+      const basePath = query('/api/schedule', { term })
+      const hadCache = !force && api.hasCache(basePath)
+      const path = force ? query('/api/schedule', { term, refresh: 'true' }) : basePath
+      const data = await api.cached<{ rows: ScheduleCourse[] }>(path, { ttl: 2 * 60_000, force })
       setCourses(data.rows || [])
+      if (hadCache) {
+        const fresh = await api.cached<{ rows: ScheduleCourse[] }>(query('/api/schedule', { term, refresh: 'true' }), { force: true })
+        setCourses(fresh.rows || [])
+      }
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
       setError(caught instanceof Error ? caught.message : '课表加载失败')

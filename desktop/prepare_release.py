@@ -19,15 +19,18 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    source = ROOT / "dist" / "NanyongZhike"
+    distribution = ROOT / "dist" / "NanyongZhike"
+    mac_application = ROOT / "dist" / "南雍知课.app"
     nju_patch = (
         ROOT
         / "third_party"
         / "patches"
         / "nju-cli-v1.4.6-cache-dir.patch"
     )
-    if not source.is_dir():
-        raise SystemExit(f"missing PyInstaller output: {source}")
+    if not distribution.is_dir():
+        raise SystemExit(f"missing PyInstaller output: {distribution}")
+    if args.platform == "macos" and not mac_application.is_dir():
+        raise SystemExit(f"missing macOS application: {mac_application}")
     if not args.nju_source.is_file():
         raise SystemExit(f"missing nju-cli source archive: {args.nju_source}")
     if not nju_patch.is_file():
@@ -39,15 +42,19 @@ def main() -> None:
     package = release_root / package_name
     if package.exists():
         shutil.rmtree(package)
-    shutil.copytree(source, package)
+    package.mkdir()
+    if args.platform == "macos":
+        shutil.copytree(mac_application, package / mac_application.name)
+    else:
+        shutil.copytree(distribution, package, dirs_exist_ok=True)
 
-    launcher_suffix = {"macos": "command", "windows": "cmd", "linux": "sh"}[args.platform]
-    launcher = package / f"启动南雍知课.{launcher_suffix}"
-    shutil.copy2(ROOT / "desktop" / "launchers" / launcher.name, launcher)
-    if args.platform != "windows":
-        launcher.chmod(launcher.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        executable = package / "NanyongZhike"
-        executable.chmod(executable.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    if args.platform == "linux":
+        launcher = package / "启动南雍知课.sh"
+        shutil.copy2(ROOT / "desktop" / "launchers" / launcher.name, launcher)
+        desktop_entry = package / "南雍知课.desktop"
+        shutil.copy2(ROOT / "desktop" / "launchers" / desktop_entry.name, desktop_entry)
+        for executable in (launcher, desktop_entry, package / "NanyongZhike"):
+            executable.chmod(executable.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     for document in ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "SECURITY.md"):
         shutil.copy2(ROOT / document, package / document)

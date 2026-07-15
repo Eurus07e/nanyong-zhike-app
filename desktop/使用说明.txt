@@ -1,30 +1,45 @@
-南雍知课 v1.0.0 使用说明
+南雍知课 v1.1.5 使用说明
 =======================
 
-不需要安装 Python、Node.js 或 Docker。
+普通用户不需要安装 Python、Node.js、Docker，也不需要打开终端。
 
-1. 完整解压下载的压缩包，不要直接在压缩包预览窗口中运行。
-2. macOS 按住 Control 点击“启动南雍知课.command”，再选择“打开”。
-   Windows 双击“启动南雍知课.cmd”。
-   Linux 双击“启动南雍知课.sh”；如果没有反应，请在终端运行：
-   chmod +x '启动南雍知课.sh' NanyongZhike
-   ./'启动南雍知课.sh'
-3. 等待默认浏览器自动打开。
-4. 关闭启动窗口即可停止南雍知课。
+macOS（Apple 芯片）
+-------------------
+1. 下载 NanyongZhike-macos-arm64.dmg 并打开。
+2. 将“南雍知课”拖入 Applications（应用程序）文件夹。
+3. 首次运行时按住 Control 点击“南雍知课”，选择“打开”；以后直接双击即可。
 
-程序只监听 127.0.0.1，不会向局域网或公网开放。
+Windows 10 / 11（64 位）
+-----------------------
+1. 下载并运行 NanyongZhike-windows-x86_64-setup.exe。
+2. 安装时可保留“创建桌面快捷方式”选项。
+3. 双击桌面或开始菜单中的“南雍知课”。
 
-首次运行提示未知开发者或 SmartScreen 时，请先确认文件来自：
+Linux
+-----
+1. 完整解压对应架构的 ZIP，不要在压缩包预览窗口中运行。
+2. 允许“南雍知课.desktop”作为程序执行，然后双击；也可运行“启动南雍知课.sh”。
+
+应用启动后会在后台运行，并用默认浏览器打开本地网址。它只监听 127.0.0.1，
+不会向局域网或公网开放。需要结束程序时，点击网页左下角电源图标“退出本地应用”。
+
+首次运行提示未知开发者、Gatekeeper 或 SmartScreen 时，请先确认文件来自：
 https://github.com/Eurus07e/nanyong-zhike-app/releases
 
-macOS 可在“系统设置 > 隐私与安全性”中选择“仍要打开”；Windows 可在 SmartScreen 中选择
-“更多信息”，确认来源后再运行。安装包未进行 Windows 代码签名或 Apple 公证，请不要关闭
-系统安全防护。
+当前安装包未进行 Windows 代码签名或 Apple 公证。macOS 可在“系统设置 > 隐私与安全性”
+中选择“仍要打开”；Windows 可在 SmartScreen 中选择“更多信息”，确认来源后运行。
+不要关闭系统安全防护。
 
 本地数据位置：
 macOS   ~/Library/Application Support/NanyongZhike
 Windows %LOCALAPPDATA%\NanyongZhike
 Linux   ${XDG_DATA_HOME:-~/.local/share}/NanyongZhike
+
+备忘录、加密学业快照和登录状态保存在上述目录，并按登录学号隔离。卸载或迁移前如需保留，
+请一并备份该数据目录。启动失败时可在该目录查看 launcher.log；日志不会记录密码。
+
+“关于本站”中的支付宝支持入口完全自愿，不影响任何功能。付款由支付宝处理，南雍知课不会
+记录付款人或交易信息；付款前请在支付宝内核对收款昵称 Euros(**轩)。
 
 排名与平均学分绩来自仅支持 HTTP 的南京大学交换生旧系统。登录后进入“学业概览”时会自动
 查询，该链路不具备 HTTPS 传输保护。

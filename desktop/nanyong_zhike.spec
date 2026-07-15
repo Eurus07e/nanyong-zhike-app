@@ -1,9 +1,11 @@
 from pathlib import Path
 import os
+import platform
 
 
 ROOT = Path(SPECPATH).resolve().parent
 NJU_CLI = Path(os.environ["NJU_CLI_PATH"]).resolve()
+ICON = ROOT / "frontend" / "public" / "apple-touch-icon.png"
 
 analysis = Analysis(
     [str(ROOT / "desktop" / "launcher.py")],
@@ -31,7 +33,8 @@ executable = EXE(
     [],
     exclude_binaries=True,
     name="NanyongZhike",
-    console=True,
+    console=False,
+    icon=str(ICON),
 )
 
 distribution = COLLECT(
@@ -42,3 +45,18 @@ distribution = COLLECT(
     upx=False,
     name="NanyongZhike",
 )
+
+if platform.system() == "Darwin":
+    application = BUNDLE(
+        distribution,
+        name="南雍知课.app",
+        icon=str(ICON),
+        bundle_identifier="cn.nanyong.zhike",
+        info_plist={
+            "CFBundleDisplayName": "南雍知课",
+            "CFBundleName": "南雍知课",
+            "CFBundleShortVersionString": "1.1.5",
+            "CFBundleVersion": "1.1.5",
+            "NSHighResolutionCapable": True,
+        },
+    )
