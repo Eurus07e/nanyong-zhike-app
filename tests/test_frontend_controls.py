@@ -203,3 +203,22 @@ def test_program_and_campus_use_the_same_segmented_control_interaction() -> None
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
     assert ".segmented button:hover { color: var(--purple); }" in styles
     assert ".service-tabs button:hover" not in styles
+
+
+def test_five_education_uses_real_read_only_dashboard() -> None:
+    root = ROOT / "frontend" / "src"
+    campus = (root / "components" / "CampusServices.tsx").read_text(encoding="utf-8")
+    app = (root / "App.tsx").read_text(encoding="utf-8")
+    component = (root / "components" / "FiveEducation.tsx").read_text(encoding="utf-8")
+
+    assert "<FiveEducation onUnauthorized={onUnauthorized} />" in campus
+    assert "<CampusServices username={session.username} onUnauthorized={handleUnauthorized}" in app
+    assert "const OVERVIEW_PATH = '/api/five-education/overview'" in component
+    assert "api.cached<FiveEducationOverview>(OVERVIEW_PATH" in component
+    assert 'aria-label="五育活动分布雷达图"' in component
+    assert "同年级平均" in component
+    assert "成长模块" in component
+    assert "劳育构成" in component
+    assert "updateSearchMks" not in component
+    assert "wdhdMe" not in component
+    assert "电子成绩单" not in component

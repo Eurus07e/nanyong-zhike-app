@@ -70,7 +70,7 @@ export default function App() {
     {visited.has('program') && <section hidden={view !== 'program'}><ProgramView session={session} onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('schedule') && <section hidden={view !== 'schedule'}><Schedule onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('reviews') && <section hidden={view !== 'reviews'}><Reviews /></section>}
-    {visited.has('campus') && <section hidden={view !== 'campus'}><CampusServices username={session.username} /></section>}
+    {visited.has('campus') && <section hidden={view !== 'campus'}><CampusServices username={session.username} onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('memos') && <section hidden={view !== 'memos'}><Memos onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('about') && <section hidden={view !== 'about'}><About /></section>}
   </Shell>

@@ -5,7 +5,6 @@ import {
   BookmarkPlus,
   BookOpen,
   Check,
-  GraduationCap,
   Landmark,
   LoaderCircle,
   Mail,
@@ -18,6 +17,7 @@ import { api } from '../api'
 import { MEMOS_CHANGED_EVENT } from '../memo-state'
 import type { Memo, MemoListResponse, Notice, NoticeDetail, NoticeResponse } from '../types'
 import { NjuTabs } from './NjuTabs'
+import { FiveEducation } from './FiveEducation'
 import { SegmentedControl } from './SegmentedControl'
 
 type ServiceTab = 'notices' | 'links' | 'five' | 'second-class' | 'mail'
@@ -30,7 +30,7 @@ const tabs: { id: ServiceTab; label: string }[] = [
   { id: 'mail', label: '邮件' },
 ]
 
-export function CampusServices({ username }: { username: string }) {
+export function CampusServices({ username, onUnauthorized }: { username: string; onUnauthorized: () => void }) {
   const [active, setActive] = useState<ServiceTab>('notices')
   const [notices, setNotices] = useState<NoticeResponse['items']>([])
   const [loading, setLoading] = useState(true)
@@ -164,13 +164,7 @@ export function CampusServices({ username }: { username: string }) {
 
     {active === 'links' && <NjuTabs username={username} />}
 
-    {active === 'five' && <ServicePreparation
-      icon={GraduationCap}
-      title="我的五育"
-      system="五育系统"
-      href="https://ndwy.nju.edu.cn/dztml/#/"
-      fields={['德育', '智育', '体育', '美育', '劳育']}
-    />}
+    {active === 'five' && <FiveEducation onUnauthorized={onUnauthorized} />}
 
     {active === 'second-class' && <ServicePreparation
       icon={BookOpen}
@@ -247,7 +241,7 @@ function ServicePreparation({
   href,
   fields,
 }: {
-  icon: typeof GraduationCap
+  icon: typeof BookOpen
   title: string
   system: string
   href: string
