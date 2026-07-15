@@ -35,6 +35,14 @@ REQUIRED_PORTAL_SNAPSHOT_COLUMNS = {
 }
 
 
+class CloseTrackingConnection(sqlite3.Connection):
+    was_closed = False
+
+    def close(self) -> None:
+        self.was_closed = True
+        super().close()
+
+
 def create_snapshot_table(connection: sqlite3.Connection) -> None:
     columns = ", ".join(
         f"{name} {column_type}"
@@ -164,6 +172,40 @@ def test_release_smoke_requires_portal_snapshot_columns(tmp_path) -> None:
 
     with pytest.raises(RuntimeError, match=r"portal_snapshots.*encrypted_payload"):
         smoke_test_release.validate_database_schema(database)
+
+
+def test_release_smoke_explicitly_closes_database_connection(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database = tmp_path / "nanyong.db"
+    with sqlite3.connect(database) as connection:
+        for table in ("sessions", "reviews", "metadata"):
+            connection.execute(f"CREATE TABLE {table}(id INTEGER)")
+        memo_columns = ", ".join(
+            f"{name} {column_type}"
+            for name, column_type in REQUIRED_MEMO_COLUMNS.items()
+        )
+        connection.execute(f"CREATE TABLE memos(id INTEGER, {memo_columns})")
+        create_snapshot_table(connection)
+        create_portal_snapshot_table(connection)
+
+    real_connect = sqlite3.connect
+    opened_connections: list[CloseTrackingConnection] = []
+
+    def tracking_connect(*args, **kwargs) -> CloseTrackingConnection:
+        connection = real_connect(*args, factory=CloseTrackingConnection, **kwargs)
+        opened_connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(smoke_test_release.sqlite3, "connect", tracking_connect)
+    try:
+        smoke_test_release.validate_database_schema(database)
+        assert len(opened_connections) == 1
+        assert opened_connections[0].was_closed
+    finally:
+        for connection in opened_connections:
+            if not connection.was_closed:
+                connection.close()
 
 
 def test_release_smoke_requires_the_support_qr_asset() -> None:

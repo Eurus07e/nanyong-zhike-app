@@ -107,25 +107,38 @@ class NjuCli:
                 return bundled
             raise RuntimeError("发行包不完整：内置 nju-cli 不可用，请重新下载并完整解压")
 
-        candidates: list[Path] = []
-        if self.settings.nju_cli_bin:
-            candidates.append(Path(self.settings.nju_cli_bin).expanduser())
-        found = shutil.which("nju-cli")
-        if found:
-            candidates.append(Path(found))
-
         machine = platform.machine().lower()
         target = "macos-aarch64" if platform.system() == "Darwin" else (
             "linux-aarch64" if machine in {"arm64", "aarch64"} else "linux-x86_64"
         )
-        candidates.append(Path.home() / "nju-cli-plugin" / "v1.4.6" / target / "nju-cli")
+        home = Path(os.environ.get("HOME") or Path.home())
+        candidates: list[Path] = []
+        if self.settings.nju_cli_bin:
+            configured = Path(self.settings.nju_cli_bin).expanduser()
+            if configured.name == "nju-cli" and configured.parent.name == "scripts":
+                plugin_root = configured.parent.parent
+                candidates.append(plugin_root / "bin" / target / "nju-cli")
+                xdg_root = os.environ.get("XDG_CACHE_HOME")
+                if xdg_root:
+                    candidates.append(
+                        Path(xdg_root) / "nju-cli-plugin" / "v1.4.6" / target / "nju-cli"
+                    )
+                candidates.append(
+                    home / "nju-cli-plugin" / "v1.4.6" / target / "nju-cli"
+                )
+            candidates.append(configured)
+        found = shutil.which("nju-cli")
+        if found:
+            candidates.append(Path(found))
+
+        candidates.append(home / "nju-cli-plugin" / "v1.4.6" / target / "nju-cli")
         candidates.extend(
-            Path.home().glob(
+            home.glob(
                 ".codex/plugins/cache/nju-cli/nju-cli/*/bin/*/nju-cli"
             )
         )
         candidates.extend(
-            Path.home().glob(
+            home.glob(
                 ".codex/plugins/cache/nju-cli/nju-cli/*/scripts/nju-cli"
             )
         )

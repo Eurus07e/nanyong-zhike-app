@@ -99,6 +99,26 @@ def test_desktop_mode_never_falls_back_to_unverified_nju_cli(
         )
 
 
+def test_development_resolves_plugin_launcher_to_cached_binary(monkeypatch, tmp_path):
+    launcher = tmp_path / "plugin" / "scripts" / "nju-cli"
+    launcher.parent.mkdir(parents=True)
+    launcher.write_text("#!/bin/sh\n", encoding="ascii")
+    launcher.chmod(0o755)
+    cached = tmp_path / "nju-cli-plugin" / "v1.4.6" / "macos-aarch64" / "nju-cli"
+    cached.parent.mkdir(parents=True)
+    cached.write_bytes(b"binary")
+    cached.chmod(0o755)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setattr("backend.app.nju_cli.platform.system", lambda: "Darwin")
+    monkeypatch.setattr("backend.app.nju_cli.platform.machine", lambda: "arm64")
+    monkeypatch.setattr("backend.app.nju_cli.shutil.which", lambda _: None)
+
+    client = NjuCli(Settings(nju_cli_bin=str(launcher)))
+
+    assert client.binary == cached
+
+
 @pytest.mark.asyncio
 async def test_process_limiter_caps_global_and_per_owner_concurrency():
     limiter = _ProcessLimiter(global_limit=3, owner_limit=2)

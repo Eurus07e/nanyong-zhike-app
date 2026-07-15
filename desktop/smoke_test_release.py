@@ -110,7 +110,8 @@ def validate_database_schema(path: Path) -> None:
         "sessions", "reviews", "metadata", "memos",
         "academic_snapshots", "portal_snapshots",
     }
-    with sqlite3.connect(path) as connection:
+    connection = sqlite3.connect(path)
+    try:
         tables = {
             str(row[0])
             for row in connection.execute(
@@ -128,6 +129,8 @@ def validate_database_schema(path: Path) -> None:
             str(row[1])
             for row in connection.execute("PRAGMA table_info(portal_snapshots)")
         }
+    finally:
+        connection.close()
     missing = sorted(required - tables)
     if missing:
         raise RuntimeError(f"desktop database is missing tables: {', '.join(missing)}")
@@ -198,7 +201,7 @@ def main() -> None:
                     if health == {
                         "status": "ok",
                         "service": "南雍知课",
-                        "version": "1.1.5",
+                        "version": "1.1.6",
                         "deployment": "desktop",
                     }:
                         break
