@@ -105,4 +105,21 @@ def _secure_notice_url(url: str) -> str:
 
 def _clean_notice_markdown(content: str) -> str:
     cleaned = re.sub(r"\A---\s*\n.*?\n---\s*\n", "", content, count=1, flags=re.DOTALL)
+    cleaned = re.sub(
+        r"\A\[\s*!\[[^\]]*\]\([^)\n]+\)[^\]\n]*\]\([^)\n]+\)\s*",
+        "",
+        cleaned,
+        count=1,
+    )
+    cleaned = re.sub(
+        r"(?m)^[ \t]*!\[[^\]]*\]\([^)\n]*/_visitcount\?[^)\n]*\)[ \t]*\n?",
+        "",
+        cleaned,
+    )
+    cleaned = re.sub(
+        r"(?m)^[ \t]*\*\*([^*\n]+)\*\*[ \t]*$",
+        r"### \1",
+        cleaned,
+    )
+    cleaned = cleaned.replace("**", "")
     return cleaned.strip()

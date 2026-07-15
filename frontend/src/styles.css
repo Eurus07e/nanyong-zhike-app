@@ -69,7 +69,7 @@ input:focus, select:focus { border-color: #8e8e93; box-shadow: var(--focus-ring)
 .password-field .icon-button { position: absolute; right: 5px; top: 5px; }
 .icon-button { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border: 0; border-radius: var(--radius); background: transparent; color: #57575d; }
 .icon-button:hover { background: rgba(0,0,0,.06); color: var(--ink); }
-.primary-button, .secondary-button { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: var(--radius); font-weight: 600; font-size: 14px; }
+.primary-button, .secondary-button { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: var(--radius); font-weight: 600; font-size: 14px; text-decoration: none; }
 .primary-button { border: 1px solid var(--purple); color: #fff; background: var(--purple); }
 .primary-button:hover { border-color: var(--purple-hover); background: var(--purple-hover); }
 .secondary-button { border: 1px solid #d0d0d5; color: var(--ink); background: #fff; }
@@ -473,7 +473,6 @@ button.map-node:hover { border-color: var(--purple); background: #faf7fc; }
 .notice-detail-body table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .notice-detail-body th, .notice-detail-body td { padding: 8px; border: 1px solid var(--line); text-align: left; }
 .notice-detail-body blockquote { padding-left: 13px; border-left: 3px solid #d6d6dc; color: var(--muted); }
-.notice-image-label { color: var(--muted); font-size: 11px; }
 .notice-modal > footer { display: flex; justify-content: flex-end; padding: 12px 22px; border-top: 1px solid var(--line); }
 
 .about-copy { max-width: 940px; border-top: 1px solid var(--line); }

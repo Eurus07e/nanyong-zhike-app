@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,6 +83,20 @@ def test_notices_open_details_and_create_linked_memos() -> None:
     assert "window.addEventListener(MEMOS_CHANGED_EVENT, sync)" in source
     assert "memo.linkUrl" in memos
     assert "window.dispatchEvent(new Event(MEMOS_CHANGED_EVENT))" in memos
+
+
+def test_notice_images_are_suppressed_and_button_links_have_no_underlines() -> None:
+    source = (ROOT / "frontend" / "src" / "components" / "CampusServices.tsx").read_text(
+        encoding="utf-8"
+    )
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert "img: () => null" in source
+    assert "通知图片" not in source
+    assert re.search(
+        r"\.primary-button, \.secondary-button \{[^}]*text-decoration: none;",
+        styles,
+    )
 
 
 def test_about_support_and_contact_sections_are_visually_separated() -> None:

@@ -1,4 +1,4 @@
-from backend.app.notices import NoticeService, parse_notices
+from backend.app.notices import NoticeService, _clean_notice_markdown, parse_notices
 
 
 def test_parse_notices_skips_non_notice_lines():
@@ -21,6 +21,36 @@ def test_parse_notices_skips_non_notice_lines():
             "title": "【学生】本科期末教学重要事项通知",
         },
     ]
+
+
+def test_clean_notice_markdown_removes_site_chrome_and_repairs_adjacent_bold():
+    content = """---
+title: 测试通知
+---
+
+[![](https://jw.nju.edu.cn/_upload/site/logo.png)教学信息网](/main.htm "返回本科生院首页")
+
+# 测试通知
+
+**一、时间安排**
+
+**1.****暑期课程选课时间**
+
+附件![](https://jw.nju.edu.cn/icon_pdf.gif)[课程包.pdf](https://jw.nju.edu.cn/course.pdf)
+
+![](https://jw.nju.edu.cn/_visitcount?siteId=414&type=3&articleId=835881)
+"""
+
+    cleaned = _clean_notice_markdown(content)
+
+    assert cleaned.startswith("# 测试通知")
+    assert "教学信息网" not in cleaned
+    assert "logo.png" not in cleaned
+    assert "**" not in cleaned
+    assert "### 一、时间安排" in cleaned
+    assert "1.暑期课程选课时间" in cleaned
+    assert "_visitcount" not in cleaned
+    assert "[课程包.pdf]" in cleaned
 
 
 async def test_notice_service_caches_public_cli_results():

@@ -214,7 +214,7 @@ export function CampusServices({ username }: { username: string }) {
               const safeHref = resolveNoticeUrl(href, noticeDetail.url)
               return safeHref ? <a href={safeHref} target="_blank" rel="noreferrer">{children}</a> : <span>{children}</span>
             },
-            img: ({ alt }) => <span className="notice-image-label">{alt || '通知图片'}</span>,
+            img: () => null,
           }}
         >{noticeDetail.content}</ReactMarkdown>}
       </div>
