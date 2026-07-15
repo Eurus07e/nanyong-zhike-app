@@ -197,3 +197,43 @@ export type FiveEducationOverview = {
   interests: { key: FiveEducationDimension['key']; label: FiveEducationDimension['label'] }[]
   source: { systemName: string; systemUrl: string }
 }
+
+export type FiveEducationActivity = {
+  id: string
+  title: string
+  englishTitle: string
+  category: string
+  module: string
+  laborType: string
+  organizer: string
+  coordinator: string
+  contactPhone: string
+  contactEmail: string
+  registrationStart: string | null
+  registrationEnd: string | null
+  registeredAt: string | null
+  activityStart: string | null
+  activityEnd: string | null
+  location: string
+  registrationMethod: string
+  capacity: number
+  description: string
+  assessmentMethod: string
+  reviewStatus: string
+  approvalStatus: string
+  recognitionStatus: string
+  participationStatus: string
+  grade: string
+  activityDuration: number
+  recordedDuration: number
+  recognizedDuration: number
+}
+
+export type FiveEducationActivities = {
+  fetchedAt: number
+  academicYear: string
+  term: string
+  termLabel: string
+  count: number
+  items: FiveEducationActivity[]
+}

@@ -1,18 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, CheckCircle2, CircleAlert, LoaderCircle, RefreshCw } from 'lucide-react'
+import { ArrowUpRight, CheckCircle2, ChevronDown, CircleAlert, Image, LoaderCircle, RefreshCw, Search, X } from 'lucide-react'
 import { ApiError, api } from '../api'
-import { formatDuration, moduleProgress, radarPoints, radarPolygon } from '../five-education'
-import type { FiveEducationOverview } from '../types'
+import {
+  filterFiveEducationActivities,
+  formatActivityDate,
+  formatDuration,
+  moduleProgress,
+  radarPoints,
+  radarPolygon,
+  sortFiveEducationActivities,
+  type FiveEducationActivitySort,
+  type FiveEducationActivityStatus,
+} from '../five-education'
+import type { FiveEducationActivities, FiveEducationActivity, FiveEducationOverview } from '../types'
 
 
 const OVERVIEW_PATH = '/api/five-education/overview'
+const ACTIVITIES_PATH = '/api/five-education/activities'
 const CACHE_TTL = 5 * 60_000
-const CHART_CENTER = 150
-const CHART_RADIUS = 92
+const CHART_CENTER = 160
+const CHART_RADIUS = 108
 
 
 export function FiveEducation({ onUnauthorized }: { onUnauthorized: () => void }) {
   const [overview, setOverview] = useState<FiveEducationOverview | null>(null)
+  const [activities, setActivities] = useState<FiveEducationActivities | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -20,8 +32,12 @@ export function FiveEducation({ onUnauthorized }: { onUnauthorized: () => void }
     setLoading(true)
     setError('')
     try {
-      const next = await api.cached<FiveEducationOverview>(OVERVIEW_PATH, { ttl: CACHE_TTL, force })
-      setOverview(next)
+      const [nextOverview, nextActivities] = await Promise.all([
+        api.cached<FiveEducationOverview>(OVERVIEW_PATH, { ttl: CACHE_TTL, force }),
+        api.cached<FiveEducationActivities>(ACTIVITIES_PATH, { ttl: CACHE_TTL, force }),
+      ])
+      setOverview(nextOverview)
+      setActivities(nextActivities)
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) {
         onUnauthorized()
@@ -38,54 +54,59 @@ export function FiveEducation({ onUnauthorized }: { onUnauthorized: () => void }
   return <section className="service-panel five-education-panel" role="tabpanel">
     <div className="section-title service-panel-title five-education-title">
       <div><h2>我的五育</h2><p>德、智、体、美、劳活动与成长模块总览</p></div>
-      <div className="service-panel-actions">
-        <a className="icon-button" href="https://ndwy.nju.edu.cn/dztml/#/" target="_blank" rel="noreferrer" aria-label="打开南京大学五育系统" title="打开原系统"><ArrowUpRight size={17} /></a>
-        <button type="button" className="icon-button" onClick={() => void load(true)} disabled={loading} aria-label="刷新五育数据" title="刷新"><RefreshCw size={17} className={loading ? 'spin' : ''} /></button>
+      <div className="five-header-tools">
+        <div className="service-panel-actions">
+          {overview ? <a className="icon-button" href={overview.source.systemUrl} target="_blank" rel="noreferrer" aria-label="打开南京大学五育系统" title="打开原系统"><ArrowUpRight size={18} /></a> : null}
+          <button type="button" className="icon-button" onClick={() => void load(true)} disabled={loading} aria-label="刷新五育数据" title="刷新"><RefreshCw size={18} className={loading ? 'spin' : ''} /></button>
+        </div>
+        {overview ? <small>数据来自{overview.source.systemName} · 查询于 {formatFetchedAt(overview.fetchedAt)}</small> : null}
       </div>
     </div>
 
     {error && <div className="error-banner five-education-error"><CircleAlert size={17} />{error}</div>}
     {loading && !overview ? <FiveEducationSkeleton /> : null}
     {!loading && !overview ? <div className="service-empty"><CircleAlert size={25} /><strong>五育数据暂不可得</strong><button type="button" className="secondary-button" onClick={() => void load(true)}>重新读取</button></div> : null}
-    {overview ? <FiveEducationDashboard overview={overview} /> : null}
+    {overview ? <FiveEducationDashboard overview={overview} activities={activities} /> : null}
   </section>
 }
 
 
-function FiveEducationDashboard({ overview }: { overview: FiveEducationOverview }) {
+function FiveEducationDashboard({ overview, activities }: { overview: FiveEducationOverview; activities: FiveEducationActivities | null }) {
+  const [guideOpen, setGuideOpen] = useState(false)
   const chart = useMemo(() => {
     const personal = overview.dimensions.map((item) => item.personalCount)
     const average = overview.dimensions.map((item) => item.cohortAverage)
     const maxima = personal.map((value, index) => Math.max(value, average[index] || 0, 1))
-    const grids = [1 / 3, 2 / 3, 1].map((ratio) => radarPolygon(
-      radarPoints(maxima.map((value) => value * ratio), maxima, CHART_CENTER, CHART_CENTER, CHART_RADIUS),
-    ))
     return {
-      grids,
+      grids: [1 / 3, 2 / 3, 1].map((ratio) => radarPolygon(radarPoints(maxima.map((value) => value * ratio), maxima, CHART_CENTER, CHART_CENTER, CHART_RADIUS))),
       axes: radarPoints(maxima, maxima, CHART_CENTER, CHART_CENTER, CHART_RADIUS),
       personal: radarPolygon(radarPoints(personal, maxima, CHART_CENTER, CHART_CENTER, CHART_RADIUS)),
       average: radarPolygon(radarPoints(average, maxima, CHART_CENTER, CHART_CENTER, CHART_RADIUS)),
-      labels: radarPoints(maxima, maxima, CHART_CENTER, CHART_CENTER, CHART_RADIUS + 22),
+      labels: radarPoints(maxima, maxima, CHART_CENTER, CHART_CENTER, CHART_RADIUS + 27),
     }
   }, [overview.dimensions])
 
+  useEffect(() => {
+    if (!guideOpen) return
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setGuideOpen(false) }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [guideOpen])
+
   const evaluationPercent = Math.round(overview.summary.evaluationRate * 100)
-  const empty = overview.summary.totalActivities === 0 && overview.summary.laborTotalDuration === 0
 
   return <div className="five-education-dashboard">
     <div className="five-education-summary">
       <SummaryMetric label="活动总数" value={String(overview.summary.totalActivities)} note="五类活动数量合计" />
-      <SummaryMetric label="劳育总时长" value={formatDuration(overview.summary.laborTotalDuration)} note="来自五育系统统计" />
+      <SummaryMetric label="劳育总时长" value={formatDuration(overview.summary.laborTotalDuration)} note="五育系统统计时长" />
       <SummaryMetric label="学期评价完成率" value={`${evaluationPercent}%`} note={`${overview.summary.evaluatedCount} / ${overview.summary.evaluationTotal} 已评价`} />
     </div>
-
-    {empty ? <div className="five-education-empty-note">暂时没有活动记录，仍可查看成长模块与系统规则。</div> : null}
 
     <div className="five-education-primary-grid">
       <article className="five-education-card five-radar-card">
         <header><strong>五育活动分布</strong><div className="five-radar-legend"><span className="personal">我的活动数</span><span className="average">同年级平均</span></div></header>
         <div className="five-radar-layout">
-          <svg className="five-radar" viewBox="0 0 300 300" role="img" aria-label="五育活动分布雷达图">
+          <svg className="five-radar" viewBox="0 0 320 320" role="img" aria-label="五育活动分布雷达图">
             <title>我的活动数与同年级平均活动数雷达图</title>
             {chart.grids.map((points, index) => <polygon key={index} points={points} className="five-radar-grid" />)}
             {chart.axes.map((point, index) => <line key={index} x1={CHART_CENTER} y1={CHART_CENTER} x2={point.x} y2={point.y} className="five-radar-axis" />)}
@@ -101,37 +122,103 @@ function FiveEducationDashboard({ overview }: { overview: FiveEducationOverview 
       </article>
 
       <article className="five-education-card five-growth-card">
-        <header><strong>成长模块</strong><span>实际时长 / 达标时长</span></header>
+        <header><strong>成长状态</strong><span>实际时长 / 达标时长</span></header>
         <div className="five-growth-list">
           {overview.growthModules.map((module) => {
             const progress = moduleProgress(module)
             return <div className="five-growth-row" key={module.id}>
-              <div className="five-growth-heading"><strong>{module.name}</strong><span className={module.achieved ? 'achieved' : 'pending'}>{module.achieved ? <CheckCircle2 size={13} /> : null}{module.achieved ? '已达成' : '未达成'}</span></div>
-              {progress === null ? <div className="five-growth-rule">当前模块由五育系统规则直接判定</div> : <div className="five-growth-track" aria-label={`${module.name}进度 ${Math.round(progress * 100)}%`}><i style={{ width: `${progress * 100}%` }} /></div>}
+              <div className="five-growth-heading"><strong>{module.name}</strong><span className={module.achieved ? 'achieved' : 'pending'}>{module.achieved ? <CheckCircle2 size={14} /> : null}{module.achieved ? '已达成' : '未达成'}</span></div>
+              {progress === null ? <div className="five-growth-rule">由五育系统规则直接判定</div> : <div className="five-growth-track" aria-label={`${module.name}进度 ${Math.round(progress * 100)}%`}><i style={{ width: `${progress * 100}%` }} /></div>}
               <div className="five-growth-values"><span>实际 {formatDuration(module.actualDuration)}</span><span>{module.requiredDuration > 0 ? `达标 ${formatDuration(module.requiredDuration)}` : '无固定数值阈值'}</span></div>
             </div>
           })}
-          {!overview.growthModules.length ? <div className="five-block-empty">成长模块数据暂不可得</div> : null}
         </div>
       </article>
     </div>
 
     <div className="five-education-secondary-grid">
       <article className="five-education-card five-labor-card">
-        <header><strong>劳育构成</strong><span>三类实践模块</span></header>
+        <header><strong>劳育构成</strong><button type="button" className="five-guide-button" onClick={() => setGuideOpen(true)}><Image size={15} />查看学习导引图</button></header>
         <div className="five-labor-grid">
           {overview.laborBreakdown.map((module) => <div key={module.moduleId}><span>{module.name}</span><strong>{formatDuration(module.actualDuration)}</strong><small>{module.displayTargetDuration === null ? '实际时长' : `目标 ${formatDuration(module.displayTargetDuration)}`}</small></div>)}
           <div className="total"><span>总时长</span><strong>{formatDuration(overview.summary.laborTotalDuration)}</strong><small>五育系统统计</small></div>
         </div>
       </article>
-
-      <article className="five-education-card five-details-card">
-        <div><span>我的兴趣</span><div className="five-interest-list">{overview.interests.length ? overview.interests.map((item) => <strong key={item.key}>{item.label}</strong>) : <small>暂未设置</small>}</div></div>
-        <div><span>学期评价</span><strong className="five-evaluation-count">{overview.summary.evaluatedCount} / {overview.summary.evaluationTotal}</strong><small>已评价 / 总数</small></div>
+      <article className="five-education-card five-evaluation-card">
+        <span>学期评价</span><strong>{overview.summary.evaluatedCount}</strong><i>/ {overview.summary.evaluationTotal}</i><small>已评价 · 完成率 {evaluationPercent}%</small>
       </article>
     </div>
 
-    <footer className="five-education-source"><span>数据来自{overview.source.systemName} · 查询于 {formatFetchedAt(overview.fetchedAt)}</span><a href={overview.source.systemUrl} target="_blank" rel="noreferrer">打开原系统<ArrowUpRight size={14} /></a></footer>
+    <ActivitySection data={activities} />
+    {guideOpen ? <GuideModal onClose={() => setGuideOpen(false)} /> : null}
+  </div>
+}
+
+
+function ActivitySection({ data }: { data: FiveEducationActivities | null }) {
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState<FiveEducationActivityStatus>('all')
+  const [sort, setSort] = useState<FiveEducationActivitySort>('time-desc')
+  const items = useMemo(() => sortFiveEducationActivities(filterFiveEducationActivities(data?.items || [], query, status), sort), [data, query, status, sort])
+
+  return <section className="five-activity-section" aria-labelledby="five-activity-title">
+    <header><div><h3 id="five-activity-title">我的活动</h3><p>{data ? `${data.academicYear}学年 · ${data.termLabel} · ${items.length} / ${data.count} 条` : '正在读取活动记录'}</p></div></header>
+    <div className="five-activity-controls" aria-label="活动筛选与排序">
+      <label><span>搜索</span><div><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="活动名称、单位或地点" /></div></label>
+      <label><span>状态</span><select value={status} onChange={(event) => setStatus(event.target.value as FiveEducationActivityStatus)}><option value="all">全部状态</option><option value="recognized">已认定</option><option value="pending-review">待评价</option></select></label>
+      <label><span>排序</span><select value={sort} onChange={(event) => setSort(event.target.value as FiveEducationActivitySort)}><option value="time-desc">活动时间由近到远</option><option value="time-asc">活动时间由远到近</option><option value="title">活动名称</option></select></label>
+    </div>
+    <div className="five-activity-list">
+      <div className="five-activity-head"><span>活动</span><span>单位</span><span>时间与地点</span><span>状态</span><span /></div>
+      {items.map((item) => <ActivityRow key={item.id} item={item} />)}
+      {data && !items.length ? <div className="five-block-empty">没有符合当前条件的活动</div> : null}
+      {!data ? <div className="five-block-empty"><LoaderCircle className="spin" size={20} />正在读取活动记录</div> : null}
+    </div>
+  </section>
+}
+
+
+function ActivityRow({ item }: { item: FiveEducationActivity }) {
+  return <details className="five-activity-row">
+    <summary>
+      <span><strong>{item.title}</strong><small>{[item.category, item.module].filter(Boolean).join(' · ') || '类型待确认'}</small></span>
+      <span>{item.organizer || '发起单位待确认'}</span>
+      <span><b>{formatActivityRange(item.activityStart, item.activityEnd)}</b><small>{item.location || '地点待确认'}</small></span>
+      <span><em>{item.approvalStatus || '状态待确认'}</em><small>{[item.grade, item.recognizedDuration > 0 ? `${formatDuration(item.recognizedDuration)} 小时` : ''].filter(Boolean).join(' · ')}</small></span>
+      <ChevronDown size={17} />
+    </summary>
+    <div className="five-activity-detail">
+      <Detail label="英文名称" value={item.englishTitle} wide />
+      <Detail label="劳动类型" value={item.laborType} />
+      <Detail label="负责人" value={item.coordinator} />
+      <Detail label="联系电话" value={item.contactPhone} />
+      <Detail label="联系邮箱" value={item.contactEmail} />
+      <Detail label="报名时间" value={formatActivityRange(item.registrationStart, item.registrationEnd)} wide />
+      <Detail label="本人报名" value={formatActivityDate(item.registeredAt)} />
+      <Detail label="报名方式" value={item.registrationMethod} />
+      <Detail label="招募人数" value={item.capacity ? `${item.capacity} 人` : ''} />
+      <Detail label="审核 / 认定" value={[item.approvalStatus, item.recognitionStatus].filter(Boolean).join(' · ')} />
+      <Detail label="参与 / 评价" value={[item.participationStatus, item.reviewStatus].filter(Boolean).join(' · ')} />
+      <Detail label="活动 / 录入时长" value={`${formatDuration(item.activityDuration)} / ${formatDuration(item.recordedDuration)} 小时`} />
+      <Detail label="活动介绍" value={item.description} wide />
+      <Detail label="考核办法" value={item.assessmentMethod} wide />
+    </div>
+  </details>
+}
+
+
+function Detail({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  if (!value) return null
+  return <div className={wide ? 'wide' : ''}><span>{label}</span><p>{value}</p></div>
+}
+
+
+function GuideModal({ onClose }: { onClose: () => void }) {
+  return <div className="five-guide-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    <section className="five-guide-modal" role="dialog" aria-modal="true" aria-labelledby="five-guide-title">
+      <header><div><h3 id="five-guide-title">劳动教育学习导引图</h3><p>南京大学本科生劳动教育学习参考</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭导引图"><X size={18} /></button></header>
+      <div><img src="/five-education-labor-guide.png" alt="南京大学本科生劳动教育学习导引图" /></div>
+    </section>
   </div>
 }
 
@@ -142,17 +229,19 @@ function SummaryMetric({ label, value, note }: { label: string; value: string; n
 
 
 function FiveEducationSkeleton() {
-  return <div className="five-education-skeleton" aria-label="正在加载五育数据">
-    <div /><div /><div />
-    <span><LoaderCircle className="spin" size={20} />正在连接五育系统</span>
-  </div>
+  return <div className="five-education-skeleton" aria-label="正在加载五育数据"><div /><div /><div /><span><LoaderCircle className="spin" size={20} />正在连接五育系统</span></div>
+}
+
+
+function formatActivityRange(start: string | null, end: string | null) {
+  const left = formatActivityDate(start)
+  if (!end) return left
+  return `${left} - ${formatActivityDate(end)}`
 }
 
 
 function formatFetchedAt(timestamp: number) {
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
-  }).format(new Date(timestamp * 1000))
+  return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(timestamp * 1000))
 }
 
 

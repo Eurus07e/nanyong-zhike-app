@@ -214,11 +214,18 @@ def test_five_education_uses_real_read_only_dashboard() -> None:
     assert "<FiveEducation onUnauthorized={onUnauthorized} />" in campus
     assert "<CampusServices username={session.username} onUnauthorized={handleUnauthorized}" in app
     assert "const OVERVIEW_PATH = '/api/five-education/overview'" in component
+    assert "const ACTIVITIES_PATH = '/api/five-education/activities'" in component
     assert "api.cached<FiveEducationOverview>(OVERVIEW_PATH" in component
     assert 'aria-label="五育活动分布雷达图"' in component
     assert "同年级平均" in component
     assert "成长模块" in component
     assert "劳育构成" in component
+    assert "我的活动" in component
+    assert "查看学习导引图" in component
+    assert "/five-education-labor-guide.png" in component
+    assert "我的兴趣" not in component
+    assert component.count("href={overview.source.systemUrl}") == 1
+    assert "five-education-source" not in component
     assert "updateSearchMks" not in component
     assert "wdhdMe" not in component
     assert "电子成绩单" not in component

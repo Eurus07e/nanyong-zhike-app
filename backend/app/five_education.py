@@ -85,6 +85,11 @@ def _optional_text(value: Any) -> str | None:
     return text or None
 
 
+def _display_text(value: Any) -> str:
+    text = _text(value)
+    return "" if text.casefold() in {"/", "-", "null", "none"} else text
+
+
 def _label(value: Any) -> str:
     if isinstance(value, dict):
         return _text(value.get("label") or value.get("mc"))
@@ -103,6 +108,9 @@ def normalize_five_education_activities(
             raise FiveEducationError("五育系统返回的数据格式异常")
         project = raw["xm"]
         recognition = raw.get("rd") if isinstance(raw.get("rd"), dict) else {}
+        recognized_project = (
+            recognition.get("xm") if isinstance(recognition.get("xm"), dict) else {}
+        )
         organizer = project.get("fzrdw") if isinstance(project.get("fzrdw"), dict) else {}
         labor_type = project.get("ldlx") if isinstance(project.get("ldlx"), dict) else {}
         items.append(
@@ -110,8 +118,8 @@ def normalize_five_education_activities(
                 "id": _text(raw.get("id")),
                 "title": _text(project.get("mc")) or "未命名活动",
                 "englishTitle": _text(project.get("ywmc")),
-                "category": _text(project.get("wylx")),
-                "module": _text(project.get("ssmk")),
+                "category": _display_text(project.get("wylx")),
+                "module": _display_text(project.get("ssmk")),
                 "laborType": _text(labor_type.get("mc")),
                 "organizer": _text(organizer.get("mc")),
                 "coordinator": _text(project.get("fzrxm")),
@@ -127,9 +135,17 @@ def normalize_five_education_activities(
                 "capacity": _count(project.get("zmrs")),
                 "description": _text(project.get("nrjj")).strip('"\n '),
                 "assessmentMethod": _text(project.get("khbf")),
-                "reviewStatus": "已评价" if raw.get("sfpj") else "未评价",
+                "reviewStatus": (
+                    "已评价"
+                    if raw.get("pj") not in (None, "")
+                    or recognition.get("pj") not in (None, "")
+                    else "未评价"
+                ),
                 "approvalStatus": _label(raw.get("shzt")),
-                "recognitionStatus": _label(recognition.get("rdzt")),
+                "recognitionStatus": (
+                    _label(recognition.get("rdzt"))
+                    or _label(recognized_project.get("rdzt"))
+                ),
                 "participationStatus": _text(recognition.get("js")),
                 "grade": _text(recognition.get("cj")),
                 "activityDuration": _duration(project.get("sc")),

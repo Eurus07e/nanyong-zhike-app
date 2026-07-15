@@ -492,6 +492,79 @@ button.map-node:hover { border-color: var(--purple); background: #faf7fc; }
 .five-education-skeleton { min-height: 420px; display: grid; grid-template-columns: repeat(3, 1fr); align-content: start; gap: 12px; }
 .five-education-skeleton > div { height: 112px; border-radius: var(--radius); background: linear-gradient(90deg, #f1f1f3 25%, #f8f8f9 45%, #f1f1f3 65%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
 .five-education-skeleton > span { grid-column: 1 / -1; min-height: 220px; display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--muted); font-size: 11px; }
+.five-header-tools { display: grid; justify-items: end; gap: 7px; }
+.five-header-tools small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.five-education-dashboard { gap: 16px; }
+.five-education-summary > div { min-height: 116px; padding: 20px 22px; }
+.five-education-summary span { font-size: 12px; }
+.five-education-summary strong { margin-top: 10px; font-size: 30px; letter-spacing: 0; }
+.five-education-summary small { margin-top: 9px; font-size: 11px; }
+.five-education-primary-grid { grid-template-columns: minmax(0, 1.48fr) minmax(280px, .52fr); gap: 16px; }
+.five-education-secondary-grid { grid-template-columns: minmax(0, 1fr) 240px; gap: 16px; }
+.five-education-card { padding: 20px; }
+.five-education-card > header { margin-bottom: 14px; }
+.five-education-card > header > strong { font-size: 16px; }
+.five-education-card > header > span { font-size: 11px; }
+.five-radar-card { min-height: 425px; }
+.five-radar-legend { gap: 16px; font-size: 11px; }
+.five-radar-layout { min-height: 350px; grid-template-columns: minmax(330px, 1fr) 205px; gap: 16px; }
+.five-radar { max-height: 350px; }
+.five-radar text { font-size: 13px; }
+.five-dimension-list > div { min-height: 47px; grid-template-columns: 1fr 48px 72px; font-size: 12px; }
+.five-dimension-list strong { font-size: 13px; }
+.five-dimension-list .five-dimension-head { min-height: 37px; font-size: 10px; }
+.five-growth-list { gap: 11px; }
+.five-growth-row { min-height: 105px; padding: 14px; }
+.five-growth-heading strong { font-size: 13px; }
+.five-growth-heading span { font-size: 10px; }
+.five-growth-values, .five-growth-rule { font-size: 10px; }
+.five-labor-grid > div { min-height: 96px; padding: 13px; }
+.five-labor-grid span { font-size: 10px; }
+.five-labor-grid strong { font-size: 22px; }
+.five-labor-grid small { font-size: 10px; }
+.five-guide-button { min-height: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 0 9px; border: 1px solid var(--line); border-radius: var(--radius); color: #5f5f65; background: #fff; font: inherit; font-size: 11px; cursor: pointer; }
+.five-guide-button:hover { color: var(--purple); border-color: #cfc5d5; background: #faf8fb; }
+.five-evaluation-card { min-height: 141px; display: grid; grid-template-columns: 1fr auto; align-content: center; column-gap: 8px; }
+.five-evaluation-card > span { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.five-evaluation-card > strong { margin-top: 12px; font-size: 34px; line-height: 1; }
+.five-evaluation-card > i { align-self: end; padding-bottom: 3px; color: var(--muted); font-size: 16px; font-style: normal; }
+.five-evaluation-card > small { grid-column: 1 / -1; margin-top: 10px; color: var(--muted); font-size: 11px; }
+.five-activity-section { margin-top: 4px; padding-top: 18px; border-top: 1px solid var(--line); }
+.five-activity-section > header { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+.five-activity-section h3 { margin: 0; font-size: 20px; }
+.five-activity-section header p { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+.five-activity-controls { display: grid; grid-template-columns: minmax(240px, 1fr) 170px 210px; gap: 10px; margin: 16px 0 12px; }
+.five-activity-controls label > span { display: block; margin-bottom: 6px; color: var(--muted); font-size: 10px; }
+.five-activity-controls label > div { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 11px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+.five-activity-controls input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 12px; }
+.five-activity-controls select { width: 100%; height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); background: #fff; font: inherit; font-size: 11px; }
+.five-activity-list { border-top: 1px solid var(--line); }
+.five-activity-head, .five-activity-row > summary { display: grid; grid-template-columns: minmax(250px, 1.4fr) minmax(130px, .7fr) minmax(220px, 1fr) minmax(120px, .55fr) 22px; align-items: center; gap: 14px; }
+.five-activity-head { min-height: 42px; color: var(--muted); font-size: 10px; }
+.five-activity-row { border-bottom: 1px solid #e7e7ea; }
+.five-activity-row > summary { min-height: 78px; padding: 11px 0; cursor: pointer; list-style: none; }
+.five-activity-row > summary::-webkit-details-marker { display: none; }
+.five-activity-row summary > span { min-width: 0; color: #55555b; font-size: 11px; }
+.five-activity-row summary strong, .five-activity-row summary b, .five-activity-row summary small { display: block; }
+.five-activity-row summary strong { overflow: hidden; color: var(--ink); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.five-activity-row summary b { font-size: 11px; font-weight: 550; line-height: 1.5; }
+.five-activity-row summary small { margin-top: 5px; overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.five-activity-row summary em { display: inline-flex; padding: 4px 7px; border-radius: var(--radius); color: var(--purple); background: #f3eef5; font-size: 10px; font-style: normal; }
+.five-activity-row summary > svg { color: var(--muted); transition: transform .2s ease; }
+.five-activity-row[open] summary > svg { transform: rotate(180deg); }
+.five-activity-row[open] > summary { background: #fafafa; }
+.five-activity-detail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 22px; padding: 4px 16px 18px; background: #fafafa; }
+.five-activity-detail > div { min-width: 0; padding: 12px 0; border-top: 1px solid #e7e7ea; }
+.five-activity-detail > div.wide { grid-column: 1 / -1; }
+.five-activity-detail span { color: var(--muted); font-size: 10px; }
+.five-activity-detail p { margin: 5px 0 0; color: #3f3f44; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+.five-guide-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 30px; background: rgba(0,0,0,.38); }
+.five-guide-modal { width: min(1040px, 94vw); max-height: 92vh; overflow: hidden; border-radius: var(--radius); background: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.22); }
+.five-guide-modal > header { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 18px; border-bottom: 1px solid var(--line); }
+.five-guide-modal h3 { margin: 0; font-size: 17px; }
+.five-guide-modal header p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+.five-guide-modal > div { height: calc(92vh - 72px); display: grid; place-items: center; overflow: auto; padding: 18px; background: #f5f5f7; }
+.five-guide-modal img { width: auto; max-width: 100%; height: auto; max-height: calc(92vh - 108px); display: block; border-radius: var(--radius); background: #fff; }
 .mail-service { min-height: 420px; display: grid; place-content: center; justify-items: center; gap: 20px; text-align: center; }
 .mail-service h2 { margin: 0; font-size: 24px; }
 .mail-service p { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
@@ -611,6 +684,7 @@ button.map-node:hover { border-color: var(--purple); background: #faf7fc; }
   .login-brand h1 { font-size: 54px; }
   .login-brand-mark { width: 74px; height: 74px; flex-basis: 74px; font-size: 39px; }
   .five-education-primary-grid, .five-education-secondary-grid { grid-template-columns: 1fr; }
+  .five-radar-layout { grid-template-columns: minmax(300px, 1fr) 200px; }
 }
 
 @media (max-width: 820px) {
@@ -722,11 +796,25 @@ button.map-node:hover { border-color: var(--purple); background: #faf7fc; }
   .five-education-summary > div { min-height: 92px; border-right: 0; border-bottom: 1px solid #e7e7ea; }
   .five-education-summary > div:last-child { border-bottom: 0; }
   .five-radar-layout { grid-template-columns: 1fr; }
-  .five-radar { max-height: 270px; }
+  .five-radar { max-height: 320px; }
   .five-dimension-list > div { grid-template-columns: 1fr 60px 82px; }
   .five-labor-grid { grid-template-columns: 1fr 1fr; }
   .five-details-card { grid-template-columns: 1fr; }
   .five-education-source { align-items: flex-start; flex-direction: column; }
+  .five-header-tools { width: 100%; grid-template-columns: auto 1fr; align-items: center; justify-items: start; }
+  .five-header-tools small { text-align: left; }
+  .five-activity-controls { grid-template-columns: 1fr; }
+  .five-activity-head { display: none; }
+  .five-activity-row > summary { grid-template-columns: minmax(0, 1fr) 22px; gap: 9px; padding: 14px 0; }
+  .five-activity-row summary > span { grid-column: 1; }
+  .five-activity-row summary > svg { grid-column: 2; grid-row: 1; }
+  .five-activity-row summary strong { white-space: normal; }
+  .five-activity-detail { grid-template-columns: 1fr; padding: 0 0 14px; }
+  .five-activity-detail > div.wide { grid-column: 1; }
+  .five-guide-backdrop { padding: 0; }
+  .five-guide-modal { width: 100%; max-height: 100dvh; border-radius: 0; }
+  .five-guide-modal > div { height: calc(100dvh - 72px); padding: 10px; }
+  .five-guide-modal img { max-height: calc(100dvh - 92px); }
   .five-education-skeleton { grid-template-columns: 1fr; }
   .five-education-skeleton > span { grid-column: 1; }
   .nju-site-list article { grid-template-columns: 32px minmax(0, 1fr) 32px 32px; gap: 7px; }

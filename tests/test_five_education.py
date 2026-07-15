@@ -219,7 +219,7 @@ def test_normalizes_detailed_activities_with_explicit_privacy_whitelist() -> Non
         "capacity": 7,
         "description": "活动介绍",
         "assessmentMethod": "考核办法",
-        "reviewStatus": "已评价",
+        "reviewStatus": "未评价",
         "approvalStatus": "审核通过",
         "recognitionStatus": "已提交",
         "participationStatus": "参加",
