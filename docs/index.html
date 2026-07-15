@@ -35,7 +35,7 @@
       height: 100vh;
       height: 100dvh;
       display: grid;
-      grid-template-rows: 68px minmax(0, 1fr) 72px;
+      grid-template-rows: 60px minmax(0, 1fr) 64px;
       overflow: hidden;
     }
 
@@ -44,29 +44,13 @@
       z-index: 3;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 24px;
       padding: 0 clamp(20px, 4vw, 64px);
       border-bottom: 1px solid rgba(210, 210, 215, .78);
       background: rgba(250, 250, 252, .88);
       backdrop-filter: saturate(155%) blur(22px);
     }
-
-    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; text-decoration: none; }
-    .brand-mark {
-      width: 40px;
-      height: 40px;
-      flex: 0 0 40px;
-      display: grid;
-      place-items: center;
-      border-radius: var(--radius);
-      color: #fff;
-      background: var(--purple);
-      font-family: "Songti SC", "STSong", serif;
-      font-size: 21px;
-    }
-    .brand-copy strong { display: block; font-size: 14px; line-height: 1.25; }
-    .brand-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
 
     .page-title { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: 14px; font-weight: 650; }
     .repo-link {
@@ -96,7 +80,8 @@
       scroll-behavior: smooth;
       overscroll-behavior-x: contain;
       scrollbar-width: none;
-      touch-action: pan-x pan-y;
+      touch-action: pan-x;
+      -webkit-overflow-scrolling: touch;
     }
     .gallery::-webkit-scrollbar { display: none; }
 
@@ -107,38 +92,30 @@
       scroll-snap-align: center;
       scroll-snap-stop: always;
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
-      gap: 14px;
-      padding: 20px clamp(20px, 4vw, 64px) 18px;
+      place-items: center;
+      padding: 14px clamp(16px, 3vw, 48px);
     }
-
-    .slide-heading {
-      width: min(1480px, 100%);
-      margin: 0 auto;
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 18px;
-    }
-    .slide-heading h2 { margin: 0; font-size: clamp(22px, 2.5vw, 34px); line-height: 1.08; letter-spacing: -.02em; }
-    .slide-heading span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 
     .shot-frame {
-      width: min(1480px, 100%);
+      width: min(1680px, 100%);
+      height: 100%;
       min-height: 0;
       margin: 0 auto;
       display: grid;
       place-items: center;
+      overflow: hidden;
     }
     .shot-frame img {
       display: block;
-      max-width: 100%;
-      max-height: 100%;
+      width: 100%;
+      height: 100%;
       border: 1px solid rgba(210, 210, 215, .92);
       border-radius: var(--radius);
       background: #fff;
       box-shadow: 0 18px 54px rgba(0, 0, 0, .10);
       object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .gallery-controls {
@@ -153,9 +130,7 @@
       background: rgba(250, 250, 252, .92);
       backdrop-filter: saturate(155%) blur(22px);
     }
-    .current-label { min-width: 0; display: flex; align-items: baseline; gap: 10px; }
-    .current-label strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-    .current-label span { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .current-label { min-width: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 
     .dots { display: flex; align-items: center; justify-content: center; gap: 8px; }
     .dot {
@@ -187,19 +162,49 @@
     .arrow-button:disabled { cursor: default; opacity: .32; }
     .arrow-button svg { width: 18px; height: 18px; }
 
+    .lightbox {
+      width: 100vw;
+      height: 100vh;
+      max-width: none;
+      max-height: none;
+      margin: 0;
+      padding: 24px;
+      border: 0;
+      background: rgba(245, 245, 247, .96);
+      backdrop-filter: blur(22px);
+    }
+    .lightbox[open] { display: grid; place-items: center; }
+    .lightbox::backdrop { background: rgba(0, 0, 0, .24); }
+    .lightbox img { width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+    .lightbox-close {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .9);
+      cursor: pointer;
+      z-index: 1;
+    }
+    .lightbox-close svg { width: 18px; height: 18px; }
+
     @media (max-width: 720px) {
-      .page { grid-template-rows: 58px minmax(0, 1fr) 66px; }
+      .page { grid-template-rows: 54px minmax(0, 1fr) 60px; }
       .site-header { gap: 12px; padding-inline: 14px; }
-      .brand-mark { width: 34px; height: 34px; flex-basis: 34px; font-size: 18px; }
-      .brand-copy span, .page-title { display: none; }
       .repo-link { min-height: 34px; padding-inline: 10px; }
-      .gallery-slide { gap: 10px; padding: 14px 12px 12px; }
-      .slide-heading h2 { font-size: 23px; }
+      .gallery-slide { padding: 8px; }
       .shot-frame { align-items: start; }
-      .shot-frame img { width: 100%; margin-top: 4px; box-shadow: 0 12px 34px rgba(0, 0, 0, .10); }
+      .shot-frame img { height: auto; max-height: 100%; box-shadow: 0 12px 34px rgba(0, 0, 0, .10); }
       .gallery-controls { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding-inline: 14px; }
       .dots { display: none; }
       .arrow-button { width: 40px; height: 40px; }
+      .lightbox { padding: 12px; }
+      .lightbox-close { top: 12px; right: 12px; width: 40px; height: 40px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -211,10 +216,6 @@
 <body>
   <div class="page">
     <header class="site-header">
-      <a class="brand" href="https://github.com/Eurus07e/nanyong-zhike-app" aria-label="返回南雍知课 GitHub 仓库">
-        <span class="brand-mark" aria-hidden="true">雍</span>
-        <span class="brand-copy"><strong>南雍知课</strong><span>南京大学一站式选课助手</span></span>
-      </a>
       <h1 class="page-title">界面预览</h1>
       <a class="repo-link" href="https://github.com/Eurus07e/nanyong-zhike-app">
         返回仓库
@@ -223,38 +224,31 @@
     </header>
 
     <main class="gallery" aria-label="南雍知课界面画廊" tabindex="0">
-      <article class="gallery-slide" data-title="学业概览">
-        <header class="slide-heading"><h2>学业概览</h2><span>01 / 07</span></header>
-        <figure class="shot-frame"><img src="screenshots/academic-overview.jpeg" alt="南雍知课学业概览"></figure>
+      <article class="gallery-slide" data-title="学业概览" aria-label="学业概览">
+        <figure class="shot-frame"><img src="screenshots/academic-overview.jpeg" alt="南雍知课学业概览" draggable="false"></figure>
       </article>
-      <article class="gallery-slide" data-title="培养方案">
-        <header class="slide-heading"><h2>培养方案</h2><span>02 / 07</span></header>
-        <figure class="shot-frame"><img src="screenshots/program.jpeg" alt="南雍知课培养方案" loading="lazy"></figure>
+      <article class="gallery-slide" data-title="培养方案" aria-label="培养方案">
+        <figure class="shot-frame"><img src="screenshots/program.jpeg" alt="南雍知课培养方案" loading="lazy" draggable="false"></figure>
       </article>
-      <article class="gallery-slide" data-title="我的课表">
-        <header class="slide-heading"><h2>我的课表</h2><span>03 / 07</span></header>
-        <figure class="shot-frame"><img src="screenshots/schedule.jpeg" alt="南雍知课我的课表" loading="lazy"></figure>
+      <article class="gallery-slide" data-title="我的课表" aria-label="我的课表">
+        <figure class="shot-frame"><img src="screenshots/schedule.jpeg" alt="南雍知课我的课表" loading="lazy" draggable="false"></figure>
       </article>
-      <article class="gallery-slide" data-title="红黑榜">
-        <header class="slide-heading"><h2>红黑榜</h2><span>04 / 07</span></header>
-        <figure class="shot-frame"><img src="screenshots/reviews.jpeg" alt="南雍知课红黑榜" loading="lazy"></figure>
+      <article class="gallery-slide" data-title="红黑榜" aria-label="红黑榜">
+        <figure class="shot-frame"><img src="screenshots/reviews.jpeg" alt="南雍知课红黑榜" loading="lazy" draggable="false"></figure>
       </article>
-      <article class="gallery-slide" data-title="重要通知">
-        <header class="slide-heading"><h2>重要通知</h2><span>05 / 07</span></header>
-        <figure class="shot-frame"><img src="screenshots/notices.jpeg" alt="南雍知课重要通知" loading="lazy"></figure>
+      <article class="gallery-slide" data-title="重要通知" aria-label="重要通知">
+        <figure class="shot-frame"><img src="screenshots/notices.jpeg" alt="南雍知课重要通知" loading="lazy" draggable="false"></figure>
       </article>
-      <article class="gallery-slide" data-title="NJU Tabs">
-        <header class="slide-heading"><h2>NJU Tabs</h2><span>06 / 07</span></header>
-        <figure class="shot-frame"><img src="screenshots/nju-tabs.jpeg" alt="南雍知课NJU Tabs" loading="lazy"></figure>
+      <article class="gallery-slide" data-title="NJU Tabs" aria-label="NJU Tabs">
+        <figure class="shot-frame"><img src="screenshots/nju-tabs.jpeg" alt="南雍知课NJU Tabs" loading="lazy" draggable="false"></figure>
       </article>
-      <article class="gallery-slide" data-title="备忘录">
-        <header class="slide-heading"><h2>备忘录</h2><span>07 / 07</span></header>
-        <figure class="shot-frame"><img src="screenshots/memos.jpeg" alt="南雍知课备忘录" loading="lazy"></figure>
+      <article class="gallery-slide" data-title="备忘录" aria-label="备忘录">
+        <figure class="shot-frame"><img src="screenshots/memos.jpeg" alt="南雍知课备忘录" loading="lazy" draggable="false"></figure>
       </article>
     </main>
 
     <footer class="gallery-controls">
-      <div class="current-label" aria-live="polite"><strong>学业概览</strong><span>1 / 7</span></div>
+      <div class="current-label" aria-live="polite">1 / 7</div>
       <div class="dots" aria-label="选择预览页面">
         <button class="dot" type="button" data-index="0" aria-label="查看学业概览" aria-current="true"></button>
         <button class="dot" type="button" data-index="1" aria-label="查看培养方案" aria-current="false"></button>
@@ -265,6 +259,9 @@
         <button class="dot" type="button" data-index="6" aria-label="查看备忘录" aria-current="false"></button>
       </div>
       <div class="arrow-controls">
+        <button class="arrow-button" type="button" data-action="view-original" aria-label="查看原图" title="查看原图">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5"/></svg>
+        </button>
         <button class="arrow-button" type="button" data-action="previous" aria-label="上一张" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
         </button>
@@ -275,22 +272,36 @@
     </footer>
   </div>
 
+  <dialog class="lightbox" aria-label="原图预览">
+    <button class="lightbox-close" type="button" aria-label="关闭原图预览">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+    <img alt="" draggable="false">
+  </dialog>
+
   <script>
     const gallery = document.querySelector(".gallery")
     const slides = Array.from(document.querySelectorAll(".gallery-slide"))
     const dots = Array.from(document.querySelectorAll(".dot"))
     const previousButton = document.querySelector('[data-action="previous"]')
     const nextButton = document.querySelector('[data-action="next"]')
-    const currentTitle = document.querySelector(".current-label strong")
-    const currentCount = document.querySelector(".current-label span")
+    const viewOriginalButton = document.querySelector('[data-action="view-original"]')
+    const currentLabel = document.querySelector(".current-label")
+    const lightbox = document.querySelector(".lightbox")
+    const lightboxImage = lightbox.querySelector("img")
+    const lightboxClose = lightbox.querySelector(".lightbox-close")
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const SWIPE_THRESHOLD = 32
     let activeIndex = 0
     let frameRequest = 0
+    let touchStartX = 0
+    let touchStartY = 0
+    let touchStartIndex = 0
 
     function updateControls(index) {
       activeIndex = Math.max(0, Math.min(index, slides.length - 1))
-      currentTitle.textContent = slides[activeIndex].dataset.title
-      currentCount.textContent = `${activeIndex + 1} / ${slides.length}`
+      currentLabel.textContent = `${activeIndex + 1} / ${slides.length}`
+      currentLabel.setAttribute("aria-label", `${slides[activeIndex].dataset.title}，第 ${activeIndex + 1} 张，共 ${slides.length} 张`)
       previousButton.disabled = activeIndex === 0
       nextButton.disabled = activeIndex === slides.length - 1
       dots.forEach((dot, dotIndex) => dot.setAttribute("aria-current", String(dotIndex === activeIndex)))
@@ -316,8 +327,35 @@
 
     previousButton.addEventListener("click", () => goToSlide(activeIndex - 1))
     nextButton.addEventListener("click", () => goToSlide(activeIndex + 1))
+    viewOriginalButton.addEventListener("click", () => {
+      const image = slides[activeIndex].querySelector("img")
+      lightboxImage.src = image.currentSrc || image.src
+      lightboxImage.alt = image.alt
+      lightbox.showModal()
+    })
+    lightboxClose.addEventListener("click", () => lightbox.close())
+    lightbox.addEventListener("click", (event) => {
+      if (event.target === lightbox) lightbox.close()
+    })
     dots.forEach((dot) => dot.addEventListener("click", () => goToSlide(Number(dot.dataset.index))))
     gallery.addEventListener("scroll", syncToScroll, { passive: true })
+    gallery.addEventListener("dragstart", (event) => event.preventDefault())
+    gallery.addEventListener("touchstart", (event) => {
+      const touch = event.changedTouches[0]
+      touchStartX = touch.clientX
+      touchStartY = touch.clientY
+      touchStartIndex = activeIndex
+    }, { passive: true })
+    gallery.addEventListener("touchend", (event) => {
+      const touch = event.changedTouches[0]
+      const deltaX = touch.clientX - touchStartX
+      const deltaY = touch.clientY - touchStartY
+      if (Math.abs(deltaX) >= SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+        goToSlide(touchStartIndex + (deltaX < 0 ? 1 : -1))
+        return
+      }
+      goToSlide(Math.round(gallery.scrollLeft / Math.max(gallery.clientWidth, 1)))
+    }, { passive: true })
     gallery.addEventListener("wheel", (event) => {
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
       event.preventDefault()
@@ -328,6 +366,7 @@
       if (event.key === "ArrowRight") goToSlide(activeIndex + 1)
     })
     window.addEventListener("resize", () => goToSlide(activeIndex), { passive: true })
+    updateControls(0)
   </script>
 </body>
 </html>
