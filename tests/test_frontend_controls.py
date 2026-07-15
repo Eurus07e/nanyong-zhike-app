@@ -79,6 +79,9 @@ def test_notices_open_details_and_create_linked_memos() -> None:
     assert "BookmarkPlus" in source
     assert "BellRing size={17}" not in source
     assert "ReactMarkdown" in source
+    assert "'/api/notices?limit=12&refresh=true'" in source
+    assert "'/api/notices?limit=12'" in source
+    assert "limit=8" not in source
     assert "linkUrl: notice.url" in source
     assert "window.addEventListener(MEMOS_CHANGED_EVENT, sync)" in source
     assert "memo.linkUrl" in memos

@@ -46,7 +46,7 @@ export function CampusServices({ username }: { username: string }) {
     setLoading(true)
     setError('')
     try {
-      const path = force ? '/api/notices?limit=8&refresh=true' : '/api/notices?limit=8'
+      const path = force ? '/api/notices?limit=12&refresh=true' : '/api/notices?limit=12'
       const response = await api.cached<NoticeResponse>(path, { ttl: 10 * 60_000, force })
       setNotices(response.items)
     } catch (caught) {
