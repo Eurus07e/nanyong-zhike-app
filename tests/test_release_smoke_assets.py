@@ -35,6 +35,18 @@ REQUIRED_PORTAL_SNAPSHOT_COLUMNS = {
 }
 
 
+def test_release_smoke_http_client_bypasses_environment_proxies():
+    opener = getattr(smoke_test_release, "_LOCAL_HTTP_OPENER", None)
+
+    assert opener is not None
+    proxy_handlers = [
+        handler
+        for handler in opener.handlers
+        if isinstance(handler, smoke_test_release.urllib.request.ProxyHandler)
+    ]
+    assert proxy_handlers == []
+
+
 class CloseTrackingConnection(sqlite3.Connection):
     was_closed = False
 

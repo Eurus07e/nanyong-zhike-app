@@ -171,6 +171,8 @@ def test_packaged_smoke_test_passes_its_dynamic_port_to_launcher():
 
     assert 'env["NANYONG_ZHIKE_PORT"] = str(port)' in smoke_test
     assert 'base_url = f"http://127.0.0.1:{port}"' in smoke_test
+    assert "deadline = time.monotonic() + 30" in smoke_test
+    assert "launcher.log" in smoke_test
 
 
 def test_prepare_release_bundles_upstream_source_and_cache_patch(

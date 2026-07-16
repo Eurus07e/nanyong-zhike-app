@@ -24,6 +24,7 @@ _TEXT_PROCESS_OPTIONS = {
     "encoding": "utf-8",
     "errors": "replace",
 }
+_LOCAL_HTTP_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 REQUIRED_FRONTEND_ASSETS = (
     "login-campus-1.jpg",
@@ -72,7 +73,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def get(url: str) -> tuple[bytes, str]:
-    with urllib.request.urlopen(url, timeout=2) as response:
+    with _LOCAL_HTTP_OPENER.open(url, timeout=0.5) as response:
         if response.status != 200:
             raise RuntimeError(f"GET {url} returned {response.status}")
         return response.read(), response.headers.get_content_type()
@@ -200,7 +201,8 @@ def main() -> None:
         )
         try:
             base_url = f"http://127.0.0.1:{port}"
-            for _ in range(120):
+            deadline = time.monotonic() + 30
+            while time.monotonic() < deadline:
                 if process.poll() is not None:
                     output = process.stdout.read() if process.stdout else ""
                     raise RuntimeError(f"desktop app exited early:\n{output}")
@@ -217,7 +219,16 @@ def main() -> None:
                 except (OSError, ValueError):
                     time.sleep(0.25)
             else:
-                raise RuntimeError("desktop app did not become healthy within 30 seconds")
+                log_path = Path(state) / "launcher.log"
+                launcher_log = (
+                    log_path.read_text(encoding="utf-8", errors="replace")
+                    if log_path.is_file()
+                    else "launcher.log was not created"
+                )
+                raise RuntimeError(
+                    "desktop app did not become healthy within 30 seconds\n"
+                    f"launcher.log:\n{launcher_log}"
+                )
 
             index, index_content_type = get(base_url)
             if (
