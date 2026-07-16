@@ -170,7 +170,7 @@ export function CampusServices({ username, onUnauthorized }: { username: string;
 
     {active === 'mail' && <section className="service-panel mail-service" role="tabpanel">
       <div className="service-hero-icon"><Mail size={27} /></div>
-      <div><h2>南京大学学生邮箱</h2><p>邮箱内容暂不由本站读取，请前往学校邮箱安全登录。</p></div>
+      <div><h2>南京大学学生邮箱</h2><p>邮箱接口暂未开放，敬请期待。</p></div>
       <a className="mail-service-link" href="https://mail.smail.nju.edu.cn" target="_blank" rel="noreferrer">
         <span><strong>打开南京大学学生邮箱</strong><small>mail.smail.nju.edu.cn</small></span><ArrowUpRight size={18} />
       </a>

@@ -346,7 +346,7 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
           </article>)}
           {fixedCourses.filter((course) => !courseTerm(course)).length > 0 && <article className="unscheduled-courses"><div><strong>未指定学期</strong><span>培养方案未注明建议修读时间</span></div><CourseTable courses={fixedCourses.filter((course) => !courseTerm(course))} compact onSelect={setSelectedCourse} /></article>}
           {electiveGroups.length > 0 && <section className="year-elective-pools">
-            <header><div><h2>选修课程池</h2><p>下列课程为可选范围，不代表需要全部修读</p></div></header>
+            <header><div><h2>课程范围</h2><p>分支、限选或选修课程，不代表需要全部修读</p></div></header>
             <div>{electiveGroups.map(({ node, summary }) => <button type="button" key={node.KZH} onClick={() => selectNode(node.KZH)}>
               <span><strong>{node.KZM}</strong><small>{formatRequiredSummary(summary)}</small></span>
               <b>{formatPoolSummary(summary)}</b>
@@ -459,17 +459,28 @@ function MapBranch({ node, parentId, summaries, selected, onSelect }: { node: Pr
   const hasNote = Boolean(node.XDYQC || node.XDYQ || node.BZ)
   const summary = summaries.get(node.KZH)
   return <li><button type="button" className={`map-node ${selected === node.KZH ? 'selected' : ''}`} data-map-id={node.KZH} data-parent-id={parentId} onClick={() => void onSelect(node.KZH)}>
-    <span>{node.KZM}</span><small>{summary ? formatRequiredSummary(summary) : '要求以方案说明为准'}</small>{hasNote && <i title="包含修读说明" aria-label="包含修读说明" />}
+    <span>{node.KZM}</span><small>{summary ? formatMapSummary(summary) : '要求以方案说明为准'}</small>{hasNote && <i title="包含修读说明" aria-label="包含修读说明" />}
   </button>{node.children.length > 0 && <ul>{node.children.map((child) => <MapBranch key={child.KZH} node={child} parentId={node.KZH} summaries={summaries} selected={selected} onSelect={onSelect} />)}</ul>}</li>
 }
 
 function formatRequiredSummary(summary: ProgramNodeSummary) {
   const parts = []
   if (summary.requiredCourses != null) parts.push(`应修 ${formatCredits(summary.requiredCourses)} 门`)
-  if (summary.requiredCredits != null) parts.push(`应修 ${formatCredits(summary.requiredCredits)} 学分`)
+  if (summary.requiredCreditOptions && summary.requiredCreditOptions.length > 1) {
+    parts.push(`应修 ${summary.requiredCreditOptions.map(formatCredits).join(' / ')} 学分`)
+  } else if (summary.requiredCredits != null) parts.push(`应修 ${formatCredits(summary.requiredCredits)} 学分`)
   if (parts.length) return parts.join(' · ')
   if (summary.moduleCount > 0) return `${summary.moduleCount} 个课程模块`
   return '要求以方案说明为准'
+}
+
+function formatMapSummary(summary: ProgramNodeSummary) {
+  const requirement = formatRequiredSummary(summary)
+  if (requirement !== '要求以方案说明为准') return requirement
+  const parts = []
+  if (summary.poolCourses != null) parts.push(`${formatCredits(summary.poolCourses)} 门`)
+  if (summary.poolCredits != null) parts.push(`${formatCredits(summary.poolCredits)} 学分`)
+  return parts.length ? `课程清单 ${parts.join(' · ')}` : requirement
 }
 
 function formatPoolSummary(summary: ProgramNodeSummary) {

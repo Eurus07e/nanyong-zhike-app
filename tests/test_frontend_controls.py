@@ -20,6 +20,20 @@ def test_program_map_exposes_accessible_zoom_controls() -> None:
     assert ".map-zoom-controls button:focus-visible { outline-offset: -3px; }" in styles
 
 
+def test_program_surfaces_distinguish_requirements_from_course_ranges() -> None:
+    program = (ROOT / "frontend" / "src" / "components" / "Program.tsx").read_text(
+        encoding="utf-8"
+    )
+    overview = (ROOT / "frontend" / "src" / "components" / "Overview.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "课程清单 ${parts.join(' · ')}" in program
+    assert "<h2>课程范围</h2>" in program
+    assert "分支、限选或选修课程" in program
+    assert "requirementOptions" in overview
+
+
 def test_mobile_dialogs_fill_the_viewport_without_user_agent_width_caps() -> None:
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
 
@@ -137,8 +151,23 @@ def test_schedule_hover_uses_title_color_without_a_colored_frame() -> None:
 def test_program_selector_uses_compact_type_and_height() -> None:
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
 
-    assert ".program-selector-row select { width: 100%; min-height: 38px;" in styles
+    assert ".program-selector-row > div { min-width: 0; min-height: 38px;" in styles
+    assert ".program-selector-row select { width: 100%; height: 38px; min-height: 38px;" in styles
     assert "font-size: 12px;" in styles
+
+
+def test_mail_placeholder_and_about_release_note_match_v2_0_1_copy() -> None:
+    campus_services = (
+        ROOT / "frontend" / "src" / "components" / "CampusServices.tsx"
+    ).read_text(encoding="utf-8")
+    about = (ROOT / "frontend" / "src" / "components" / "About.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "邮箱接口暂未开放，敬请期待。" in campus_services
+    assert "邮箱内容暂不由本站读取" not in campus_services
+    assert "v2.0.1" in about
+    assert "培养方案学分认定" in about
 
 
 def test_main_content_uses_the_available_width_with_symmetric_gutters() -> None:

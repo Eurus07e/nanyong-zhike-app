@@ -57,6 +57,12 @@ test('parses the authoritative graduation requirements from program text', () =>
       '多元发展课程': 30,
       '毕业论文/设计': 6,
     },
+    categoryOptions: {
+      '通识通修课程': [59],
+      '学科专业课程': [49],
+      '多元发展课程': [30],
+      '毕业论文/设计': [6],
+    },
   })
 })
 
@@ -75,6 +81,12 @@ test('fills all graduation categories from top-level required credits and derive
       '学科专业课程': 49,
       '多元发展课程': 30,
       '毕业论文/设计': 6,
+    },
+    categoryOptions: {
+      '通识通修课程': [59],
+      '学科专业课程': [49],
+      '多元发展课程': [30],
+      '毕业论文/设计': [6],
     },
   })
 })
@@ -115,11 +127,50 @@ test('uses program text instead of misleading parent pool totals', () => {
   assert.equal(summary.source, 'program-text')
 })
 
-test('fills a fixed course group from its actual course list when raw totals are empty', () => {
-  const summary = summarizeProgramNode(nodes[3], nodes, coursesByNode, parseProgramRequirements(detailText))
+test('keeps track-specific requirements separate from descendant course-list totals', () => {
+  const trackedText = [
+    '专业应修总学分 150。',
+    '励学班要求学科专业课程（必修）47 学分。',
+    '励新班要求学科专业课程（必修）64 学分。',
+  ].join('')
+  const trackedNodes = [
+    { KZH: 'discipline', FKZH: '-1', KZM: '学科专业课程', KZLXDM: '02', KCZMS: 20, KCZXF: 65 },
+    { KZH: 'foundation', FKZH: 'discipline', KZM: '学科基础课程', KZLXDM: '01', KCZMS: 5, KCZXF: 13 },
+    { KZH: 'core', FKZH: 'discipline', KZM: '专业核心课程', KZLXDM: '01', KCZMS: 15, KCZXF: 52 },
+  ]
+  const trackedCourses = {
+    foundation: Array.from({ length: 5 }, (_, index) => ({ KCH: `F${index}`, KCM: `基础${index}`, XF: index === 0 ? 5 : 2 })),
+    core: Array.from({ length: 15 }, (_, index) => ({ KCH: `C${index}`, KCM: `核心${index}`, XF: index === 0 ? 10 : 3 })),
+  }
+  const requirements = resolveProgramRequirements(trackedText, trackedNodes)
 
-  assert.equal(summary.requiredCourses, 13)
-  assert.equal(summary.requiredCredits, 36)
+  const parent = summarizeProgramNode(trackedNodes[0], trackedNodes, trackedCourses, requirements)
+  const foundation = summarizeProgramNode(trackedNodes[1], trackedNodes, trackedCourses, requirements)
+  const core = summarizeProgramNode(trackedNodes[2], trackedNodes, trackedCourses, requirements)
+
+  assert.deepEqual(requirements.categoryOptions['学科专业课程'], [47, 64])
+  assert.equal(parent.requiredCredits, 47)
+  assert.deepEqual(parent.requiredCreditOptions, [47, 64])
+  assert.equal(foundation.requiredCredits, null)
+  assert.equal(foundation.poolCredits, 13)
+  assert.equal(core.requiredCredits, null)
+  assert.equal(core.poolCredits, 52)
+  assert.equal(parent.isElectivePool, true)
+  assert.equal(foundation.isElectivePool, true)
+  assert.equal(core.isElectivePool, true)
+})
+
+test('keeps a fixed-looking course list as a pool when no required field is provided', () => {
+  const fixedNode = { ...nodes[3], FKZH: '-1', KZM: '独立固定课程组' }
+  const summary = summarizeProgramNode(
+    fixedNode,
+    [fixedNode],
+    { foundation: foundationCourses },
+    parseProgramRequirements(''),
+  )
+
+  assert.equal(summary.requiredCourses, null)
+  assert.equal(summary.requiredCredits, null)
   assert.equal(summary.poolCourses, 13)
   assert.equal(summary.poolCredits, 36)
   assert.equal(summary.isElectivePool, false)
@@ -147,7 +198,7 @@ test('uses required fields for a choose-one practice pool', () => {
   assert.equal(summary.isElectivePool, true)
 })
 
-test('fills required credits from actual courses when a fixed node only provides required course count', () => {
+test('does not invent required credits when a node only provides required course count', () => {
   const fixedNode = { KZH: 'fixed-count', FKZH: '-1', KZM: '固定课程', KZLXDM: '01', ZSXDMS: 2 }
   const summary = summarizeProgramNode(
     fixedNode,
@@ -157,11 +208,12 @@ test('fills required credits from actual courses when a fixed node only provides
   )
 
   assert.equal(summary.requiredCourses, 2)
-  assert.equal(summary.requiredCredits, 5)
+  assert.equal(summary.requiredCredits, null)
+  assert.equal(summary.poolCredits, 5)
   assert.equal(summary.source, 'required-fields')
 })
 
-test('fills required course count from actual courses when a fixed node only provides required credits', () => {
+test('does not invent required course count when a node only provides required credits', () => {
   const fixedNode = { KZH: 'fixed-credits', FKZH: '-1', KZM: '固定课程', KZLXDM: '01', ZSXDXF: 5 }
   const summary = summarizeProgramNode(
     fixedNode,
@@ -170,12 +222,13 @@ test('fills required course count from actual courses when a fixed node only pro
     parseProgramRequirements(''),
   )
 
-  assert.equal(summary.requiredCourses, 2)
+  assert.equal(summary.requiredCourses, null)
   assert.equal(summary.requiredCredits, 5)
+  assert.equal(summary.poolCourses, 2)
   assert.equal(summary.source, 'required-fields')
 })
 
-test('keeps node pool totals when a successful course response is empty', () => {
+test('keeps node totals as pool metadata when a successful course response is empty', () => {
   const fixedNode = { KZH: 'empty-response', FKZH: '-1', KZM: '固定课程', KZLXDM: '01', KCZMS: 3, KCZXF: 6 }
   const summary = summarizeProgramNode(
     fixedNode,
@@ -184,11 +237,74 @@ test('keeps node pool totals when a successful course response is empty', () => 
     parseProgramRequirements(''),
   )
 
-  assert.equal(summary.requiredCourses, 3)
-  assert.equal(summary.requiredCredits, 6)
+  assert.equal(summary.requiredCourses, null)
+  assert.equal(summary.requiredCredits, null)
   assert.equal(summary.poolCourses, 3)
   assert.equal(summary.poolCredits, 6)
   assert.equal(summary.source, 'node-fields')
+})
+
+test('does not shrink node pool totals when a non-empty course response is shorter', () => {
+  const poolNode = { KZH: 'short-response', FKZH: '-1', KZM: '课程范围', KZLXDM: '01', KCZMS: 3, KCZXF: 6 }
+  const summary = summarizeProgramNode(
+    poolNode,
+    [poolNode],
+    { 'short-response': [{ KCH: 'S1', KCM: '课程一', XF: 2 }, { KCH: 'S2', KCM: '课程二', XF: 2 }] },
+    parseProgramRequirements(''),
+  )
+
+  assert.equal(summary.poolCourses, 3)
+  assert.equal(summary.poolCredits, 6)
+})
+
+test('parses parenthesized prose and derives discipline total from named subcategories', () => {
+  const computerText = [
+    '专业应修总学分150，其中',
+    '通识通修课程（通识通修课程清单所有通修课均为必修，通识课修读要求详见修课说明）62学分，',
+    '学科基础课程（必修）43学分，专业核心课程（必修）9学分，',
+    '毕业论文/设计（必修）8学分，其余为多元发展课程（选修）28学分。',
+  ].join('')
+
+  const requirements = parseProgramRequirements(computerText)
+
+  assert.equal(requirements.total, 150)
+  assert.equal(requirements.categories['通识通修课程'], 62)
+  assert.equal(requirements.categories['学科专业课程'], 52)
+  assert.deepEqual(requirements.categoryOptions['学科专业课程'], [52])
+  assert.equal(requirements.categories['多元发展课程'], 28)
+  assert.equal(requirements.categories['毕业论文/设计'], 8)
+})
+
+test('accepts an official category requirement written as 分 instead of 学分', () => {
+  const requirements = parseProgramRequirements(
+    '专业应修总学分145，其中通识通修课程（必修）51分，学科专业课程（必修）51学分。',
+  )
+
+  assert.equal(requirements.categories['通识通修课程'], 51)
+  assert.equal(requirements.categories['学科专业课程'], 51)
+})
+
+test('keeps constrained descendants out of the fixed year timeline', () => {
+  const trackedText = '专业应修总学分150。励学班要求学科专业课程47学分。励新班要求学科专业课程64学分。'
+  const trackedNodes = [
+    { KZH: 'discipline', FKZH: '-1', KZM: '学科专业课程', KZLXDM: '02', KCZMS: 20, KCZXF: 65 },
+    { KZH: 'foundation', FKZH: 'discipline', KZM: '学科基础课程', KZLXDM: '01', KCZMS: 5, KCZXF: 13 },
+    { KZH: 'core', FKZH: 'discipline', KZM: '专业核心课程', KZLXDM: '01', KCZMS: 15, KCZXF: 52 },
+  ]
+  const trackedCourses = {
+    foundation: [{ KCH: 'F1', KCM: '基础', XF: 13 }],
+    core: [{ KCH: 'C1', KCM: '核心', XF: 52 }],
+  }
+  const requirements = resolveProgramRequirements(trackedText, trackedNodes)
+  const summaries = new Map(trackedNodes.map((node) => [
+    node.KZH,
+    summarizeProgramNode(node, trackedNodes, trackedCourses, requirements),
+  ]))
+
+  const groups = classifyProgramNodesForYear(trackedNodes, summaries)
+
+  assert.deepEqual(groups.fixedCourseNodes, [])
+  assert.deepEqual(groups.electivePoolNodes.map((node) => node.KZH), ['discipline'])
 })
 
 test('inherits an elective ancestor constraint in descendant course leaves', () => {

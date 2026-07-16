@@ -3,6 +3,7 @@ import type { ProgramCourse, ProgramNode } from './types'
 export type ProgramRequirements = {
   total: number | null
   categories: Record<string, number | null>
+  categoryOptions: Record<string, number[]>
 }
 
 export type ProgramTreeNode = ProgramNode & { children: ProgramTreeNode[] }
@@ -14,6 +15,7 @@ export type ProgramNodeSummary = {
   poolCredits: number | null
   moduleCount: number
   isElectivePool: boolean
+  requiredCreditOptions?: number[]
   source: 'program-text' | 'required-fields' | 'course-list' | 'node-fields' | 'children' | 'unknown'
 }
 
@@ -32,15 +34,27 @@ const GRADUATION_CATEGORIES = [
 
 export function parseProgramRequirements(text: string): ProgramRequirements {
   const compact = text.replace(/\s+/g, ' ')
-  const valueAfter = (label: string) => {
+  const valuesAfter = (label: string) => {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const match = compact.match(new RegExp(`${escaped}[^，。；;]{0,30}?(\\d+(?:\\.\\d+)?)\\s*学分`))
-    return match ? Number(match[1]) : null
+    const matches = compact.matchAll(new RegExp(
+      `${escaped}(?:[（(][^）)]{0,160}[）)])?[^，。；;\\d]{0,30}?(\\d+(?:\\.\\d+)?)\\s*学?分`,
+      'g',
+    ))
+    return [...new Set([...matches].map((match) => Number(match[1])))]
   }
-  const totalMatch = compact.match(/(?:应修总学分|总学分)[^，。；;\d]{0,12}(\d+(?:\.\d+)?)\s*学分?/)
+  const totalMatch = compact.match(/(?:应修总学分|总学分)[^，。；;\d]{0,12}(\d+(?:\.\d+)?)(?:\s*学分)?/)
+  const categoryOptions = Object.fromEntries(GRADUATION_CATEGORIES.map((name) => [name, valuesAfter(name)]))
+  if (!categoryOptions['学科专业课程'].length) {
+    const foundation = valuesAfter('学科基础课程')
+    const core = valuesAfter('专业核心课程')
+    if (foundation.length && foundation.length === core.length) {
+      categoryOptions['学科专业课程'] = foundation.map((value, index) => normalizeNumber(value + core[index]))
+    }
+  }
   return {
     total: totalMatch ? Number(totalMatch[1]) : null,
-    categories: Object.fromEntries(GRADUATION_CATEGORIES.map((name) => [name, valueAfter(name)])),
+    categories: Object.fromEntries(GRADUATION_CATEGORIES.map((name) => [name, categoryOptions[name][0] ?? null])),
+    categoryOptions,
   }
 }
 
@@ -53,9 +67,14 @@ export function resolveProgramRequirements(text: string, nodes: ProgramNode[]): 
     name,
     parsed.categories[name] ?? positiveNumber(topLevelNodes.get(name)?.ZSXDXF),
   ]))
+  const categoryOptions = Object.fromEntries(GRADUATION_CATEGORIES.map((name) => {
+    const fallback = positiveNumber(topLevelNodes.get(name)?.ZSXDXF)
+    return [name, parsed.categoryOptions[name].length ? parsed.categoryOptions[name] : fallback == null ? [] : [fallback]]
+  }))
   return {
     total: parsed.total ?? sumComplete(GRADUATION_CATEGORIES.map((name) => categories[name])),
     categories,
+    categoryOptions,
   }
 }
 
@@ -131,7 +150,7 @@ export function summarizeProgramNode(
     coursesByNode,
     requirements,
     new Set(),
-    hasElectiveAncestor(node, nodes, coursesByNode),
+    hasElectiveAncestor(node, nodes, coursesByNode, requirements),
   )
 }
 
@@ -174,8 +193,13 @@ function summarize(
   const { hasUsableCourseList, listedCourses, listedCredits } = resolveNodePool(node, nodes, coursesByNode)
   const requiredCoursesField = positiveNumber(node.ZSXDMS)
   const requiredCreditsField = positiveNumber(node.ZSXDXF)
-  const elective = inheritedElective || isElectiveCoursePool(node, listedCourses, listedCredits)
   const textRequirement = node.FKZH === '-1' ? requirements.categories[node.KZM] : null
+  const textRequirementOptions = node.FKZH === '-1' ? requirements.categoryOptions[node.KZM] || [] : []
+  const constrainedByText = listedCredits != null
+    && textRequirementOptions.some((requirement) => requirement < listedCredits)
+  const elective = inheritedElective
+    || constrainedByText
+    || isElectiveCoursePool(node, listedCourses, listedCredits)
 
   if (textRequirement != null) {
     const fixedLeafCourses = node.KZLXDM === '01' && !elective
@@ -188,14 +212,15 @@ function summarize(
       poolCredits: listedCredits,
       moduleCount: children.length,
       isElectivePool: elective,
+      requiredCreditOptions: requirements.categoryOptions[node.KZM],
       source: 'program-text',
     }
   }
 
   if (requiredCoursesField != null || requiredCreditsField != null) {
     return {
-      requiredCourses: requiredCoursesField ?? (elective ? null : listedCourses),
-      requiredCredits: requiredCreditsField ?? (elective ? null : listedCredits),
+      requiredCourses: requiredCoursesField,
+      requiredCredits: requiredCreditsField,
       poolCourses: listedCourses,
       poolCredits: listedCredits,
       moduleCount: children.length,
@@ -205,33 +230,14 @@ function summarize(
   }
 
   if (node.KZLXDM === '01') {
-    if (!elective && hasUsableCourseList) {
-      return {
-        requiredCourses: listedCourses,
-        requiredCredits: listedCredits,
-        poolCourses: listedCourses,
-        poolCredits: listedCredits,
-        moduleCount: 0,
-        isElectivePool: false,
-        source: 'course-list',
-      }
-    }
-    if (!elective && (listedCourses != null || listedCredits != null)) {
-      return {
-        requiredCourses: listedCourses,
-        requiredCredits: listedCredits,
-        poolCourses: listedCourses,
-        poolCredits: listedCredits,
-        moduleCount: 0,
-        isElectivePool: false,
-        source: 'node-fields',
-      }
-    }
     return {
       ...emptySummary(),
       poolCourses: listedCourses,
       poolCredits: listedCredits,
       isElectivePool: elective,
+      source: hasUsableCourseList
+        ? 'course-list'
+        : listedCourses != null || listedCredits != null ? 'node-fields' : 'unknown',
     }
   }
 
@@ -253,6 +259,7 @@ function hasElectiveAncestor(
   node: ProgramNode,
   nodes: ProgramNode[],
   coursesByNode: Record<string, ProgramCourse[] | undefined>,
+  requirements: ProgramRequirements,
 ) {
   const byId = new Map(nodes.map((item) => [item.KZH, item]))
   const visited = new Set<string>()
@@ -260,6 +267,8 @@ function hasElectiveAncestor(
   while (parent && !visited.has(parent.KZH)) {
     const { listedCourses, listedCredits } = resolveNodePool(parent, nodes, coursesByNode)
     if (isElectiveCoursePool(parent, listedCourses, listedCredits)) return true
+    const textRequirements = parent.FKZH === '-1' ? requirements.categoryOptions[parent.KZM] || [] : []
+    if (listedCredits != null && textRequirements.some((requirement) => requirement < listedCredits)) return true
     visited.add(parent.KZH)
     parent = byId.get(parent.FKZH)
   }
@@ -278,8 +287,11 @@ function resolveNodePool(
   const courseListCredits = hasUsableCourseList ? positiveNumber(sumCredits(aggregate.courses)) : null
   return {
     hasUsableCourseList,
-    listedCourses: hasUsableCourseList ? aggregate.courses.length : positiveNumber(node.KCZMS),
-    listedCredits: courseListCredits ?? positiveNumber(node.KCZXF),
+    listedCourses: maximumPositive(
+      hasUsableCourseList ? aggregate.courses.length : null,
+      node.KCZMS,
+    ),
+    listedCredits: maximumPositive(courseListCredits, node.KCZXF),
   }
 }
 
@@ -303,6 +315,13 @@ function sumComplete(values: Array<number | null>) {
 function positiveNumber(value: unknown) {
   const number = numberValue(value)
   return number != null && number > 0 ? number : null
+}
+
+function maximumPositive(...values: unknown[]) {
+  const numbers = values
+    .map(positiveNumber)
+    .filter((value): value is number => value != null)
+  return numbers.length ? Math.max(...numbers) : null
 }
 
 function numberValue(value: unknown) {

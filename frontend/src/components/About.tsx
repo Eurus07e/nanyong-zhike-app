@@ -42,6 +42,10 @@ export function About() {
         <p className="about-disclaimer">本站为学生个人开发的非官方工具，与南京大学官方无隶属关系。课程、成绩与培养方案请以学校系统最终结果为准。</p>
       </section>
       <section className="about-copy-section">
+        <h2>近期更新</h2>
+        <p><strong>v2.0.1</strong> 完善培养方案学分认定与课程范围展示，并优化校园服务状态提示。</p>
+      </section>
+      <section className="about-copy-section">
         <h2>隐私说明</h2>
         <p>南雍知课只处理完成校园身份认证、展示学业信息和提供本地备忘录所必需的数据，并尽量缩短数据的保留范围与时间。</p>
         <div className="privacy-points">

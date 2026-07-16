@@ -37,6 +37,12 @@ class FiveEducationError(RuntimeError):
         self.auth_expired = auth_expired
 
 
+def _connection_error(error: HTTPError | URLError | TimeoutError) -> FiveEducationError:
+    if isinstance(error, HTTPError) and error.code == 483:
+        return FiveEducationError("请连接vpn或校园网访问最新数据")
+    return FiveEducationError("南京大学五育系统暂时不可用，请稍后重试")
+
+
 def _allowed_url(url: str) -> bool:
     parsed = urlparse(url)
     return parsed.scheme == "https" and parsed.hostname in ALLOWED_HOSTS
@@ -349,7 +355,7 @@ class FiveEducationClient:
         except json.JSONDecodeError as error:
             raise FiveEducationError("五育系统返回了无法解析的数据") from error
         except (HTTPError, URLError, TimeoutError) as error:
-            raise FiveEducationError("南京大学五育系统暂时不可用，请稍后重试") from error
+            raise _connection_error(error) from error
 
         if not isinstance(payload, dict):
             raise FiveEducationError("五育系统返回的数据格式异常")
@@ -397,7 +403,7 @@ class FiveEducationClient:
         except json.JSONDecodeError as error:
             raise FiveEducationError("五育系统返回了无法解析的活动数据") from error
         except (HTTPError, URLError, TimeoutError) as error:
-            raise FiveEducationError("南京大学五育系统暂时不可用，请稍后重试") from error
+            raise _connection_error(error) from error
         if not isinstance(payload, dict):
             raise FiveEducationError("五育系统返回的活动数据格式异常")
         return normalize_five_education_activities(
@@ -429,7 +435,7 @@ class FiveEducationClient:
         except FiveEducationError:
             raise
         except (HTTPError, URLError, TimeoutError) as error:
-            raise FiveEducationError("南京大学五育系统暂时不可用，请稍后重试") from error
+            raise _connection_error(error) from error
         return opener
 
     @staticmethod

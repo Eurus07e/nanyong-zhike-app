@@ -63,7 +63,7 @@ def test_launcher_only_reuses_same_version_desktop_instance():
     expected = {
         "status": "ok",
         "service": "南雍知课",
-        "version": "2.0.0",
+        "version": "2.0.1",
         "deployment": "desktop",
     }
     assert compatible(expected) is True
@@ -135,7 +135,7 @@ def test_release_builds_and_verifies_patched_nju_cli_from_pinned_source():
     assert "desktop/verify_nju_cli_patch.py" in workflow
     assert "releases/download/v1.4.6" not in workflow
     assert "NJU_CLI_PATH=" in workflow
-    assert 'tags:\n      - "v2.0.0"' in workflow
+    assert 'tags:\n      - "v2.0.1"' in workflow
     assert "NJU_CLI_BIN: /bin/true" in workflow
     assert "console=False" in (ROOT / "desktop" / "nanyong_zhike.spec").read_text(
         encoding="utf-8"
@@ -373,7 +373,7 @@ def test_release_windows_installer_build_checks_exit_code_and_exact_output() -> 
     build_end = workflow.index("      - uses: actions/upload-artifact@", build_start)
     build_step = workflow[build_start:build_end]
 
-    assert '& $compiler "/DAppVersion=2.0.0" "desktop\\windows-installer.iss"' in build_step
+    assert '& $compiler "/DAppVersion=2.0.1" "desktop\\windows-installer.iss"' in build_step
     assert "$LASTEXITCODE" in build_step
     assert (
         'Test-Path -LiteralPath "release\\NanyongZhike-windows-x86_64-setup.exe" '
@@ -387,7 +387,7 @@ def test_macos_spec_builds_a_windowed_application_bundle() -> None:
     assert "console=False" in spec
     assert "BUNDLE(" in spec
     assert 'name="南雍知课.app"' in spec
-    assert '"CFBundleShortVersionString": "2.0.0"' in spec
+    assert '"CFBundleShortVersionString": "2.0.1"' in spec
 
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
         encoding="utf-8"

@@ -35,7 +35,7 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
   const [summary, setSummary] = useState<GradeSummary | null>(cachedOverview?.summary || null)
   const [ranking, setRanking] = useState<AcademicRanking | null>(() => api.peek<AcademicRanking>('/api/academic/ranking') || null)
   const [grades, setGrades] = useState<GradePage | null>(cachedOverview?.grades || null)
-  const [requirements, setRequirements] = useState<ProgramRequirements>({ total: null, categories: {} })
+  const [requirements, setRequirements] = useState<ProgramRequirements>({ total: null, categories: {}, categoryOptions: {} })
   const [programNodes, setProgramNodes] = useState<ProgramNode[]>([])
   const [programCourses, setProgramCourses] = useState<Record<string, ProgramCourse[]>>({})
   const [programId, setProgramId] = useState('')
@@ -255,9 +255,14 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
           <div className="credit-bars">
             {(displaySummary?.graduationCategories || []).map((item) => {
               const required = requirements.categories[item.name]
+              const requirementOptions = requirements.categoryOptions[item.name] || []
+              const requirementLabel = formatRequirementValue(required, requirementOptions)
+              const progressMaximum = requirementOptions.length
+                ? Math.max(...requirementOptions, item.credits, 1)
+                : required || Math.max(item.credits, 1)
               return <button type="button" className="credit-row" onClick={() => void openCreditCategory(item.name)} key={item.name}>
-                <div><span>{item.name}</span><strong>{item.credits} / {required ?? '—'} 学分</strong></div>
-                <progress className="bar-track" max={required || Math.max(item.credits, 1)} value={Math.min(item.credits, required || item.credits)} aria-label={`${item.name} ${item.credits} 学分`} />
+                <div><span>{item.name}</span><strong>{item.credits} / {requirementLabel} 学分</strong></div>
+                <progress className="bar-track" max={progressMaximum} value={Math.min(item.credits, progressMaximum)} aria-label={`${item.name} ${item.credits} 学分`} />
               </button>
             })}
             {loading && !displaySummary && <LoadingLines count={4} />}
@@ -296,12 +301,12 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
           {loading && !grades && <LoadingLines count={6} />}
         </div>
       </section>
-      {drilldown && <CreditDrilldownModal data={drilldown} grades={allGrades} categoryEarned={displaySummary?.graduationCategories.find((item) => item.name === drilldown.category)?.credits || 0} required={requirements.categories[drilldown.category]} onClose={closeDrilldown} />}
+      {drilldown && <CreditDrilldownModal data={drilldown} grades={allGrades} categoryEarned={displaySummary?.graduationCategories.find((item) => item.name === drilldown.category)?.credits || 0} required={requirements.categories[drilldown.category]} requirementOptions={requirements.categoryOptions[drilldown.category] || []} onClose={closeDrilldown} />}
     </div>
   )
 }
 
-function CreditDrilldownModal({ data, grades, categoryEarned, required, onClose }: { data: CreditDrilldown; grades: GradePage['rows']; categoryEarned: number; required: number | null; onClose: () => void }) {
+function CreditDrilldownModal({ data, grades, categoryEarned, required, requirementOptions, onClose }: { data: CreditDrilldown; grades: GradePage['rows']; categoryEarned: number; required: number | null; requirementOptions: number[]; onClose: () => void }) {
   const [courseQuery, setCourseQuery] = useState('')
   const [courseStatus, setCourseStatus] = useState<CourseStatusFilter>('all')
   const [courseSort, setCourseSort] = useState<CourseSort>('default')
@@ -317,7 +322,7 @@ function CreditDrilldownModal({ data, grades, categoryEarned, required, onClose 
   }
   return <div className="modal-backdrop" role="presentation" onKeyDown={(event) => event.key === 'Escape' && onClose()} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="credit-modal" role="dialog" aria-modal="true" aria-labelledby="credit-detail-title">
-      <header><div><h2 id="credit-detail-title">{data.category}</h2><span>{categoryEarned} / {required ?? '—'} 学分</span></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭学分详情" autoFocus><X size={20} /></button></header>
+      <header><div><h2 id="credit-detail-title">{data.category}</h2><span>{categoryEarned} / {formatRequirementValue(required, requirementOptions)} 学分</span></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭学分详情" autoFocus><X size={20} /></button></header>
       {data.loading ? <div className="center-loading"><LoaderCircle className="spin" />正在整理课程进度</div> : data.error ? <div className="error-banner credit-error">{data.error}</div> : <div className="credit-group-list">
         <p className="credit-matching-note">一般课程按课程号直接匹配；大学英语按本人培养方案的课程槽位、官方分类、建议学期与目标学分组合认定；大学体育按本人方案槽位、学期与学分逐门认定。免修、其他替代课程和最终结果以教务审核为准，“未直接匹配”不等同于确定缺课。</p>
         {data.warning && <div className="warning-banner credit-partial-warning">{data.warning}</div>}
@@ -374,8 +379,14 @@ function CreditDrilldownModal({ data, grades, categoryEarned, required, onClose 
 function requirementTextForCredit(summary: ProgramNodeSummary) {
   const parts = []
   if (summary.requiredCourses != null) parts.push(`应修 ${formatNumber(summary.requiredCourses)} 门`)
-  if (summary.requiredCredits != null) parts.push(`应修 ${formatNumber(summary.requiredCredits)} 学分`)
+  if (summary.requiredCreditOptions && summary.requiredCreditOptions.length > 1) {
+    parts.push(`应修 ${summary.requiredCreditOptions.map(formatNumber).join(' / ')} 学分`)
+  } else if (summary.requiredCredits != null) parts.push(`应修 ${formatNumber(summary.requiredCredits)} 学分`)
   return parts.join(' · ') || '要求以方案说明为准'
+}
+
+function formatRequirementValue(required: number | null, options: number[]) {
+  return options.length ? options.map(formatNumber).join(' / ') : required == null ? '—' : formatNumber(required)
 }
 
 function formatNumber(value: number) {

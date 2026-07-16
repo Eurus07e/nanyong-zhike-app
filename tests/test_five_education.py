@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.error import HTTPError
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -10,6 +12,7 @@ from backend.app.five_education import (
     FiveEducationError,
     _activity_menu_scope,
     _allowed_url,
+    _connection_error,
     _current_period,
     normalize_five_education,
     normalize_five_education_activities,
@@ -330,6 +333,18 @@ def test_only_cas_and_five_education_hosts_are_allowed() -> None:
     assert not _allowed_url("http://ndwy.nju.edu.cn/dztml/wdwy")
     assert not _allowed_url("https://ndwy.nju.edu.cn.evil.example/wdwy")
     assert not _allowed_url("https://example.com/")
+
+
+def test_network_restriction_uses_the_requested_vpn_message() -> None:
+    upstream = HTTPError(
+        "https://ndwy.nju.edu.cn/dztml/",
+        483,
+        "",
+        None,
+        None,
+    )
+
+    assert str(_connection_error(upstream)) == "请连接vpn或校园网访问最新数据"
 
 
 def test_overview_route_uses_current_encrypted_session(
