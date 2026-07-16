@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -18,6 +18,12 @@ from backend.app.llm_gateway import (
     validate_endpoint,
 )
 from backend.app.security import Session
+
+
+def test_beijing_timezone_does_not_require_platform_tzdata() -> None:
+    assert isinstance(llm_gateway.NJU_TIMEZONE, timezone)
+    assert llm_gateway.NJU_TIMEZONE.utcoffset(None) == timedelta(hours=8)
+    assert llm_gateway.NJU_TIMEZONE.tzname(None) == "Asia/Shanghai"
 
 
 def test_ai_tool_registry_is_read_only_and_covers_core_sources() -> None:
