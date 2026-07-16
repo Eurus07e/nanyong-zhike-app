@@ -25,6 +25,20 @@ class ExchangeSystemError(RuntimeError):
         self.auth_expired = auth_expired
 
 
+def _connection_error(
+    error: HTTPError | URLError | TimeoutError,
+) -> ExchangeSystemError:
+    if isinstance(error, HTTPError):
+        if error.code in {403, 483}:
+            return ExchangeSystemError(
+                "交换生系统仅支持校园网访问，请连接南京大学 VPN 或校园网后重试"
+            )
+        return ExchangeSystemError("交换生系统暂时不可用，请稍后重试")
+    return ExchangeSystemError(
+        "交换生系统仅支持校园网访问，请连接南京大学 VPN 或校园网后重试"
+    )
+
+
 @dataclass(frozen=True)
 class AcademicRanking:
     average_score: float
@@ -160,7 +174,11 @@ class ExchangeSystemClient:
         except ExchangeSystemError:
             raise
         except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as error:
-            raise ExchangeSystemError("交换生系统暂时不可用，请稍后重试") from error
+            if isinstance(error, json.JSONDecodeError):
+                raise ExchangeSystemError(
+                    "交换生系统返回了无法解析的数据，请稍后重试"
+                ) from error
+            raise _connection_error(error) from error
 
         final = urlparse(final_url)
         if final.hostname != ELITE_HOST:

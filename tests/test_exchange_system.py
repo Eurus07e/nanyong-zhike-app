@@ -1,7 +1,10 @@
+from urllib.error import HTTPError, URLError
+
 import pytest
 
 from backend.app.exchange_system import (
     ExchangeSystemError,
+    _connection_error,
     _valid_login_url,
     parse_academic_ranking,
 )
@@ -61,3 +64,26 @@ def test_login_url_must_stay_on_nju_authserver():
         "https://authserver.nju.edu.cn/authserver/login?"
         "service=https%3A%2F%2Fexample.com%2Fcollect-ticket"
     )
+
+
+def test_exchange_timeout_explains_the_campus_network_requirement():
+    error = _connection_error(TimeoutError())
+
+    assert "南京大学 VPN" in str(error)
+    assert "校园网" in str(error)
+
+
+def test_exchange_network_failure_explains_the_campus_network_requirement():
+    assert "南京大学 VPN" in str(_connection_error(URLError("timed out")))
+
+
+def test_exchange_server_error_keeps_the_generic_retry_message():
+    upstream = HTTPError(
+        "http://elite.nju.edu.cn/exchangesystem/",
+        500,
+        "server error",
+        {},
+        None,
+    )
+
+    assert str(_connection_error(upstream)) == "交换生系统暂时不可用，请稍后重试"
