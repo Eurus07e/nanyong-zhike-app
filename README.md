@@ -15,8 +15,9 @@ nju**一站式**学业助手，集成所有常用信息。
 </p>
 
 <p align="center">
-  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="https://img.shields.io/badge/打开交互式预览-v2.0.1-5A2D82?style=for-the-badge&logo=githubpages&logoColor=white" alt="打开交互式预览"></a>
-  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1"><img src="https://img.shields.io/badge/下载最新版-v2.0.1-0078D4?style=for-the-badge&logo=github&logoColor=white" alt="下载最新版"></a>
+  <!-- 同时修改下面两个 height 数值，即可统一调整按钮大小。 -->
+  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="https://img.shields.io/badge/打开交互式预览-v2.0.1-5A2D82?style=for-the-badge&logo=githubpages&logoColor=white" height="48" alt="打开交互式预览"></a>
+  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1"><img src="https://img.shields.io/badge/下载最新版-v2.0.1-0078D4?style=for-the-badge&logo=github&logoColor=white" height="48" alt="下载最新版"></a>
 </p>
 
 <p align="center">
@@ -94,6 +95,23 @@ chmod +x '启动南雍知课.sh' NanyongZhike
 
 排名与平均学分绩来自南京大学交换生系统。本地发行包已默认启用这两项功能，登录后进入“学业概览”时会自动请求该系统，用户不需要手动修改配置。学校系统目前只提供 HTTP，无法获得 HTTPS 的机密性和完整性保护。查询过程中，学校认证后的单次票据、交换系统会话以及返回的排名数据会经过这条 HTTP 链路；同一网络中的攻击者或不可信代理可能观察或篡改这些通信。公网服务器部署默认关闭这条链路，除非维护者明确设置 `ALLOW_INSECURE_EXCHANGE_SYSTEM=true`。
 
+<details>
+<summary><strong>版本路线</strong></summary>
+
+- `v1.1.0`：培养方案与课程认定修复、中文轻量备忘录、结构图缩放。
+- `v1.1.1`：加密成绩快照、新成绩提示、成绩详情批量查询和校园服务模块界面。
+- `v1.1.2`：悦读经典计划按标准课程条目展示，并参与课程进度筛选与排序。
+- `v1.1.3`：完善通识课程缺项展示、通知正文与备忘录联动，并新增可管理的 NJU Tabs。
+- `v1.1.4`：加入加密启动快照和静默后台刷新，完善 NJU Tabs 两列布局与统一悬停交互。
+- `v1.1.5`：加入南大图书馆入口、统一全站分段控件，并提供无需终端的 macOS DMG 与 Windows 安装程序。
+- `v1.1.6`：Windows 冒烟测试显式关闭 SQLite 连接，开发环境优先解析插件缓存中的原生 nju-cli。
+- `v1.1.7`：固定并校验 Windows 安装器简体中文语言文件，在 CI 与发布构建前用真实 Inno Setup 提前验证安装脚本。
+- `v1.2.0`：完成五育总览、详细活动记录和劳动教育导引图；第二课堂接通真实个人资料、活动数、服务时长与不诚信记录，并保持轻量只读。
+- `v1.3.0`：计划接入南京大学邮箱系统的安全只读能力。
+- `v2.0.0`：正式整合五育、第二课堂、AI 助手 Beta 与轻量个人任务看板 Alpha，并继续保持单机运行、按需查询和本地优先的数据边界。
+- `v2.0.1`：全面修正培养方案学分要求、课程清单与分支课程的认定语义，并完善校园服务提示和培养方案选择布局。
+
+</details>
 
 ## 开发与验证
 
