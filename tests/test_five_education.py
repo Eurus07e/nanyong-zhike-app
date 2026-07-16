@@ -4,6 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import main
+from backend.app.config import Settings
+from backend.app.database import Database
 from backend.app.five_education import (
     FiveEducationError,
     _activity_menu_scope,
@@ -12,7 +14,22 @@ from backend.app.five_education import (
     normalize_five_education,
     normalize_five_education_activities,
 )
+from backend.app.portal_snapshots import PortalSnapshotRepository
 from backend.app.security import Session
+
+
+@pytest.fixture
+def isolated_portal_snapshots(monkeypatch, tmp_path) -> None:
+    database = Database(tmp_path / "portal-snapshots.db")
+    database.initialize()
+    settings = Settings(
+        _env_file=None,
+        app_secret="test-secret-for-five-education-routes",
+        database_path=database.path,
+    )
+    monkeypatch.setattr(
+        main, "portal_snapshots", PortalSnapshotRepository(database, settings)
+    )
 
 
 def sample_payload() -> dict:
@@ -259,7 +276,9 @@ def test_extracts_current_period_from_authenticated_activity_page() -> None:
     assert _current_period(html) == ("2025-2026", "2")
 
 
-def test_activity_route_uses_current_encrypted_session(monkeypatch) -> None:
+def test_activity_route_uses_current_encrypted_session(
+    monkeypatch, isolated_portal_snapshots
+) -> None:
     expected = normalize_five_education_activities(
         sample_activity_payload(), academic_year="2025-2026", term="2", fetched_at=1
     )
@@ -313,7 +332,9 @@ def test_only_cas_and_five_education_hosts_are_allowed() -> None:
     assert not _allowed_url("https://example.com/")
 
 
-def test_overview_route_uses_current_encrypted_session(monkeypatch) -> None:
+def test_overview_route_uses_current_encrypted_session(
+    monkeypatch, isolated_portal_snapshots
+) -> None:
     expected = normalize_five_education(sample_payload(), fetched_at=1)
 
     async def overview(castgc: str) -> dict:
