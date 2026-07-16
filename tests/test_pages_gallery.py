@@ -1,73 +1,54 @@
+import json
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
-SCREENSHOTS = {
-    "academic-overview.jpeg": "学业概览",
-    "program.jpeg": "培养方案",
-    "schedule.jpeg": "我的课表",
-    "reviews.jpeg": "红黑榜",
-    "notices.jpeg": "重要通知",
-    "nju-tabs.jpeg": "NJU Tabs",
-    "memos.jpeg": "备忘录",
-}
+
+def test_pages_preview_is_built_from_the_real_frontend() -> None:
+    preview_main = (ROOT / "frontend" / "src" / "preview-main.tsx").read_text(
+        encoding="utf-8"
+    )
+    preview_config = (ROOT / "frontend" / "vite.preview.config.ts").read_text(
+        encoding="utf-8"
+    )
+
+    assert "import App from './App'" in preview_main
+    assert "installPreviewApi()" in preview_main
+    assert "Rick Sanchez" in preview_main
+    assert "outDir: resolve(directory, '../docs')" in preview_config
 
 
-def test_pages_gallery_contains_seven_accessible_snap_slides() -> None:
-    gallery_path = ROOT / "docs" / "index.html"
+def test_pages_preview_build_uses_relative_static_assets() -> None:
+    page = ROOT / "docs" / "index.html"
 
-    assert gallery_path.exists()
-    source = gallery_path.read_text(encoding="utf-8")
-
-    assert source.count('class="gallery-slide"') == 7
-    for filename, title in SCREENSHOTS.items():
-        assert f'src="screenshots/{filename}"' in source
-        assert f'alt="南雍知课{title}"' in source
-
-    assert "scroll-snap-type: x mandatory" in source
-    assert "scroll-snap-align: center" in source
-    assert 'data-action="previous"' in source
-    assert 'data-action="next"' in source
-    assert 'event.key === "ArrowLeft"' in source
-    assert 'event.key === "ArrowRight"' in source
-    assert 'aria-live="polite"' in source
-    assert "prefers-reduced-motion: reduce" in source
-    assert '<meta name="viewport" content="width=device-width, initial-scale=1">' in source
+    assert page.exists()
+    source = page.read_text(encoding="utf-8")
+    assert "<title>南雍知课 v2.0.1 · 交互预览</title>" in source
+    assert '<div id="root"></div>' in source
+    assert 'src="./assets/' in source
+    assert 'href="./assets/' in source
 
 
-def test_pages_gallery_fits_full_images_without_repeated_slide_titles() -> None:
-    source = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+def test_preview_fixture_masks_identity_fields() -> None:
+    fixture = json.loads(
+        (ROOT / "frontend" / "src" / "preview-data.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    profile = fixture["entries"]["/api/second-classroom/profile"]["value"]
 
-    assert 'class="slide-heading"' not in source
-    assert ".gallery-slide {" in source
-    assert "place-items: center" in source
-    assert "width: 100%;" in source
-    assert "height: 100%;" in source
-    assert "object-fit: contain" in source
-    assert '<strong class="current-title">' not in source
-    assert 'class="brand-mark"' not in source
-
-
-def test_pages_gallery_uses_swipe_friendly_images_and_original_viewer() -> None:
-    source = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
-    gallery = source.split('<main class="gallery"', 1)[1].split("</main>", 1)[0]
-
-    assert "touch-action: pan-x" in source
-    assert "-webkit-user-drag: none" in source
-    assert gallery.count('draggable="false"') == 7
-    assert 'data-action="view-original"' in source
-    assert 'class="lightbox"' in source
-    assert 'gallery.addEventListener("touchstart"' in source
-    assert 'gallery.addEventListener("touchend"' in source
-    assert "SWIPE_THRESHOLD = 32" in source
+    assert fixture["meta"]["sessionUsername"] == "Rick Sanchez"
+    assert profile["studentId"] == "已隐藏"
+    assert profile["name"] == "Rick Sanchez"
+    assert profile["email"] == "已隐藏"
 
 
-def test_readme_uses_one_large_preview_link_to_the_pages_gallery() -> None:
+def test_readme_links_to_the_interactive_pages_preview() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     preview = readme.split("## 界面预览", 1)[1].split("## 下载和启动", 1)[0]
 
     assert "https://eurus07e.github.io/nanyong-zhike-app/" in preview
-    assert preview.count("<img") == 1
-    assert "docs/screenshots/academic-overview.jpeg" in preview
-    assert "<table>" not in preview
+    assert "docs/screenshots/interactive-preview.png" in preview
+    assert "打开交互式预览" in preview
+    assert "Rick Sanchez" in preview

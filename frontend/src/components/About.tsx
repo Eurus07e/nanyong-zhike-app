@@ -1,6 +1,7 @@
 import { ArrowUpRight, Coffee, GraduationCap, Heart, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { siGithub, siGmail, type SimpleIcon as SimpleIconType } from 'simple-icons'
+import { assetUrl } from '../assets'
 
 type Contact = { label: string; value: string; href: string; icon?: SimpleIconType; academic?: boolean }
 
@@ -85,7 +86,7 @@ export function About() {
       }}
     >
       <header><div><h2 id="support-title">自愿支持</h2><p>支付宝扫码即可支持个人开发者</p></div><button type="button" className="icon-button" onClick={closeSupport} aria-label="关闭支持开发" autoFocus><X size={20} /></button></header>
-      <div className="support-qr-wrap"><img src="/alipay-support.jpeg" alt="支付宝收钱码，收款昵称 Euros(**轩)" /></div>
+      <div className="support-qr-wrap"><img src={assetUrl('alipay-support.jpeg')} alt="支付宝收钱码，收款昵称 Euros(**轩)" /></div>
       <p className="support-note">付款由支付宝处理，请在付款前核对收款昵称 Euros(**轩)。支持完全自愿，不影响任何功能，也不代表南京大学官方；本站不会记录付款人信息或交易数据。</p>
       <footer><button type="button" className="secondary-button" onClick={closeSupport}><Heart size={16} />关闭</button></footer>
     </dialog>

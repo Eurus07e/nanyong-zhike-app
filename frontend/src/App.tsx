@@ -15,6 +15,7 @@ import type { AcademicOverview, AcademicProfile, FiveEducationActivities, FiveEd
 import { selectOwnedProgram } from './utils'
 
 export default function App() {
+  const previewMode = import.meta.env.MODE === 'preview'
   const [session, setSession] = useState<Session | null | undefined>(undefined)
   const [deployment, setDeployment] = useState('')
   const [stopping, setStopping] = useState(false)
@@ -49,6 +50,10 @@ export default function App() {
   }, [session])
 
   async function logout() {
+    if (previewMode) {
+      window.location.reload()
+      return
+    }
     await api.post('/api/auth/logout')
     api.clearCache()
     setSession(null)

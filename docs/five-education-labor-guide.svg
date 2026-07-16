@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" font-family="STKaiti, KaiTi, PingFang SC, Microsoft YaHei, sans-serif" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">南京大学本科生劳动教育学习导引图（2025版）</title>
+  <desc id="desc">南京大学本科生劳动教育课程、基础实践、学科实践与综合实践模块学习导引</desc>
+
+  <rect width="1600" height="1000" fill="#fff"/>
+  <text x="800" y="92" text-anchor="middle" class="guide-title" fill="#4f82ad" font-size="42" font-weight="700" textLength="700" lengthAdjust="spacingAndGlyphs">南京大学本科生劳动教育学习导引图（2025版）</text>
+
+  <!-- 左侧总目标与课程、实践两条主分支 -->
+  <rect x="130" y="330" width="215" height="116" rx="17" class="module-box red-box" fill="#b9181c" stroke="#8f1519" stroke-width="2.5"/>
+  <text x="237.5" y="378" text-anchor="middle" class="box-text" fill="#fff" font-size="20" font-weight="700" textLength="166" lengthAdjust="spacingAndGlyphs">大学生劳动教育</text>
+  <text x="237.5" y="418" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="144" lengthAdjust="spacingAndGlyphs">（2 学分，32 学时）</text>
+
+  <path d="M345 388H367V220H384M367 388V566H384" class="branch" fill="none" stroke="#6f92ad" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="384" y="178" width="205" height="84" rx="16" class="module-box orange-box" fill="#e87518" stroke="#bd5911" stroke-width="2.5"/>
+  <text x="486.5" y="212" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="151" lengthAdjust="spacingAndGlyphs">大学生劳动教育</text>
+  <text x="486.5" y="242" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="132" lengthAdjust="spacingAndGlyphs">（1 学分，8 学时）</text>
+  <path d="M600 207H634V195L660 220L634 245V233H600Z" class="outline-arrow" fill="#fff" stroke="#6f879a" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- 理论课程卷轴 -->
+  <rect x="670" y="181" width="620" height="80" rx="4" class="scroll-body" fill="#fff" stroke="#657f94" stroke-width="2.5"/>
+  <text x="700" y="230" class="orange-copy" fill="#cf6b1e" font-size="17" font-weight="700" textLength="548" lengthAdjust="spacingAndGlyphs">大一上，通过修读《大学生劳动教育》慕课（含线下讨论课）获得学分</text>
+
+  <rect x="384" y="510" width="215" height="108" rx="16" class="module-box orange-box" fill="#e87518" stroke="#bd5911" stroke-width="2.5"/>
+  <text x="491.5" y="547" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="177" lengthAdjust="spacingAndGlyphs">大学生劳动教育实践</text>
+  <text x="491.5" y="577" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="154" lengthAdjust="spacingAndGlyphs">（1 学分，24 学时，</text>
+  <text x="491.5" y="604" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="82" lengthAdjust="spacingAndGlyphs">计 20 小时）</text>
+
+  <!-- 实践课程向三个模块分流 -->
+  <path d="M599 565H610V376H620M610 565V550H620M610 565V742H620" class="branch" fill="none" stroke="#6f92ad" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="620" y="335" width="195" height="82" rx="16" class="module-box blue-box" fill="#4e8bc1" stroke="#356f9f" stroke-width="2.5"/>
+  <text x="717.5" y="370" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="127" lengthAdjust="spacingAndGlyphs">基础实践模块</text>
+  <text x="717.5" y="400" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="104" lengthAdjust="spacingAndGlyphs">（10-15 小时）</text>
+  <path d="M826 363H856V351L882 376L856 401V389H826Z" class="outline-arrow" fill="#fff" stroke="#6f879a" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- 基础实践卷轴 -->
+  <rect x="892" y="323" width="590" height="108" rx="4" class="scroll-body" fill="#fff" stroke="#657f94" stroke-width="2.5"/>
+  <text x="925" y="354" class="blue-copy" fill="#4f82ad" font-size="16" font-weight="700">
+    <tspan x="925" textLength="486" lengthAdjust="spacingAndGlyphs">大一学年，通过积极参加后勤服务集团、新生学院及其他相关部门</tspan>
+    <tspan x="925" dy="30" textLength="498" lengthAdjust="spacingAndGlyphs">与学院创设的基础劳动教育实践项目至少须获得 10 个小时，至多可</tspan>
+    <tspan x="925" dy="30" textLength="218" lengthAdjust="spacingAndGlyphs">获得 15 个小时的劳动时长</tspan>
+  </text>
+
+  <rect x="620" y="508" width="195" height="82" rx="16" class="module-box blue-box" fill="#4e8bc1" stroke="#356f9f" stroke-width="2.5"/>
+  <text x="717.5" y="543" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="127" lengthAdjust="spacingAndGlyphs">学科实践模块</text>
+  <text x="717.5" y="573" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="108" lengthAdjust="spacingAndGlyphs">（至少 5 小时）</text>
+  <path d="M826 536H856V524L882 549L856 574V562H826Z" class="outline-arrow" fill="#fff" stroke="#6f879a" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- 学科实践卷轴 -->
+  <rect x="892" y="502" width="520" height="94" rx="4" class="scroll-body" fill="#fff" stroke="#657f94" stroke-width="2.5"/>
+  <text x="925" y="538" class="blue-copy" fill="#4f82ad" font-size="16" font-weight="700">
+    <tspan x="925" textLength="430" lengthAdjust="spacingAndGlyphs">大二至大三学年，通过积极参加本学院或其他学院创设的</tspan>
+    <tspan x="925" dy="32" textLength="394" lengthAdjust="spacingAndGlyphs">学科劳动教育实践项目至少须获得 5 个小时的劳动时长</tspan>
+  </text>
+
+  <rect x="620" y="700" width="195" height="82" rx="16" class="module-box blue-box" fill="#4e8bc1" stroke="#356f9f" stroke-width="2.5"/>
+  <text x="717.5" y="750" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="128" lengthAdjust="spacingAndGlyphs">综合实践模块</text>
+
+  <!-- 综合实践三条分支 -->
+  <path d="M815 741H836V657H850M836 741H850M836 741V825H850" class="branch" fill="none" stroke="#6f92ad" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="850" y="618" width="210" height="76" rx="15" class="module-box green-box" fill="#5d9627" stroke="#47781a" stroke-width="2.5"/>
+  <text x="955" y="649" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="82" lengthAdjust="spacingAndGlyphs">勤工助学</text>
+  <text x="955" y="678" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="130" lengthAdjust="spacingAndGlyphs">（至多认定 5 小时）</text>
+  <path d="M1070 644H1094V632L1120 657L1094 682V670H1070Z" class="outline-arrow" fill="#fff" stroke="#6f879a" stroke-width="3" stroke-linejoin="round"/>
+
+  <rect x="850" y="708" width="210" height="76" rx="15" class="module-box green-box" fill="#5d9627" stroke="#47781a" stroke-width="2.5"/>
+  <text x="955" y="739" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="82" lengthAdjust="spacingAndGlyphs">志愿服务</text>
+  <text x="955" y="768" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="130" lengthAdjust="spacingAndGlyphs">（至多认定 5 小时）</text>
+  <path d="M1070 734H1094V722L1120 747L1094 772V760H1070Z" class="outline-arrow" fill="#fff" stroke="#6f879a" stroke-width="3" stroke-linejoin="round"/>
+
+  <rect x="850" y="798" width="210" height="76" rx="15" class="module-box green-box" fill="#5d9627" stroke="#47781a" stroke-width="2.5"/>
+  <text x="955" y="844" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700" textLength="160" lengthAdjust="spacingAndGlyphs">其它综合实践劳动</text>
+  <path d="M1070 824H1094V812L1120 837L1094 862V850H1070Z" class="outline-arrow" fill="#fff" stroke="#6f879a" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- 综合实践卷轴 -->
+  <g>
+    <rect x="1130" y="610" width="350" height="86" rx="4" class="scroll-body" fill="#fff" stroke="#657f94" stroke-width="2.5"/>
+    <text x="1162" y="638" class="green-copy" fill="#557f28" font-size="14" font-weight="700">
+      <tspan x="1162" textLength="254" lengthAdjust="spacingAndGlyphs">大一至大三学年，通过积极参加党委</tspan>
+      <tspan x="1162" dy="24" textLength="268" lengthAdjust="spacingAndGlyphs">学工部勤工助学项目可以认定不超过 5 小时</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="1130" y="700" width="350" height="86" rx="4" class="scroll-body" fill="#fff" stroke="#657f94" stroke-width="2.5"/>
+    <text x="1162" y="728" class="green-copy" fill="#557f28" font-size="14" font-weight="700">
+      <tspan x="1162" textLength="244" lengthAdjust="spacingAndGlyphs">大一至大三学年，通过积极参加团委</tspan>
+      <tspan x="1162" dy="24" textLength="256" lengthAdjust="spacingAndGlyphs">志愿服务项目可以认定不超过 5 小时</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="1130" y="790" width="350" height="100" rx="4" class="scroll-body" fill="#fff" stroke="#657f94" stroke-width="2.5"/>
+    <text x="1162" y="816" class="green-copy" fill="#557f28" font-size="14" font-weight="700">
+      <tspan x="1162" textLength="266" lengthAdjust="spacingAndGlyphs">大一至大三学年，通过积极参加学院</tspan>
+      <tspan x="1162" dy="23" textLength="270" lengthAdjust="spacingAndGlyphs">和相关职能部门创设的其它劳动教育</tspan>
+      <tspan x="1162" dy="23" textLength="212" lengthAdjust="spacingAndGlyphs">实践项目获得劳动时长</tspan>
+    </text>
+  </g>
+
+  <!-- 实践学分认定提示 -->
+  <circle cx="540" cy="638" r="8" fill="#4e8bc1" stroke="#356f9f" stroke-width="2"/>
+  <circle cx="513" cy="670" r="13" fill="#4e8bc1" stroke="#356f9f" stroke-width="2"/>
+  <path d="M221 693C184 682 181 644 211 628C207 592 251 575 278 599C300 568 350 579 358 614C397 601 427 634 414 669C454 688 436 738 398 739C386 776 333 785 307 757C281 784 228 769 226 731C195 726 193 700 221 693Z" fill="#5c91c0" stroke="#356f9f" stroke-width="3"/>
+  <text x="309" y="681" text-anchor="middle" class="box-text-small" fill="#fff" font-size="17" font-weight="700">
+    <tspan x="309" textLength="190" lengthAdjust="spacingAndGlyphs">累计获得 20 小时劳动时长，</tspan>
+    <tspan x="309" dy="31" textLength="158" lengthAdjust="spacingAndGlyphs">认定获得 1 个实践学分</tspan>
+  </text>
+
+  <!-- 参考图中的管理办法注释 -->
+  <text x="150" y="916" class="note" fill="#242424" font-size="15" font-weight="700">
+    <tspan x="150" textLength="790" lengthAdjust="spacingAndGlyphs">注：具体细则可参见本科生院主页（https://jw.nju.edu.cn/）“机构设置-规章制度-学校文件”栏</tspan>
+    <tspan x="150" dy="27" textLength="690" lengthAdjust="spacingAndGlyphs">《南京大学普通全日制本科生劳动教育学分管理办法（试行）》</tspan>
+    <tspan x="150" dy="27" textLength="220" lengthAdjust="spacingAndGlyphs">（南本院〔2021〕59号）</tspan>
+  </text>
+</svg>

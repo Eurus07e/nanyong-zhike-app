@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, ChevronDown, CircleAlert, Image, LoaderCircle, Pentagon, RefreshCw, X } from 'lucide-react'
 import { ApiError, api } from '../api'
+import { assetUrl } from '../assets'
 import {
   filterFiveEducationActivities,
   formatActivityDate,
@@ -195,7 +196,7 @@ function GuideModal({ onClose }: { onClose: () => void }) {
   return <div className="five-guide-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section className="five-guide-modal" role="dialog" aria-modal="true" aria-labelledby="five-guide-title">
       <header><div><h3 id="five-guide-title">劳动教育学习导引图</h3><p>南京大学本科生劳动教育学习参考</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭导引图"><X size={18} /></button></header>
-      <div className="five-guide-canvas"><img src="/five-education-labor-guide.svg" alt="南京大学本科生劳动教育学习导引图" /></div>
+      <div className="five-guide-canvas"><img src={assetUrl('five-education-labor-guide.svg')} alt="南京大学本科生劳动教育学习导引图" /></div>
     </section>
   </div>
 }

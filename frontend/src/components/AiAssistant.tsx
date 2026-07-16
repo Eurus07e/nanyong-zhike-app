@@ -4,6 +4,7 @@ import { Bot, KeyRound, LoaderCircle, RotateCcw, Send, ShieldCheck, Sparkles } f
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { api, ApiError } from '../api'
+import { assetUrl } from '../assets'
 import type { AiChatMessage, AiChatResponse } from '../types'
 
 type TranscriptItem = AiChatMessage & { sources?: AiChatResponse['sources'] }
@@ -173,7 +174,7 @@ export function AiAssistant({ onUnauthorized }: { onUnauthorized: () => void }) 
         <div ref={transcriptRef} className="ai-transcript" aria-live="polite">
           {transcript.length === 0 && <div className="ai-empty"><div className="ai-empty-icon"><Bot size={27} /></div><strong>{emptyMessage.title}</strong><span>{emptyMessage.description}</span><div className="ai-prompts">{prompts.map((prompt) => <button type="button" key={prompt} onClick={() => choosePrompt(prompt)}>{prompt}</button>)}</div></div>}
           {transcript.map((item, index) => <article className={`ai-message ${item.role}`} key={`${item.role}-${index}`}>
-            <div className="ai-message-avatar">{item.role === 'user' ? <img src="/default-avatar.jpeg" alt="" aria-hidden="true" /> : <Bot size={15} />}</div>
+            <div className="ai-message-avatar">{item.role === 'user' ? <img src={assetUrl('default-avatar.jpeg')} alt="" aria-hidden="true" /> : <Bot size={15} />}</div>
             <div className="ai-message-body">
               <span className="ai-message-label">{item.role === 'user' ? '小蓝鲸' : '南雍知课 AI'}</span>
               <div className="ai-message-bubble">

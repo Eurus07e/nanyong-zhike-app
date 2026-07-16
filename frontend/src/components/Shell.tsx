@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BellRing, BookOpenCheck, CalendarDays, GraduationCap, Info, LoaderCircle, LogOut, Menu, Power, Search, Sparkles, StickyNote, PanelsTopLeft, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ApiError, EHALL_STATUS_EVENT } from '../api'
+import { assetUrl } from '../assets'
 import type { Session } from '../types'
 
 export type View = 'overview' | 'program' | 'schedule' | 'reviews' | 'campus' | 'planner' | 'memos' | 'ai' | 'about'
@@ -96,7 +97,7 @@ export function Shell({
         </nav>
         <div className="sidebar-account">
           {logoutError && <p className="sidebar-logout-error" role="alert">{logoutError}</p>}
-          <img className="account-avatar" src="/default-avatar.jpeg" alt="默认用户头像" />
+          <img className="account-avatar" src={assetUrl('default-avatar.jpeg')} alt="默认用户头像" />
           <div><strong>{session.username}</strong><span>统一身份认证已连接</span></div>
           <button type="button" className="icon-button" disabled={logoutPending} onClick={() => void handleLogout()} aria-label="退出登录" title="退出登录">
             {logoutPending ? <LoaderCircle className="spin" size={18} /> : <LogOut size={18} />}

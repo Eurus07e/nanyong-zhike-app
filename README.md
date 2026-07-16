@@ -11,11 +11,16 @@ nju**一站式**学业助手，集成所有常用信息。
 ## 界面预览
 
 <p align="center">
-  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="docs/screenshots/academic-overview.jpeg" width="1000" alt="完整预览"></a>
+  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="docs/screenshots/interactive-preview.png" width="1000" alt="南雍知课 v2.0.1 交互预览"></a>
 </p>
 
 <p align="center">
-  <strong><a href="https://eurus07e.github.io/nanyong-zhike-app/">View More</a></strong><br>
+  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="https://img.shields.io/badge/打开交互式预览-v2.0.1-5A2D82?style=for-the-badge&logo=githubpages&logoColor=white" alt="打开交互式预览"></a>
+  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1"><img src="https://img.shields.io/badge/下载最新版-v2.0.1-0078D4?style=for-the-badge&logo=github&logoColor=white" alt="下载最新版"></a>
+</p>
+
+<p align="center">
+  <sub>预览页直接复用正式版 React 组件与样式，支持页面切换、筛选、搜索和弹层交互；演示账号为 Rick Sanchez，学号及身份字段已隐藏。</sub>
 </p>
 
 ## 下载和启动

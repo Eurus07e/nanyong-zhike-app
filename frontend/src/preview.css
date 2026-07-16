@@ -1,0 +1,52 @@
+.preview-badge {
+  position: fixed;
+  z-index: 80;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 7px 8px 7px 12px;
+  border: 1px solid rgba(90, 45, 130, .24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 10px 30px rgba(29, 29, 31, .14);
+  backdrop-filter: blur(18px);
+  color: #1d1d1f;
+  font-size: 12px;
+}
+
+.preview-badge strong {
+  color: #5a2d82;
+  font-size: 13px;
+}
+
+.preview-badge span {
+  color: #6e6e73;
+}
+
+.preview-badge a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: #5a2d82;
+  color: #fff;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .preview-badge {
+    right: 10px;
+    bottom: 10px;
+    grid-template-columns: auto auto;
+  }
+
+  .preview-badge span {
+    display: none;
+  }
+}

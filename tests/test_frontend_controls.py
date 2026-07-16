@@ -257,7 +257,7 @@ def test_ai_chat_uses_one_bubble_and_scrolls_only_the_transcript() -> None:
     )
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
 
-    assert 'src="/default-avatar.jpeg"' in assistant
+    assert "src={assetUrl('default-avatar.jpeg')}" in assistant
     assert "小蓝鲸" in assistant
     assert "按需查询你的南大信息" not in assistant
     assert "已准备好查询" not in assistant
@@ -454,7 +454,7 @@ def test_five_education_uses_real_read_only_dashboard() -> None:
     assert "劳育构成" in component
     assert "我的活动" in component
     assert "查看学习导引图" in component
-    assert "/five-education-labor-guide.svg" in component
+    assert "assetUrl('five-education-labor-guide.svg')" in component
     assert "five-activity-modal" in component
     assert "活动详情" in component
     assert "five-evaluation-card" not in component
