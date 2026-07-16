@@ -44,7 +44,7 @@ export function About() {
       </section>
       <section className="about-copy-section">
         <h2>近期更新</h2>
-        <p><strong>v2.0.1</strong> 完善培养方案学分认定与课程范围展示，并优化校园服务状态提示。</p>
+        <p><strong>v2.0.2</strong> 修复 Windows 读取学校数据时反复弹出命令窗口的问题。</p>
       </section>
       <section className="about-copy-section">
         <h2>隐私说明</h2>

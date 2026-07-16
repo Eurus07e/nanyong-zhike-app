@@ -5,6 +5,7 @@ import json
 import os
 import platform
 import shutil
+import subprocess
 import tempfile
 import time
 from contextlib import asynccontextmanager
@@ -52,6 +53,7 @@ class _ProcessLimiter:
 
 
 class NjuCli:
+    _WINDOWS_CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
     _WINDOWS_SANDBOX_ENV = frozenset(
         {
             "HOME",
@@ -265,6 +267,12 @@ class NjuCli:
         env["RUST_BACKTRACE"] = "0"
         return env
 
+    @classmethod
+    def _subprocess_options(cls) -> dict[str, int]:
+        if platform.system() == "Windows":
+            return {"creationflags": cls._WINDOWS_CREATE_NO_WINDOW}
+        return {}
+
     async def _execute(
         self,
         args: list[str],
@@ -280,6 +288,7 @@ class NjuCli:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
+                **self._subprocess_options(),
             )
             try:
                 stdout, stderr = await asyncio.wait_for(

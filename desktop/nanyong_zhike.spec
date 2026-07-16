@@ -55,8 +55,8 @@ if platform.system() == "Darwin":
         info_plist={
             "CFBundleDisplayName": "南雍知课",
             "CFBundleName": "南雍知课",
-            "CFBundleShortVersionString": "2.0.1",
-            "CFBundleVersion": "2.0.1",
+            "CFBundleShortVersionString": "2.0.2",
+            "CFBundleVersion": "2.0.2",
             "NSHighResolutionCapable": True,
         },
     )

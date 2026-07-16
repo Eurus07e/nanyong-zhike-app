@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 
@@ -24,7 +25,7 @@ def test_pages_preview_build_uses_relative_static_assets() -> None:
 
     assert page.exists()
     source = page.read_text(encoding="utf-8")
-    assert "<title>南雍知课 v2.0.1 · 交互预览</title>" in source
+    assert "<title>南雍知课 v2.0.2 · 交互预览</title>" in source
     assert '<div id="root"></div>' in source
     assert 'src="./assets/' in source
     assert 'href="./assets/' in source
@@ -42,6 +43,20 @@ def test_preview_fixture_masks_identity_fields() -> None:
     assert profile["studentId"] == "已隐藏"
     assert profile["name"] == "Rick Sanchez"
     assert profile["email"] == "已隐藏"
+
+    def user_facing_contact_text(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key in {"JSHS", "SKSM", "description", "contactPhone", "contactEmail"}:
+                    yield str(item)
+                yield from user_facing_contact_text(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from user_facing_contact_text(item)
+
+    contact_text = "\n".join(user_facing_contact_text(fixture))
+    assert not re.search(r"1[3-9]\d{9}", contact_text)
+    assert not re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", contact_text)
 
 
 def test_readme_links_to_the_interactive_pages_preview() -> None:

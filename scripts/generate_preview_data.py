@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -13,6 +14,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+PHONE_PATTERN = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
+EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -82,6 +86,31 @@ def sanitize_value(path: str, value: Any) -> Any:
                     for item in items
                 ],
             }
+        value = redact_contact_details(value)
+    if path.startswith("/api/schedule") or path == "/api/academic/overview":
+        value = redact_contact_details(value)
+    return value
+
+
+def redact_contact_details(value: Any) -> Any:
+    if isinstance(value, dict):
+        sanitized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key == "JSHS" and isinstance(item, str):
+                teachers = [
+                    re.split(r"\s+电话：", teacher, maxsplit=1)[0].strip()
+                    for teacher in item.split(",")
+                ]
+                sanitized[key] = ",".join(teacher for teacher in teachers if teacher)
+            elif key in {"SKSM", "description"} and isinstance(item, str):
+                sanitized[key] = PHONE_PATTERN.sub(
+                    "已隐藏", EMAIL_PATTERN.sub("已隐藏", item)
+                )
+            else:
+                sanitized[key] = redact_contact_details(item)
+        return sanitized
+    if isinstance(value, list):
+        return [redact_contact_details(item) for item in value]
     return value
 
 
@@ -230,7 +259,7 @@ def main() -> int:
         "meta": {
             "generatedAt": now,
             "sessionUsername": "Rick Sanchez",
-            "version": "2.0.1",
+            "version": "2.0.2",
             "notice": "演示数据已脱敏，学号及身份字段不会公开。",
         },
         "entries": entries,
