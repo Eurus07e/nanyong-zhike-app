@@ -174,6 +174,16 @@ def is_compatible_health(payload: object) -> bool:
 
 
 def select_port() -> tuple[int, bool]:
+    explicit_port = os.environ.get("NANYONG_ZHIKE_PORT")
+    if explicit_port:
+        try:
+            port = int(explicit_port)
+        except ValueError as error:
+            raise RuntimeError("NANYONG_ZHIKE_PORT 必须是有效端口") from error
+        if not 1 <= port <= 65535:
+            raise RuntimeError("NANYONG_ZHIKE_PORT 必须在 1 到 65535 之间")
+        return port, is_nanyong_zhike_running(port)
+
     if is_nanyong_zhike_running(DEFAULT_PORT):
         return DEFAULT_PORT, True
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:

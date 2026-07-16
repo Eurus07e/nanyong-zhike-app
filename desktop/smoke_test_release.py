@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import platform
+import socket
 import sqlite3
 import subprocess
 import tempfile
@@ -75,6 +76,12 @@ def get(url: str) -> tuple[bytes, str]:
         if response.status != 200:
             raise RuntimeError(f"GET {url} returned {response.status}")
         return response.read(), response.headers.get_content_type()
+
+
+def find_available_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
 
 
 def validate_frontend_asset(filename: str, payload: bytes, content_type: str) -> None:
@@ -179,9 +186,11 @@ def main() -> None:
         raise SystemExit(f"bundled nju-cli failed:\n{cli_check.stdout}\n{cli_check.stderr}")
 
     with tempfile.TemporaryDirectory(prefix="nanyong-release-smoke-") as state:
+        port = find_available_port()
         env = os.environ.copy()
         env["NANYONG_ZHIKE_DATA_DIR"] = state
         env["NANYONG_ZHIKE_NO_BROWSER"] = "1"
+        env["NANYONG_ZHIKE_PORT"] = str(port)
         process = subprocess.Popen(
             [str(executable)],
             env=env,
@@ -190,7 +199,7 @@ def main() -> None:
             **_TEXT_PROCESS_OPTIONS,
         )
         try:
-            base_url = "http://127.0.0.1:8000"
+            base_url = f"http://127.0.0.1:{port}"
             for _ in range(120):
                 if process.poll() is not None:
                     output = process.stdout.read() if process.stdout else ""

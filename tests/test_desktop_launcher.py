@@ -72,6 +72,13 @@ def test_launcher_only_reuses_same_version_desktop_instance():
     assert compatible({"status": "ok", "service": "南雍知课"}) is False
 
 
+def test_launcher_respects_explicit_release_smoke_port(monkeypatch):
+    monkeypatch.setenv("NANYONG_ZHIKE_PORT", "43127")
+    monkeypatch.setattr(launcher, "is_nanyong_zhike_running", lambda port: False)
+
+    assert launcher.select_port() == (43127, False)
+
+
 def test_desktop_environment_enables_complete_local_feature_set(monkeypatch, tmp_path):
     resources = tmp_path / "resources"
     executable = resources / "bin" / ("nju-cli.exe" if os.name == "nt" else "nju-cli")
@@ -155,6 +162,15 @@ def test_packaged_smoke_test_rechecks_nju_cli_cache_isolation():
     )
 
     assert "verify_nju_cli_patch(nju_cli)" in smoke_test
+
+
+def test_packaged_smoke_test_passes_its_dynamic_port_to_launcher():
+    smoke_test = (ROOT / "desktop" / "smoke_test_release.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'env["NANYONG_ZHIKE_PORT"] = str(port)' in smoke_test
+    assert 'base_url = f"http://127.0.0.1:{port}"' in smoke_test
 
 
 def test_prepare_release_bundles_upstream_source_and_cache_patch(
