@@ -7,6 +7,8 @@ import { Reviews } from './components/Reviews'
 import { Schedule } from './components/Schedule'
 import { About } from './components/About'
 import { Memos } from './components/Memos'
+import { PlannerBoard } from './components/PlannerBoard'
+import { AiAssistant } from './components/AiAssistant'
 import { CampusServices } from './components/CampusServices'
 import { Shell, type View } from './components/Shell'
 import type { AcademicOverview, AcademicProfile, FiveEducationActivities, FiveEducationOverview, Health, Program, ProgramCourse, ProgramNode, ScheduleCourse, SecondClassroomProfile, Session, Term } from './types'
@@ -72,7 +74,9 @@ export default function App() {
     {visited.has('schedule') && <section hidden={view !== 'schedule'}><Schedule onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('reviews') && <section hidden={view !== 'reviews'}><Reviews /></section>}
     {visited.has('campus') && <section hidden={view !== 'campus'}><CampusServices username={session.username} onUnauthorized={handleUnauthorized} /></section>}
+    {visited.has('planner') && <section hidden={view !== 'planner'}><PlannerBoard username={session.username} onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('memos') && <section hidden={view !== 'memos'}><Memos onUnauthorized={handleUnauthorized} /></section>}
+    {visited.has('ai') && <section hidden={view !== 'ai'}><AiAssistant onUnauthorized={handleUnauthorized} /></section>}
     {visited.has('about') && <section hidden={view !== 'about'}><About /></section>}
   </Shell>
 }

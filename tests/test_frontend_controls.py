@@ -205,6 +205,209 @@ def test_program_and_campus_use_the_same_segmented_control_interaction() -> None
     assert ".service-tabs button:hover" not in styles
 
 
+def test_ai_assistant_beta_entry_is_visible_and_read_only() -> None:
+    shell = (ROOT / "frontend" / "src" / "components" / "Shell.tsx").read_text(encoding="utf-8")
+    app = (ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+    assistant = (ROOT / "frontend" / "src" / "components" / "AiAssistant.tsx").read_text(encoding="utf-8")
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert "label: 'AI 助手'" in shell
+    assert "nav-beta" in shell
+    assert "AiAssistant" in app
+    assert "仅保存在当前浏览器" in assistant
+    assert "/api/ai/chat" in assistant
+    assert ".ai-layout {" in styles
+
+
+def test_ai_chat_uses_one_bubble_and_scrolls_only_the_transcript() -> None:
+    assistant = (ROOT / "frontend" / "src" / "components" / "AiAssistant.tsx").read_text(
+        encoding="utf-8"
+    )
+    shell = (ROOT / "frontend" / "src" / "components" / "Shell.tsx").read_text(
+        encoding="utf-8"
+    )
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert 'src="/default-avatar.jpeg"' in assistant
+    assert "小蓝鲸" in assistant
+    assert "按需查询你的南大信息" not in assistant
+    assert "已准备好查询" not in assistant
+    assert "深度思考中" in assistant
+    assert 'className="ai-message-bubble"' in assistant
+    assert "ref={transcriptRef}" in assistant
+    assert "transcriptViewport.scrollTo" in assistant
+    assert "ai-main-column" in shell
+    assert ".ai-main-column { overflow-y: hidden;" in styles
+    assert ".ai-transcript { min-height: 0; overflow-y: auto;" in styles
+    assert ".ai-message-bubble {" in styles
+    assert ".ai-message-bubble > :last-child { margin-bottom: 0; }" in styles
+
+
+def test_ai_connection_fields_do_not_look_like_a_login_form_to_safari() -> None:
+    assistant = (ROOT / "frontend" / "src" / "components" / "AiAssistant.tsx").read_text(
+        encoding="utf-8"
+    )
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert "DEFAULT_MODEL = 'deepseek-v4-pro'" in assistant
+    assert 'type="url"' in assistant
+    assert 'name="llm-endpoint"' in assistant
+    assert 'name="llm-model"' in assistant
+    assert 'name="llm-api-token"' in assistant
+    assert 'className="ai-secret-input"' in assistant
+    assert 'type="password"' not in assistant
+    assert assistant.count('autoComplete="off"') >= 2
+    assert 'autoComplete="one-time-code"' in assistant
+    assert "'\\u2022'.repeat(apiKey.length)" in assistant
+    assert 'className="ai-secret-mask"' in assistant
+    assert "-webkit-text-security" not in styles
+    assert ".ai-secret-mask" in styles
+
+
+def test_ai_connection_settings_are_restored_from_local_storage() -> None:
+    assistant = (ROOT / "frontend" / "src" / "components" / "AiAssistant.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "AI_CONNECTION_STORAGE_KEY" in assistant
+    assert "window.localStorage.getItem(AI_CONNECTION_STORAGE_KEY)" in assistant
+    assert "window.localStorage.setItem(AI_CONNECTION_STORAGE_KEY" in assistant
+    assert "仅保存在当前浏览器，不会写入本站数据库或服务端日志" in assistant
+    assert "请勿在模型服务账户中存放过高余额" in assistant
+    assert "清空此字段即可删除已保存的密钥" in assistant
+
+
+def test_ai_suggested_prompts_require_an_api_key() -> None:
+    assistant = (ROOT / "frontend" / "src" / "components" / "AiAssistant.tsx").read_text(
+        encoding="utf-8"
+    )
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert "function choosePrompt(prompt: string)" in assistant
+    assert "if (!apiKey.trim())" in assistant
+    assert "apiKeyRef.current?.focus()" in assistant
+    assert "setNeedsApiKey(true)" in assistant
+    assert "onClick={() => choosePrompt(prompt)}" in assistant
+    assert "onClick={() => setDraft(prompt)}" not in assistant
+    assert ".ai-field.ai-field-attention input" in styles
+
+
+def test_ai_empty_state_randomly_selects_one_of_four_messages() -> None:
+    assistant = (ROOT / "frontend" / "src" / "components" / "AiAssistant.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "问问你的南大资讯" in assistant
+    assert "整合南大资讯，赋能每一个人" in assistant
+    assert "探索未至之境" in assistant
+    assert "让 AI 惠及所有人" in assistant
+    assert assistant.count("回答将会标注所使用的数据来源。") >= 10
+    assert "Math.floor(Math.random() * emptyMessages.length)" in assistant
+    assert "useState(pickEmptyMessage)" in assistant
+    assert "问问你的南大数据" not in assistant
+    assert "不会替代学校系统的最终结果" not in assistant
+
+
+def test_planner_uses_click_to_edit_week_cells_and_five_custom_lists() -> None:
+    planner = (ROOT / "frontend" / "src" / "components" / "PlannerBoard.tsx").read_text(encoding="utf-8")
+    state = (ROOT / "frontend" / "src" / "planner-state.ts").read_text(encoding="utf-8")
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert "planner-week-canvas" in planner
+    assert "planner-week-nav" in planner
+    assert "键入 # 选择课程" in planner
+    assert "planner-course-picker" in planner
+    assert "if (!event.currentTarget.contains(event.relatedTarget as Node | null)) addTask()" in planner
+    assert "movePlannerTaskDate" in planner
+    assert "Array.from({ length: 5 }" in planner
+    assert "const MAX_COLUMN_TASKS = 9" in planner
+    assert "hasTargetCapacity" in planner
+    assert "title={task.title}" in planner
+    assert "clickTimerRef" not in planner
+    assert '<button type="button" className="planner-task-check"' in planner
+    assert "event.stopPropagation(); onToggle()" in planner
+    assert "if (!editing) onEdit()" in planner
+    assert "updatePlannerTaskTitle" in planner
+    assert "task.date === date && !task.listId" in planner
+    assert "inlineTarget.kind === 'list' ? inlineTarget.id : undefined" in planner
+    assert planner.count("dragging={draggedTaskId === task.id}") == 2
+    assert planner.count("onDragEnd={() => setDraggedTaskId(null)}") == 2
+    assert "onClick={() => startRename(list)}" in planner
+    assert "TaskDetailModal" not in planner
+    assert "MoreHorizontal" not in planner
+    assert "PlannerListTask" not in planner
+    assert "renderInlineEditor('day', date)" in planner
+    assert "renderInlineEditor('list', list.id)" in planner
+    assert "planner-day-empty" in planner
+    assert "dayLabel(date)" in planner
+    assert "value === todayDate() ? '今天'" in planner
+    assert "slide-${slideDirection}" in planner
+    assert "planner-week-toolbar" not in planner
+    assert "planner-weektodo-composer" not in planner
+    assert "新建计划" not in planner
+    assert "新建列表" not in planner
+    assert "删除${list.name}" not in planner
+    assert "查看使用说明" in planner
+    assert "单击任务左侧圆点" in planner
+    assert "单击任务内容" in planner
+    assert "清空全部文字并确认" in planner
+    assert "右键任务" in planner
+    assert "onContextMenu" in planner
+    assert "planner-context-menu" in planner
+    assert "删除日程" in planner
+    assert "键入 #" in planner
+    assert "拖动任务" in planner
+    assert "每列最多 9 项" in planner
+    assert "切换日期" not in planner
+    assert "本地保存" not in planner
+    assert "添加任务</strong>" not in planner
+    assert "把这一周要做的事" not in planner
+    assert "按你的方式整理任务" not in planner
+    assert "addPlannerList" in state
+    assert "removePlannerList" in state
+    assert "createDefaultLists(now" in state
+    assert ".planner-week-grid" in styles
+    assert ".planner-course-picker" in styles
+    assert "grid-template-columns: repeat(5" in styles
+    assert ".planner-weektodo-page .planner-board-heading h1 { font-size: 34px; }" in styles
+    assert "height: 35px" in styles
+    assert "grid-template-rows: 72px 315px" in styles
+    assert ".planner-day-tasks { min-height: 0; overflow: hidden" in styles
+    assert "flex: 1 0 35px" in styles
+    assert ".planner-week-task.dragging" in styles
+    assert "padding: 0" in styles
+    assert "padding: 0 10px" in styles
+    assert ":hover" not in "\n".join(line for line in styles.splitlines() if ".planner" in line)
+    assert ".planner-inline-editor > input:focus { border: 0; box-shadow: none; }" in styles
+    assert "createPortal" in planner
+    assert "coursePickerPosition" in planner
+    assert "position: fixed" in styles
+    assert "planner-slide-left" in styles
+    assert "animation: planner-slide-left .65s" in styles
+    assert "translateX(20%)" in styles
+    assert "translateX(-20%)" in styles
+    assert ".planner-week-canvas { min-width: 0; width: 100%;" in styles
+    assert ".planner-week-nav" in styles
+    assert "完成率" not in planner
+
+
+def test_ai_suggested_questions_randomly_select_three_from_a_larger_pool() -> None:
+    assistant = (ROOT / "frontend" / "src" / "components" / "AiAssistant.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "suggestedPromptPool" in assistant
+    assert "pickSuggestedPrompts" in assistant
+    assert "useState(pickSuggestedPrompts)" in assistant
+    assert "return shuffled.slice(0, 3)" in assistant
+    assert "我的大学英语和体育课认定完成了吗？" in assistant
+    assert "五育活动里我参与了哪些项目？" in assistant
+    assert "第二课堂目前有多少活动和服务时长？" in assistant
+    assert "我的课表哪几天最忙？" in assistant
+    assert "最近有哪些通知和我的年级有关？" in assistant
+    assert "根据培养方案，我下学期适合修哪些课程？" in assistant
+
+
 def test_five_education_uses_real_read_only_dashboard() -> None:
     root = ROOT / "frontend" / "src"
     campus = (root / "components" / "CampusServices.tsx").read_text(encoding="utf-8")

@@ -6,10 +6,10 @@ from backend.app.version import APP_VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = "1.1.7"
+RELEASE_VERSION = "2.0.0"
 
 
-def test_v1_1_7_release_version_is_synchronized() -> None:
+def test_v2_0_0_release_version_is_synchronized() -> None:
     package = json.loads(
         (ROOT / "frontend" / "package.json").read_text(encoding="utf-8")
     )
@@ -27,7 +27,7 @@ def test_v1_1_7_release_version_is_synchronized() -> None:
     assert usage.startswith(f"南雍知课 v{APP_VERSION} 使用说明")
 
 
-def test_v1_1_7_desktop_release_metadata_is_synchronized() -> None:
+def test_v2_0_0_desktop_release_metadata_is_synchronized() -> None:
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
         encoding="utf-8"
     )
@@ -50,7 +50,7 @@ def test_v1_1_7_desktop_release_metadata_is_synchronized() -> None:
     assert f'"version": "{RELEASE_VERSION}"' in smoke
 
 
-def test_readme_identifies_v1_1_7_as_current_release_and_preserves_history() -> None:
+def test_readme_identifies_v2_0_0_as_current_release_and_preserves_history() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert f"本 README 对应南雍知课 v{RELEASE_VERSION}。" in readme
@@ -69,3 +69,4 @@ def test_readme_identifies_v1_1_7_as_current_release_and_preserves_history() -> 
         "- `v1.1.7`：固定并校验 Windows 安装器简体中文语言文件，"
         "在 CI 与发布构建前用真实 Inno Setup 提前验证安装脚本。"
     ) in readme
+    assert "- `v2.0.0`：" in readme

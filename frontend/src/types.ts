@@ -1,6 +1,10 @@
 export type Session = { username: string; expiresAt: number }
 export type Health = { status: string; service: string; version: string; deployment: string }
 
+export type AiChatMessage = { role: 'user' | 'assistant'; content: string }
+export type AiSource = { label: string; tool: string }
+export type AiChatResponse = { message: string; sources: AiSource[]; model: string }
+
 export type Grade = {
   XNXQDM?: string
   XNXQDM_DISPLAY?: string

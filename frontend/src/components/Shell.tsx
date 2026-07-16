@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
-import { BellRing, BookOpenCheck, CalendarDays, GraduationCap, Info, LoaderCircle, LogOut, Menu, Power, Search, StickyNote, X } from 'lucide-react'
+import { BellRing, BookOpenCheck, CalendarDays, GraduationCap, Info, LoaderCircle, LogOut, Menu, Power, Search, Sparkles, StickyNote, PanelsTopLeft, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ApiError, EHALL_STATUS_EVENT } from '../api'
 import type { Session } from '../types'
 
-export type View = 'overview' | 'program' | 'schedule' | 'reviews' | 'campus' | 'memos' | 'about'
+export type View = 'overview' | 'program' | 'schedule' | 'reviews' | 'campus' | 'planner' | 'memos' | 'ai' | 'about'
 
 const navigation = [
   { id: 'overview' as const, label: '学业概览', icon: GraduationCap },
@@ -12,7 +12,9 @@ const navigation = [
   { id: 'schedule' as const, label: '我的课表', icon: CalendarDays },
   { id: 'reviews' as const, label: '红黑榜', icon: Search },
   { id: 'campus' as const, label: '校园服务', icon: BellRing },
+  { id: 'planner' as const, label: '我的计划', icon: PanelsTopLeft, beta: true },
   { id: 'memos' as const, label: '备忘录', icon: StickyNote },
+  { id: 'ai' as const, label: 'AI 助手', icon: Sparkles, beta: true },
   { id: 'about' as const, label: '关于本站', icon: Info },
 ]
 
@@ -88,6 +90,7 @@ export function Shell({
             >
               <item.icon size={19} />
               {item.label}
+              {'beta' in item && item.beta ? <small className="nav-beta">Beta</small> : null}
             </button>
           ))}
         </nav>
@@ -112,7 +115,7 @@ export function Shell({
       >
         <Menu size={21} />
       </button>
-      <section className="main-column" id="main-content-scroll">
+      <section className={`main-column${active === 'ai' ? ' ai-main-column' : ''}`} id="main-content-scroll">
         <main className="content">{children}</main>
       </section>
     </div>

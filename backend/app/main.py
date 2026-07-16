@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .academic import passed_course_detail_requests, summarize_grades
 from .academic_snapshots import AcademicSnapshotRepository, count_graded_courses
+from .llm_gateway import AiChatRequest, AiGateway, AiGatewayError, validate_endpoint
 from .config import get_settings
 from .database import Database
 from .exchange_system import ExchangeSystemClient, ExchangeSystemError
@@ -58,6 +59,7 @@ exchange_system = ExchangeSystemClient()
 student_profiles = StudentProfileClient()
 five_education = FiveEducationClient()
 second_classroom = SecondClassroomClient()
+ai_gateway = AiGateway()
 
 
 @asynccontextmanager
@@ -219,6 +221,20 @@ async def health() -> dict[str, str]:
         "version": APP_VERSION,
         "deployment": settings.app_env,
     }
+
+
+@app.post("/api/ai/chat")
+async def ai_chat(
+    body: AiChatRequest,
+    session: Annotated[Session, Depends(current_session)],
+) -> dict[str, Any]:
+    try:
+        validate_endpoint(body.endpoint)
+        return await ai_gateway.chat(body, session)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except AiGatewayError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
 
 
 def _schedule_desktop_exit() -> None:

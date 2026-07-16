@@ -3,7 +3,7 @@ name: Release desktop packages
 on:
   push:
     tags:
-      - "v1.1.7"
+      - "v2.0.0"
 
 permissions:
   contents: read
@@ -157,7 +157,7 @@ jobs:
         run: |
           $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $compiler)) { throw "Inno Setup is unavailable on this runner" }
-          & $compiler "/DAppVersion=1.1.7" "desktop\windows-installer.iss"
+          & $compiler "/DAppVersion=2.0.0" "desktop\windows-installer.iss"
           if ($LASTEXITCODE -ne 0) { throw "Windows installer compilation failed" }
           if (-not (Test-Path -LiteralPath "release\NanyongZhike-windows-x86_64-setup.exe" -PathType Leaf)) {
             throw "Windows installer was not created"

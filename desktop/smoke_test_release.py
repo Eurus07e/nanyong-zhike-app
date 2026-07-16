@@ -201,7 +201,7 @@ def main() -> None:
                     if health == {
                         "status": "ok",
                         "service": "南雍知课",
-                        "version": "1.1.7",
+                        "version": "2.0.0",
                         "deployment": "desktop",
                     }:
                         break
