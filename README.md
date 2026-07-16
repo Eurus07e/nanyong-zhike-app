@@ -15,19 +15,22 @@ nju**一站式**学业助手，集成所有常用信息。
 </p>
 
 <p align="center">
-  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="https://img.shields.io/badge/打开交互式预览-v2.0.1-5A2D82?style=for-the-badge&logo=githubpages&logoColor=white" width="375" alt="在线预览"></a>
-  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1"><img src="https://img.shields.io/badge/下载最新版-v2.0.1-0078D4?style=for-the-badge&logo=github&logoColor=white" width="330" alt="下载最新版"></a>
+  <!-- 同时修改下面两个 width 数值即可统一调整按钮大小。 -->
+  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="docs/badges/online-preview.svg" width="260" alt="在线预览"></a>
+  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1"><img src="docs/badges/download-latest.svg" width="260" alt="下载最新版 v2.0.1"></a>
 </p>
 
 <p align="center">
-  <sub>预览页演示账号为 Rick Sanchez，不是真实人物，所展示数据均为虚构。</sub>
+  <sub>预览页演示账号为 Rick Sanchez，身份字段已隐藏；成绩、课表等内容来自脱敏后的个人缓存数据。</sub>
 </p>
 
 ## 下载和启动
 
 **第一步：下载**
 
- [转跳 Release 页面下载最新版本](https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1)
+<p align="center">
+  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1"><img src="docs/badges/release-download.svg" width="680" alt="前往 GitHub Release 下载南雍知课 v2.0.1"></a>
+</p>
 
 **第二步：安装或解压**
 

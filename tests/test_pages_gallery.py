@@ -50,5 +50,7 @@ def test_readme_links_to_the_interactive_pages_preview() -> None:
 
     assert "https://eurus07e.github.io/nanyong-zhike-app/" in preview
     assert "docs/screenshots/interactive-preview.png" in preview
-    assert "打开交互式预览" in preview
+    assert "docs/badges/online-preview.svg" in preview
+    assert "docs/badges/download-latest.svg" in preview
+    assert 'alt="在线预览"' in preview
     assert "Rick Sanchez" in preview
