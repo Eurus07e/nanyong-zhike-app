@@ -15,9 +15,9 @@ nju**一站式**学业助手，集成所有常用信息。
 </p>
 
 <p align="center">
-  <!-- 同时修改下面两个 height 数值，即可统一调整按钮大小。 -->
-  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="https://img.shields.io/badge/打开交互式预览-v2.0.1-5A2D82?style=for-the-badge&logo=githubpages&logoColor=white" height="48" alt="打开交互式预览"></a>
-  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1"><img src="https://img.shields.io/badge/下载最新版-v2.0.1-0078D4?style=for-the-badge&logo=github&logoColor=white" height="48" alt="下载最新版"></a>
+  <!-- 等比例修改下面两个 width 数值即可调整大小，例如 430 / 378。 -->
+  <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="https://img.shields.io/badge/打开交互式预览-v2.0.1-5A2D82?style=for-the-badge&logo=githubpages&logoColor=white" width="375" alt="打开交互式预览"></a>
+  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.1"><img src="https://img.shields.io/badge/下载最新版-v2.0.1-0078D4?style=for-the-badge&logo=github&logoColor=white" width="330" alt="下载最新版"></a>
 </p>
 
 <p align="center">
