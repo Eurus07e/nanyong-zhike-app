@@ -8,6 +8,7 @@ from backend.app.notices import (
     NoticeService,
     PublicNoticeSource,
     _clean_notice_markdown,
+    _notice_dict,
     parse_notices,
 )
 
@@ -295,8 +296,87 @@ async def test_notice_service_returns_stale_items_when_forced_refresh_sources_fa
 
     assert first_refresh == {"items": first["items"], "source": "cache"}
     assert second_refresh == first_refresh
+    assert source.calls == 2
+    assert nju.calls == 1
+
+
+async def test_notice_service_coalesces_concurrent_forced_refreshes():
+    class Source:
+        def __init__(self):
+            self.calls = 0
+
+        async def list(self, limit):
+            self.calls += 1
+            if self.calls == 1:
+                return [{
+                    "id": 835881,
+                    "publish_time": "06-12",
+                    "title": "已有通知",
+                    "url": "https://jw.nju.edu.cn/c1/29/c26263a835881/page.htm",
+                }]
+            await asyncio.sleep(0)
+            raise NjuCliError("primary failed")
+
+    class FakeNju:
+        def __init__(self):
+            self.calls = 0
+
+        async def public_cache_json(self, args, cache_file, *, owner, timeout):
+            self.calls += 1
+            raise NjuCliError("fallback failed")
+
+    source = Source()
+    nju = FakeNju()
+    service = NoticeService(nju, source=source, ttl_seconds=0)
+    first = await service.list()
+
+    responses = await asyncio.gather(*(service.list(force=True) for _ in range(3)))
+
+    assert responses == [
+        {"items": first["items"], "source": "cache"},
+        {"items": first["items"], "source": "cache"},
+        {"items": first["items"], "source": "cache"},
+    ]
+    assert source.calls == 2
+    assert nju.calls == 1
+
+
+async def test_notice_service_refreshes_again_after_coalesced_success():
+    class Source:
+        def __init__(self):
+            self.calls = 0
+
+        async def list(self, limit):
+            self.calls += 1
+            if self.calls > 1:
+                await asyncio.sleep(0)
+            return [{
+                "id": 835881,
+                "publish_time": "06-12",
+                "title": f"第 {self.calls} 次刷新",
+                "url": "https://jw.nju.edu.cn/c1/29/c26263a835881/page.htm",
+            }]
+
+    source = Source()
+    service = NoticeService(object(), source=source, ttl_seconds=60)
+    await service.list()
+
+    concurrent = await asyncio.gather(
+        *(service.list(force=True) for _ in range(3))
+    )
+    independent = await service.list(force=True)
+
     assert source.calls == 3
-    assert nju.calls == 2
+    assert sorted(response["source"] for response in concurrent) == [
+        "cache",
+        "cache",
+        "fresh",
+    ]
+    assert {response["items"][0]["title"] for response in concurrent} == {
+        "第 2 次刷新"
+    }
+    assert independent["source"] == "fresh"
+    assert independent["items"][0]["title"] == "第 3 次刷新"
 
 
 async def test_notice_service_coalesces_concurrent_stale_fallbacks():
@@ -381,6 +461,65 @@ async def test_notice_service_reraises_primary_error_without_cached_items():
 
     with pytest.raises(NjuCliError, match="primary failed clearly"):
         await service.list(force=True)
+
+
+async def test_notice_service_coalesces_concurrent_failures_without_cached_items():
+    class Source:
+        def __init__(self):
+            self.calls = 0
+
+        async def list(self, limit):
+            self.calls += 1
+            await asyncio.sleep(0)
+            raise NjuCliError("primary failed clearly")
+
+    class FakeNju:
+        def __init__(self):
+            self.calls = 0
+
+        async def public_cache_json(self, args, cache_file, *, owner, timeout):
+            self.calls += 1
+            raise NjuCliError("fallback failed")
+
+    source = Source()
+    nju = FakeNju()
+    service = NoticeService(nju, source=source)
+
+    responses = await asyncio.gather(
+        *(service.list(force=True) for _ in range(3)),
+        return_exceptions=True,
+    )
+
+    assert all(
+        isinstance(response, NjuCliError)
+        and str(response) == "primary failed clearly"
+        for response in responses
+    )
+    assert source.calls == 1
+    assert nju.calls == 1
+
+
+@pytest.mark.parametrize(
+    "invalid_field",
+    [
+        {"publish_time": "not-a-date"},
+        {"publish_time": "2025-02-29"},
+        {"publish_time": "2026-06-12 99:99:99"},
+        {"url": "https://jw.nju.edu.cn:bad/path"},
+        {"url": "https://user:pass@jw.nju.edu.cn/path"},
+        {"url": "ftp://jw.nju.edu.cn/path"},
+    ],
+)
+def test_notice_rows_reject_malformed_dates_and_urls(invalid_field):
+    row = {
+        "id": 835881,
+        "publish_time": "06-12",
+        "title": "测试通知",
+        "url": "https://jw.nju.edu.cn/c1/29/c26263a835881/page.htm",
+        **invalid_field,
+    }
+
+    assert _notice_dict(row) is None
 
 
 @pytest.mark.parametrize("link_field", ["url", "wapUrl", "link"])
