@@ -107,16 +107,7 @@ class PublicNoticeSource:
             or not isinstance(rows, list)
         ):
             raise NjuCliError("南京大学本科生院返回了异常的通知数据")
-        return [
-            {
-                "id": item.get("id"),
-                "publish_time": item.get("publishTime"),
-                "title": item.get("title"),
-                "url": item.get("url"),
-            }
-            for item in rows
-            if isinstance(item, dict)
-        ]
+        return [item for row in rows if (item := _public_notice_dict(row))]
 
 
 class NoticeService:
@@ -126,10 +117,12 @@ class NoticeService:
         *,
         source: PublicNoticeSource | None = None,
         ttl_seconds: int = 10 * 60,
+        failure_retry_seconds: int = 30,
     ):
         self.nju = nju
         self.source = source or PublicNoticeSource()
         self.ttl_seconds = ttl_seconds
+        self.failure_retry_seconds = failure_retry_seconds
         self._expires_at = 0.0
         self._items: list[dict[str, str]] = []
         self._details: dict[str, str] = {}
@@ -144,6 +137,9 @@ class NoticeService:
                 return {"items": self._items[:limit], "source": "cache"}
             try:
                 rows = await self.source.list(max(limit, 10))
+                items = _notice_rows(rows)
+                if not items:
+                    raise NjuCliError("南京大学本科生院返回的通知列表为空")
             except NjuCliError as source_error:
                 try:
                     rows = await self.nju.public_cache_json(
@@ -158,9 +154,17 @@ class NoticeService:
                         owner="public-notices",
                         timeout=30,
                     )
+                    items = _notice_rows(rows)
+                    if not items:
+                        raise NjuCliError("nju-cli 返回的通知列表为空")
                 except NjuCliError:
+                    if self._items:
+                        self._expires_at = (
+                            time.monotonic() + self.failure_retry_seconds
+                        )
+                        return {"items": self._items[:limit], "source": "cache"}
                     raise source_error
-            self._items = [item for row in rows if (item := _notice_dict(row))]
+            self._items = items
             self._expires_at = time.monotonic() + self.ttl_seconds
             return {"items": self._items[:limit], "source": "fresh"}
 
@@ -200,8 +204,32 @@ def _notice_dict(row: Any) -> dict[str, str] | None:
     return {"id": notice_id, "date": date, "title": title, "url": url}
 
 
+def _notice_rows(rows: Any) -> list[dict[str, str]]:
+    if not isinstance(rows, list):
+        return []
+    return [item for row in rows if (item := _notice_dict(row))]
+
+
+def _public_notice_dict(row: Any) -> dict[str, Any] | None:
+    if not isinstance(row, dict):
+        return None
+    publish_time = str(row.get("publishTime") or "").strip()
+    if re.match(r"^\d{4}-\d{2}-\d{2}", publish_time):
+        publish_time = publish_time[5:10]
+    url = row.get("url") or row.get("wapUrl") or row.get("link") or ""
+    return {
+        "id": row.get("id"),
+        "publish_time": publish_time,
+        "title": row.get("title"),
+        "url": url,
+    }
+
+
 def _secure_notice_url(url: str) -> str:
-    parsed = urlsplit(url)
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        return ""
     if parsed.hostname != "jw.nju.edu.cn":
         return ""
     return urlunsplit(("https", parsed.netloc, parsed.path, parsed.query, ""))
