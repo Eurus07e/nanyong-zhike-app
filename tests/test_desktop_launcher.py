@@ -63,7 +63,7 @@ def test_launcher_only_reuses_same_version_desktop_instance():
     expected = {
         "status": "ok",
         "service": "南雍知课",
-        "version": "2.0.2",
+        "version": "2.0.3",
         "deployment": "desktop",
     }
     assert compatible(expected) is True
@@ -135,7 +135,7 @@ def test_release_builds_and_verifies_patched_nju_cli_from_pinned_source():
     assert "desktop/verify_nju_cli_patch.py" in workflow
     assert "releases/download/v1.4.6" not in workflow
     assert "NJU_CLI_PATH=" in workflow
-    assert 'tags:\n      - "v2.0.2"' in workflow
+    assert 'tags:\n      - "v2.0.3"' in workflow
     assert "NJU_CLI_BIN: /bin/true" in workflow
     assert "console=False" in (ROOT / "desktop" / "nanyong_zhike.spec").read_text(
         encoding="utf-8"
@@ -373,7 +373,7 @@ def test_release_windows_installer_build_checks_exit_code_and_exact_output() -> 
     build_end = workflow.index("      - uses: actions/upload-artifact@", build_start)
     build_step = workflow[build_start:build_end]
 
-    assert '& $compiler "/DAppVersion=2.0.2" "desktop\\windows-installer.iss"' in build_step
+    assert '& $compiler "/DAppVersion=2.0.3" "desktop\\windows-installer.iss"' in build_step
     assert "$LASTEXITCODE" in build_step
     assert (
         'Test-Path -LiteralPath "release\\NanyongZhike-windows-x86_64-setup.exe" '
@@ -381,19 +381,82 @@ def test_release_windows_installer_build_checks_exit_code_and_exact_output() -> 
     ) in build_step
 
 
-def test_macos_spec_builds_a_windowed_application_bundle() -> None:
+def test_macos_release_builds_without_apple_developer_credentials() -> None:
     spec = (ROOT / "desktop" / "nanyong_zhike.spec").read_text(encoding="utf-8")
 
     assert "console=False" in spec
     assert "BUNDLE(" in spec
     assert 'name="南雍知课.app"' in spec
-    assert '"CFBundleShortVersionString": "2.0.2"' in spec
+    assert '"CFBundleShortVersionString": "2.0.3"' in spec
+    assert "MACOS_CODESIGN_IDENTITY" not in spec
+    assert "CODESIGN_IDENTITY" not in spec
+    assert "codesign_identity" not in spec
 
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
         encoding="utf-8"
     )
+    release_artifact_start = workflow.index("      - name: Build desktop package")
+    source_build_stage = workflow[:release_artifact_start]
+    release_artifact_stage = workflow[release_artifact_start:]
+    release_artifact_stage_folded = release_artifact_stage.casefold()
+    assert "NJU_SOURCE_SHA256" in source_build_stage
+    assert "hashlib" in source_build_stage
+    assert "release-assets" in release_artifact_stage
+    for forbidden_checksum in (
+        "sha256sum",
+        "shasum",
+        "hashlib",
+        "openssl dgst",
+        "get-filehash",
+        "checksum",
+        "checksums",
+        "sha256sum.txt",
+        "checksums.txt",
+        ".sha256",
+        ".sha256sum",
+    ):
+        assert forbidden_checksum not in release_artifact_stage_folded
+
     assert 'xattr -cr "dist/南雍知课.app"' in workflow
+    assert 'codesign --force --deep --sign - "dist/南雍知课.app"' in workflow
     assert 'codesign --verify --deep --strict "dist/南雍知课.app"' in workflow
+    assert 'cp -R "dist/南雍知课.app" "$staging/南雍知课.app"' in workflow
+    assert "hdiutil create" in workflow
+    assert 'rm -rf "$staging"' in workflow
+    for forbidden in (
+        "MACOS_CERTIFICATE_P12_BASE64",
+        "MACOS_CERTIFICATE_PASSWORD",
+        "APPLE_NOTARIZATION_APPLE_ID",
+        "APPLE_NOTARIZATION_PASSWORD",
+        "APPLE_TEAM_ID",
+        "MACOS_CODESIGN_IDENTITY",
+        "Developer ID",
+        "notarytool",
+        "stapler",
+        "spctl",
+        "MACOS_SIGNING_KEYCHAIN",
+        "MACOS_SIGNING_CERTIFICATE",
+        "sha256sum NanyongZhike-*",
+    ):
+        assert forbidden not in workflow
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    instructions = (ROOT / "desktop" / "使用说明.txt").read_text(encoding="utf-8")
+    for documentation in (readme, instructions):
+        assert "Control" in documentation
+        assert "首次运行不能直接双击" in documentation
+        assert "以后可直接双击" not in documentation
+        assert "仍要打开" in documentation
+        assert "不要关闭" in documentation
+        assert "没有通过 Apple 公证" in documentation
+        assert "未进行商业代码签名" in documentation
+        assert "经过 Apple 公证" not in documentation
+        assert "使用 Developer ID" not in documentation
+        assert "SHA-256 校验文件" not in documentation
+        assert "docs/macos-signing.md" not in documentation
+        assert "macOS 签名与公证说明" not in documentation
+    assert "补丁以确定性脚本施加，等价完整 diff 随包提供。" in readme
+    assert not (ROOT / "docs" / "macos-signing.md").exists()
 
 
 def test_third_party_notice_documents_patched_nju_cli_source_build():

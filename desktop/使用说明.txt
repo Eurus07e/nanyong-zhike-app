@@ -1,4 +1,4 @@
-南雍知课 v2.0.2 使用说明
+南雍知课 v2.0.3 使用说明
 =======================
 
 普通用户不需要安装 Python、Node.js、Docker，也不需要打开终端。
@@ -7,7 +7,7 @@ macOS（Apple 芯片）
 -------------------
 1. 下载 NanyongZhike-macos-arm64.dmg 并打开。
 2. 将“南雍知课”拖入 Applications（应用程序）文件夹。
-3. 首次运行时按住 Control 点击“南雍知课”，选择“打开”；以后直接双击即可。
+3. 首次运行不能直接双击，请按住 Control 点击“南雍知课”并选择“打开”；完成首次系统确认后可正常启动。
 
 Windows 10 / 11（64 位）
 -----------------------
@@ -26,9 +26,9 @@ Linux
 首次运行提示未知开发者、Gatekeeper 或 SmartScreen 时，请先确认文件来自：
 https://github.com/Eurus07e/nanyong-zhike-app/releases
 
-当前安装包未进行 Windows 代码签名或 Apple 公证。macOS 可在“系统设置 > 隐私与安全性”
-中选择“仍要打开”；Windows 可在 SmartScreen 中选择“更多信息”，确认来源后运行。
-不要关闭系统安全防护。
+macOS 安装包没有通过 Apple 公证。如仍被系统拦截，请打开“系统设置 > 隐私与安全性”，
+在安全性提示旁选择“仍要打开”。Windows 安装包未进行商业代码签名，可在 SmartScreen
+中选择“更多信息”，确认来源后运行。不要关闭 SmartScreen、Gatekeeper 或其他系统安全防护。
 
 本地数据位置：
 macOS   ~/Library/Application Support/NanyongZhike

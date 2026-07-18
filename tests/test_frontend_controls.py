@@ -156,7 +156,7 @@ def test_program_selector_uses_compact_type_and_height() -> None:
     assert "font-size: 12px;" in styles
 
 
-def test_mail_placeholder_and_about_release_note_match_v2_0_2_copy() -> None:
+def test_mail_placeholder_and_about_release_note_match_v2_0_3_copy() -> None:
     campus_services = (
         ROOT / "frontend" / "src" / "components" / "CampusServices.tsx"
     ).read_text(encoding="utf-8")
@@ -166,9 +166,11 @@ def test_mail_placeholder_and_about_release_note_match_v2_0_2_copy() -> None:
 
     assert "邮箱接口暂未开放，敬请期待。" in campus_services
     assert "邮箱内容暂不由本站读取" not in campus_services
-    assert "v2.0.2" in about
-    assert "Windows" in about
-    assert "反复弹出命令窗口" in about
+    assert "v2.0.3" in about
+    assert "课表" in about
+    assert "教务通知" in about
+    assert "完善十二节课表与异常课程兜底，并增强教务通知获取的稳定性。" in about
+    assert "Apple 公证" not in about
 
 
 def test_main_content_uses_the_available_width_with_symmetric_gutters() -> None:

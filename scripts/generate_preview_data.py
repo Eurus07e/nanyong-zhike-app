@@ -259,7 +259,7 @@ def main() -> int:
         "meta": {
             "generatedAt": now,
             "sessionUsername": "Rick Sanchez",
-            "version": "2.0.2",
+            "version": "2.0.3",
             "notice": "演示数据已脱敏，学号及身份字段不会公开。",
         },
         "entries": entries,

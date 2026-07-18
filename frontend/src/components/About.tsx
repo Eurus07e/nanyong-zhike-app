@@ -44,7 +44,7 @@ export function About() {
       </section>
       <section className="about-copy-section">
         <h2>近期更新</h2>
-        <p><strong>v2.0.2</strong> 修复 Windows 读取学校数据时反复弹出命令窗口的问题。</p>
+        <p><strong>v2.0.3</strong> 完善十二节课表与异常课程兜底，并增强教务通知获取的稳定性。</p>
       </section>
       <section className="about-copy-section">
         <h2>隐私说明</h2>

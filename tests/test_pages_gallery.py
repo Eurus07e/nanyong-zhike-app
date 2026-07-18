@@ -25,7 +25,7 @@ def test_pages_preview_build_uses_relative_static_assets() -> None:
 
     assert page.exists()
     source = page.read_text(encoding="utf-8")
-    assert "<title>南雍知课 v2.0.2 · 交互预览</title>" in source
+    assert "<title>南雍知课 v2.0.3 · 交互预览</title>" in source
     assert '<div id="root"></div>' in source
     assert 'src="./assets/' in source
     assert 'href="./assets/' in source

@@ -17,20 +17,20 @@ createRoot(document.getElementById('root')!).render(
     <div className="preview-badge" role="status">
       <strong>交互预览</strong>
       <span>个人数据已脱敏</span>
-      <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.2">下载 v2.0.2</a>
+      <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v2.0.3">下载 v2.0.3</a>
     </div>
   </StrictMode>,
 )
 
 function seedPreviewStorage() {
-  if (!window.localStorage.getItem('nanyong-preview-initialized:v2.0.2')) {
+  if (!window.localStorage.getItem('nanyong-preview-initialized:v2.0.3')) {
     savePlanner(PREVIEW_USERNAME, previewPlanner())
     window.localStorage.setItem('nanyong-ai-connection:v1', JSON.stringify({
       endpoint: 'https://preview.local/chat/completions',
       model: '南雍演示模型',
       apiKey: 'preview-only',
     }))
-    window.localStorage.setItem('nanyong-preview-initialized:v2.0.2', 'true')
+    window.localStorage.setItem('nanyong-preview-initialized:v2.0.3', 'true')
   }
 }
 
