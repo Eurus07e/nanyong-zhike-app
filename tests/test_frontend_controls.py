@@ -160,7 +160,7 @@ def test_schedule_uses_twelve_periods_and_surfaces_unrecognized_courses() -> Non
     assert "parsed.unrecognized" in source
     assert "该课程格式暂未识别" in source
     assert "layoutScheduleSlots" in source
-    assert "grid-template-rows: 44px repeat(12" in styles
+    assert "grid-template-rows: 44px repeat(12, 51px)" in styles
 
 
 def test_schedule_detail_keeps_recognized_and_failed_parts_together() -> None:
