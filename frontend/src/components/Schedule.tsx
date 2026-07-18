@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarDays, MapPin, RefreshCw, UserRound, X } from 'lucide-react'
 import { api, ApiError, query } from '../api'
 import type { ScheduleCourse, Term } from '../types'
-import { courseDisplayName, parseSchedule, periods, type ScheduleSlot, weekdays } from '../utils'
+import { courseDisplayName, layoutScheduleSlots, parseSchedule, periods, type ScheduleSlot, weekdays } from '../utils'
 import { LoadingLines } from './Overview'
 
 const colors = ['violet', 'teal', 'orange', 'blue', 'rose', 'green']
@@ -54,7 +54,8 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
 
   useEffect(() => { void loadSchedule() }, [loadSchedule])
 
-  const slots = useMemo(() => parseSchedule(courses), [courses])
+  const parsed = useMemo(() => parseSchedule(courses), [courses])
+  const slots = useMemo(() => layoutScheduleSlots(parsed.slots), [parsed.slots])
   const totalCredits = useMemo(() => courses.reduce((sum, course) => sum + Number(course.XF || 0), 0), [courses])
   const courseColor = useMemo(() => new Map(courses.map((course, index) => [course.JXBID, colors[index % colors.length]])), [courses])
 
@@ -77,28 +78,62 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
       <section className="timetable-wrap" aria-busy={loading}>
         {loading && !courses.length ? <LoadingLines count={7} /> : (
           <div className="timetable">
-            <div className="timetable-corner">节次</div>
-            {weekdays.map((day) => <div className="day-heading" key={day}>{day}</div>)}
-            {periods.flatMap((period) => [
-              <div className="period-heading" key={`p-${period.key}`}><strong>{period.label}</strong><span>{period.time}</span></div>,
-              ...weekdays.map((day) => {
-                const current = slots.filter((slot) => slot.day === day && slot.period === period.key)
-                return <div className="timetable-cell" data-course-count={current.length} key={`${day}-${period.key}`}>
-                  {current.map((slot) => (
-                    <button type="button" className={`course-block ${courseColor.get(slot.course.JXBID)}`} onClick={() => setSelected({ course: slot.course, slot })} key={`${slot.course.JXBID}-${slot.raw}`}>
-                      <strong>{courseDisplayName(slot.course)}</strong>
-                      <small>{slot.course.JXBMC}</small>
-                      <span><UserRound size={12} />{slot.course.SKJS || '教师待定'}</span>
-                      <span><MapPin size={12} />{slot.room}</span>
-                      <span className="course-meta">{slot.course.XF || '—'} 学分 · {courseType(slot.course)}</span>
-                    </button>
-                  ))}
-                </div>
-              }),
-            ])}
+            <div className="timetable-corner" style={{ gridColumn: 1, gridRow: 1 }}>节次</div>
+            {weekdays.map((day, dayIndex) => <div className="day-heading" style={{ gridColumn: dayIndex + 2, gridRow: 1 }} key={day}>{day}</div>)}
+            {periods.map((period) => <div className="period-heading" style={{ gridColumn: 1, gridRow: period.key + 1 }} key={`p-${period.key}`}><strong>{period.label}</strong><span>{period.time}</span></div>)}
+            {periods.flatMap((period) => weekdays.map((day, dayIndex) => (
+              <div className="timetable-cell" style={{ gridColumn: dayIndex + 2, gridRow: period.key + 1 }} key={`${day}-${period.key}`} />
+            )))}
+            {slots.map((slot) => {
+              const dayIndex = weekdays.indexOf(slot.day)
+              const laneWidth = 100 / slot.laneCount
+              return <button
+                type="button"
+                className={`course-block ${courseColor.get(slot.course.JXBID)}`}
+                style={{
+                  gridColumn: dayIndex + 2,
+                  gridRow: `${slot.startPeriod + 1} / span ${slot.endPeriod - slot.startPeriod + 1}`,
+                  width: `calc(${laneWidth}% - 6px)`,
+                  marginLeft: `calc(${slot.lane * laneWidth}% + 3px)`,
+                }}
+                onClick={() => setSelected({ course: slot.course, slot })}
+                title={scheduleSlotTitle(slot)}
+                key={scheduleSlotIdentity(slot)}
+              >
+                <strong>{courseDisplayName(slot.course)}</strong>
+                <small>{slot.course.JXBMC}</small>
+                <span><UserRound size={12} />{slot.course.SKJS || '教师待定'}</span>
+                <span><MapPin size={12} />{slot.room}</span>
+                <span className="course-meta">{slot.course.XF || '—'} 学分 · {courseType(slot.course)}</span>
+              </button>
+            })}
           </div>
         )}
       </section>
+      {parsed.unrecognized.length > 0 ? <section className="unrecognized-schedules" aria-label="未识别课程安排">
+        <header><h2>未识别课程安排</h2><span>{parsed.unrecognized.length} 门课程</span></header>
+        <div className="unrecognized-schedule-list">
+          {parsed.unrecognized.map((item) => <button
+            type="button"
+            className="unrecognized-schedule-row"
+            onClick={() => setSelected({ course: item.course })}
+            title={`${courseDisplayName(item.course)}\n该课程格式暂未识别\n${item.rawParts.join('；')}`}
+            key={courseIdentity(item.course)}
+          >
+            <span className="unrecognized-course-identity">
+              <span>该课程格式暂未识别</span>
+              <strong>{courseDisplayName(item.course)}</strong>
+              <small>{item.course.JXBMC || '教学班待定'} · 课程号 {item.course.KCH || '—'}</small>
+            </span>
+            <span className="unrecognized-course-facts">
+              <span>教师：{item.course.SKJS || '教师待定'}</span>
+              <span>{item.course.XF || '—'} 学分 · {courseType(item.course)}</span>
+              <span>开课单位：{item.course.PKDWDM_DISPLAY || '—'}</span>
+            </span>
+            <span className="unrecognized-course-raw">{item.rawParts.join('；')}</span>
+          </button>)}
+        </div>
+      </section> : null}
       {selected && <CourseDetail selection={selected} onClose={() => setSelected(null)} />}
     </div>
   )
@@ -106,7 +141,11 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
 
 function CourseDetail({ selection, onClose }: { selection: CourseSelection; onClose: () => void }) {
   const { course, slot } = selection
-  const arrangements = parseSchedule([course])
+  const courseSchedule = parseSchedule([course])
+  const arrangements = courseSchedule.slots
+  const failedParts = course.ZCXQJCDD?.trim()
+    ? courseSchedule.unrecognized.flatMap((item) => item.rawParts)
+    : []
   const facts = [
     ['教学班', course.JXBMC || '—'],
     ['课程号', course.KCH || '—'],
@@ -123,10 +162,10 @@ function CourseDetail({ selection, onClose }: { selection: CourseSelection; onCl
       <header><div><h2 id="course-detail-title">{courseDisplayName(course)}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭课程详情" autoFocus><X size={20} /></button></header>
       <div className="course-facts">{facts.map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
       <div className="course-schedule-detail"><span>完整上课安排</span>
-        {arrangements.length ? <div className="arrangement-list">{arrangements.map((item, index) => {
-          const label = periods.find((period) => period.key === item.period)?.label || item.period
-          return <div key={`${item.raw}-${index}`}><strong>{item.day} {label} 节</strong><span>{item.weeks}</span><small>{item.room}</small></div>
-        })}</div> : <p>{course.ZCXQJCDD || slot?.raw || '暂未排定具体时间与教室'}</p>}
+        {arrangements.length || failedParts.length ? <div className="arrangement-list">
+          {arrangements.map((item) => <div key={scheduleSlotIdentity(item)}><strong>{item.day} {periodRangeLabel(item)}</strong><span>{item.weeks}</span><small>{item.room}</small></div>)}
+          {failedParts.map((rawPart) => <div key={`${courseIdentity(course)}-unrecognized-${rawPart}`}><strong>该课程格式暂未识别</strong><span>{rawPart}</span></div>)}
+        </div> : <p>{slot?.raw || '暂未排定具体时间与教室'}</p>}
       </div>
       <footer><button type="button" className="secondary-button" onClick={onClose}>关闭</button></footer>
     </section>
@@ -139,4 +178,36 @@ function formatCredits(value: number) {
 
 function courseType(course: ScheduleCourse) {
   return course.KCFLDM_DISPLAY || course.KCFL1_DISPLAY || '课程类别待定'
+}
+
+function courseIdentity(course: ScheduleCourse) {
+  return course.JXBID || `${course.KCH}-${course.JXBMC}`
+}
+
+function scheduleSlotIdentity(slot: ScheduleSlot) {
+  return [
+    courseIdentity(slot.course),
+    slot.day,
+    slot.startPeriod,
+    slot.endPeriod,
+    slot.weeks,
+    slot.room,
+    slot.raw,
+  ].join('|')
+}
+
+function periodRangeLabel(slot: ScheduleSlot) {
+  return slot.startPeriod === slot.endPeriod ? `第${slot.startPeriod}节` : `第${slot.startPeriod}-${slot.endPeriod}节`
+}
+
+function scheduleSlotTitle(slot: ScheduleSlot) {
+  return [
+    courseDisplayName(slot.course),
+    `教学班：${slot.course.JXBMC || '教学班待定'}`,
+    `课程号：${slot.course.KCH || '—'}`,
+    `教师：${slot.course.SKJS || '教师待定'}`,
+    `时间：${slot.day} ${periodRangeLabel(slot)} ${slot.weeks}`,
+    `地点：${slot.room}`,
+    `学分与类别：${slot.course.XF || '—'} 学分 · ${courseType(slot.course)}`,
+  ].join('\n')
 }

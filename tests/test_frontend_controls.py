@@ -148,6 +148,55 @@ def test_schedule_hover_uses_title_color_without_a_colored_frame() -> None:
     assert ".course-block:hover strong { color: var(--purple); }" in styles
 
 
+def test_schedule_uses_twelve_periods_and_surfaces_unrecognized_courses() -> None:
+    source = (ROOT / "frontend" / "src" / "components" / "Schedule.tsx").read_text(
+        encoding="utf-8"
+    )
+    utils = (ROOT / "frontend" / "src" / "utils.ts").read_text(encoding="utf-8")
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert "第12节" in utils
+    assert "21:30-22:20" in utils
+    assert "parsed.unrecognized" in source
+    assert "该课程格式暂未识别" in source
+    assert "layoutScheduleSlots" in source
+    assert "grid-template-rows: 44px repeat(12" in styles
+
+
+def test_schedule_detail_keeps_recognized_and_failed_parts_together() -> None:
+    source = (ROOT / "frontend" / "src" / "components" / "Schedule.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "const courseSchedule = parseSchedule([course])" in source
+    assert "const arrangements = courseSchedule.slots" in source
+    assert "courseSchedule.unrecognized.flatMap((item) => item.rawParts)" in source
+    assert "arrangements.length || failedParts.length" in source
+    assert "failedParts.map((rawPart) =>" in source
+    assert "<strong>该课程格式暂未识别</strong>" in source
+
+
+def test_schedule_course_lists_use_stable_content_keys() -> None:
+    source = (ROOT / "frontend" / "src" / "components" / "Schedule.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "function courseIdentity(course: ScheduleCourse)" in source
+    assert "course.JXBID || `${course.KCH}-${course.JXBMC}`" in source
+    assert "function scheduleSlotIdentity(slot: ScheduleSlot)" in source
+    for field in ("slot.day", "slot.startPeriod", "slot.endPeriod", "slot.weeks", "slot.room", "slot.raw"):
+        assert field in source
+    assert "slots.map((slot) =>" in source
+    assert "parsed.unrecognized.map((item) =>" in source
+    assert "arrangements.map((item) =>" in source
+    assert "key={scheduleSlotIdentity(slot)}" in source
+    assert "key={courseIdentity(item.course)}" in source
+    assert "key={scheduleSlotIdentity(item)}" in source
+    assert "slots.map((slot, index)" not in source
+    assert "parsed.unrecognized.map((item, index)" not in source
+    assert "arrangements.map((item, index)" not in source
+
+
 def test_program_selector_uses_compact_type_and_height() -> None:
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
 
