@@ -9,8 +9,9 @@ nju**一站式**学业助手，集成所有常用信息。
 >排名查询和五育系统可能需要在校园网或vpn环境下打开
 >
 >第一次进入时加载可能需要一段时间
+>
+> 本项目是个人开发的非官方工具，与学校官方无隶属关系。课程、成绩与培养方案请以学校系统最终结果为准。
 
-- 本 README 对应南雍知课 v3.0。公开发行标签使用 `v3.0`；Python、npm 和 macOS bundle 的内部版本号使用 `3.0.0`（兼容 semver）。
 
 ## 界面预览
 
@@ -19,13 +20,12 @@ nju**一站式**学业助手，集成所有常用信息。
 </p>
 
 <p align="center">
-  <!-- 同时修改下面两个 width 数值即可统一调整按钮大小。 -->
   <a href="https://eurus07e.github.io/nanyong-zhike-app/"><img src="docs/badges/online-preview.svg" width="260" alt="在线预览"></a>
   <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v3.0"><img src="docs/badges/download-latest.svg" width="260" alt="下载最新版 v3.0"></a>
 </p>
 
 <p align="center">
-  <sub>预览页演示账号为 Rick Sanchez，身份字段已隐藏；成绩、课表等内容来自脱敏后的个人缓存数据。</sub>
+  <sub>预览页非真实数据，仅作演示。</sub>
 </p>
 
 ## 下载和启动
@@ -33,7 +33,7 @@ nju**一站式**学业助手，集成所有常用信息。
 **第一步：下载**
 
 <p align="center">
-  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v3.0"><img src="docs/badges/release-download.svg" width="680" alt="前往 GitHub Release 下载南雍知课 v3.0"></a>
+  <a href="https://github.com/Eurus07e/nanyong-zhike-app/releases/tag/v3.0"><img src="docs/badges/release-download.svg" width="550" alt="前往 GitHub Release 下载南雍知课 v3.0"></a>
 </p>
 
 **第二步：安装或解压**
@@ -46,9 +46,8 @@ nju**一站式**学业助手，集成所有常用信息。
 - Windows：双击桌面或开始菜单中的“南雍知课”。
 - macOS：首次运行不能直接双击，请按住 Control 点击“南雍知课”并选择“打开”；完成首次系统确认后可正常启动。
 
-需要结束后台服务时，点击网页左下角的电源图标“退出本地应用”。
+需要结束后台服务时，点击网页左下角图标退出本地应用。
 
-> 本项目是个人开发的非官方工具，与学校官方无隶属关系。课程、成绩与培养方案请以学校系统最终结果为准。
 
 ### 您可能用到的首次打开提示
 
@@ -152,16 +151,10 @@ Docker/Caddy 配置保留用于开发者自行部署。生产部署必须使用 
 
 v3.0 发行包由 [GitHub Release 工作流](.github/workflows/release.yml) 构建；本版本仅发布 macOS Apple Silicon 与 Windows x86_64，产物分别是 DMG 和安装程序。Linux runner 仅保留在 verify job 中执行跨平台测试，不再生成 Linux 下载包。公开标签为 `v3.0`，包内 Python、npm 和 macOS bundle 使用内部版本 `3.0.0`。工作流会校验固定的 nju-cli v1.4.6 源码、应用公开的缓存隔离补丁、运行完整测试，并在 Windows/macOS 原生 runner 上启动发行包，检查内置 `nju-cli`、本地 API、首页、4 张登录图、头像、“雍”图标、固定 SHA-256 的支付宝收款码和备忘录数据库表结构。Windows 安装器还会在普通 CI 和原生编译前使用固定校验值的简体中文语言文件执行 Inno Setup 预检。补丁以确定性脚本施加，等价完整 diff 随包提供。Windows 或 macOS 任一检查失败时均不会发布 Release。发布工作流仅监听准确的 `v3.0` 标签，以防其他标签被误发布为其他版本。
 
-### 桌面化边界与可行性
 
-当前发行物是一个经过 PyInstaller 打包的本地服务启动器：PyInstaller 负责打包和启动，不提供 WebView 或原生内容窗口。启动器把 FastAPI 服务绑定到 `127.0.0.1`，等待健康检查后交给默认浏览器打开，因此它是浏览器型桌面应用，不是原生桌面界面；关闭浏览器不会自动结束后台进程，网页中的“退出本地应用”才会请求退出。
-
-Win/mac 数据接口和路径是可核验的。macOS 使用 `~/Library/Application Support/NanyongZhike`，Windows 使用 `%LOCALAPPDATA%\NanyongZhike`；数据库、`.app-secret` 和 `launcher.log` 只写入这些用户目录，前端静态文件、评价快照和经过构建验证的 `nju-cli` 位于只读发行资源。启动器按 `_MEIPASS` 解析冻结资源，并用健康响应中的 `version` 和 `deployment=desktop` 防止复用开发服务。子进程环境采用白名单，缓存显式隔离到 `NJU_CLI_CACHE_DIR`；Windows 传入 `CREATE_NO_WINDOW`，所有调用都有超时和终止路径。上述边界由 `tests/test_desktop_launcher.py`、`tests/test_nju_cli.py` 和发行冒烟测试覆盖。
-
-结论：作为需要免安装 Python/Node 的本地浏览器型桌面发行，Windows x86_64 与 macOS Apple Silicon 的方案可行且已有可重复验证；它不等同于内嵌浏览器或原生窗口。如果后续要求菜单栏、独立窗口生命周期或离线 WebView，需要另行引入 WebView/原生壳层并重新评估签名、更新和资源策略，本版本不作此承诺。
 
 ## 开源与许可
 
 南雍知课按 [GNU GPL v3](LICENSE) 发布。项目通过独立子进程调用 [nju-cli](https://github.com/nju-cli/nju-cli)，并使用 [nju-class](https://github.com/carottX/nju-class) 的公开评价数据；备忘录交互受到 MIT 许可的 [Memos](https://github.com/usememos/memos) 启发。发行包附带 nju-cli v1.4.6 对应源码与补丁；完整来源与许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。在此一并致谢！
 
-如遇问题，欢迎通过站内“关于本站”页面联系维护者。
+如遇问题，欢迎通过站内“关于本站”页面或 github 联系维护者。
