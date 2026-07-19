@@ -36,6 +36,16 @@ export type ScheduleParseResult = {
   unrecognized: UnrecognizedSchedule[]
 }
 
+export type SchedulePayload = { rows: ScheduleCourse[] }
+
+export function isValidSchedulePayload(value: unknown): value is SchedulePayload {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const rows = (value as { rows?: unknown }).rows
+  return Array.isArray(rows) && rows.every((row) =>
+    row !== null && typeof row === 'object' && !Array.isArray(row)
+  )
+}
+
 const scheduleMarkerPattern = /(?:周|星期)[一二三四五六日天]|自由时间/g
 const scheduleDayPeriodPattern = /^(?:周|星期)([一二三四五六日天])\s*第?\s*(\d{1,2})(?:\s*(?:-|至)\s*第?\s*(\d{1,2}))?\s*节\s*/
 const scheduleWeekPattern = /^((?:(?:第?\s*\d{1,2}\s*(?:-|至)\s*第?\s*\d{1,2}周|第?\s*\d{1,2}周(?:\s*[,，、]\s*第?\s*\d{1,2}周)*|第?\s*\d{1,2}(?:\s*[,，、]\s*第?\s*\d{1,2})+周)(?:\s*(?:[（(]\s*[单双](?:周)?\s*[）)]|[单双]周))?|[单双]周))(?:(?:\s*[,，;；]\s*|\s+)(.*))?$/

@@ -569,12 +569,18 @@ async def schedule(
         if term:
             args.extend(["--term", term])
         payload = await run_cli(session, args)
-        rows = payload.get("rows") if isinstance(payload, dict) else None
+        if (
+            not isinstance(payload, dict)
+            or not isinstance(payload.get("rows"), list)
+            or any(not isinstance(row, dict) for row in payload["rows"])
+        ):
+            raise HTTPException(status_code=502, detail="教务系统返回的课表数据格式异常")
+        rows = payload["rows"]
         course_ids = list(
             dict.fromkeys(
                 str(row.get("JXBID") or row.get("KCH"))
-                for row in rows or []
-                if isinstance(row, dict) and (row.get("JXBID") or row.get("KCH"))
+                for row in rows
+                if row.get("JXBID") or row.get("KCH")
             )
         )
         if not course_ids:

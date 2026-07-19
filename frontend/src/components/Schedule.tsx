@@ -3,7 +3,7 @@ import { CalendarDays, MapPin, RefreshCw, UserRound, X } from 'lucide-react'
 import { api, ApiError, query, withRefresh } from '../api'
 import { courseCreditValue, formatCourseCredit } from '../program-requirements'
 import type { ScheduleCourse, Term } from '../types'
-import { courseDisplayName, layoutScheduleSlots, parseSchedule, periods, type ScheduleSlot, weekdays } from '../utils'
+import { courseDisplayName, isValidSchedulePayload, layoutScheduleSlots, parseSchedule, periods, type ScheduleSlot, weekdays } from '../utils'
 import { LoadingLines } from './Overview'
 
 const colors = ['violet', 'teal', 'orange', 'blue', 'rose', 'green']
@@ -13,9 +13,10 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
   const cachedTerms = api.peek<Term[]>('/api/schedule/terms') || []
   const initialTerm = cachedTerms[0]?.DM || ''
   const initialSchedulePath = initialTerm ? query('/api/schedule', { term: initialTerm }) : ''
+  const initialSchedule = initialSchedulePath ? api.peek<unknown>(initialSchedulePath) : undefined
   const [terms, setTerms] = useState<Term[]>(cachedTerms)
   const [term, setTerm] = useState(initialTerm)
-  const [courses, setCourses] = useState<ScheduleCourse[]>(() => initialSchedulePath ? api.peek<{ rows: ScheduleCourse[] }>(initialSchedulePath)?.rows || [] : [])
+  const [courses, setCourses] = useState<ScheduleCourse[]>(() => isValidSchedulePayload(initialSchedule) ? initialSchedule.rows : [])
   const [selected, setSelected] = useState<CourseSelection | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -71,15 +72,24 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
       const basePath = query('/api/schedule', { term: activeTerm })
       const hadCache = !force && api.hasCache(basePath)
       const path = withRefresh(basePath, force)
-      const data = await api.cached<{ rows: ScheduleCourse[] }>(path, { ttl: 2 * 60_000, force })
+      let data = await api.cached<unknown>(path, { ttl: 2 * 60_000, force })
+      let recoveredInvalidCache = false
+      if (!isValidSchedulePayload(data)) {
+        if (force) throw new Error('教务系统返回的课表数据格式异常')
+        recoveredInvalidCache = true
+        data = await api.cached<unknown>(withRefresh(basePath, true), { force: true })
+        if (!isValidSchedulePayload(data)) throw new Error('教务系统返回的课表数据格式异常')
+        api.setCache(basePath, data, 2 * 60_000)
+      }
       if (requestId !== scheduleRequestRef.current) return
       if (force) api.setCache(basePath, data, 2 * 60_000)
-      setCourses(data.rows || [])
-      if (hadCache) {
-        const fresh = await api.cached<{ rows: ScheduleCourse[] }>(withRefresh(basePath, true), { force: true })
+      setCourses(data.rows)
+      if (hadCache && !recoveredInvalidCache) {
+        const fresh = await api.cached<unknown>(withRefresh(basePath, true), { force: true })
         if (requestId !== scheduleRequestRef.current) return
+        if (!isValidSchedulePayload(fresh)) throw new Error('教务系统返回的课表数据格式异常')
         api.setCache(basePath, fresh, 2 * 60_000)
-        setCourses(fresh.rows || [])
+        setCourses(fresh.rows)
       }
     } catch (caught) {
       if (requestId !== scheduleRequestRef.current) return

@@ -21975,7 +21975,7 @@
   "memos": [
     {
       "content": "确认下学期培养方案中的通识课程安排 #选课",
-      "createdAt": 1784484191,
+      "createdAt": 1784484626,
       "id": 3,
       "linkLabel": null,
       "linkUrl": null,
@@ -21983,11 +21983,11 @@
       "tags": [
         "选课"
       ],
-      "updatedAt": 1784489591
+      "updatedAt": 1784490026
     },
     {
       "content": "整理本周课程笔记，完成课程项目阶段总结 #学习",
-      "createdAt": 1784404991,
+      "createdAt": 1784405426,
       "id": 2,
       "linkLabel": null,
       "linkUrl": null,
@@ -21995,11 +21995,11 @@
       "tags": [
         "学习"
       ],
-      "updatedAt": 1784404991
+      "updatedAt": 1784405426
     },
     {
       "content": "查看本科生院最新通知并加入计划 #校园",
-      "createdAt": 1784318591,
+      "createdAt": 1784319026,
       "id": 1,
       "linkLabel": "打开本科生院",
       "linkUrl": "https://jw.nju.edu.cn/main.psp",
@@ -22007,11 +22007,11 @@
       "tags": [
         "校园"
       ],
-      "updatedAt": 1784318591
+      "updatedAt": 1784319026
     }
   ],
   "meta": {
-    "generatedAt": 1784491391,
+    "generatedAt": 1784491826,
     "notice": "演示数据已脱敏，学号及身份字段不会公开。",
     "sessionUsername": "Rick Sanchez",
     "version": "3.0.0"

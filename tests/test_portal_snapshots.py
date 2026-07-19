@@ -103,3 +103,26 @@ async def test_schedule_terms_rejects_empty_or_malformed_upstream_payloads(
 
     assert await main.schedule_terms(session, refresh=True) == stale
     assert snapshots.get("alice", cache_key)["value"] == stale
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("payload", [[], {}, {"rows": "bad"}])
+async def test_schedule_rejects_malformed_upstream_payload_without_overwriting_snapshot(
+    monkeypatch, tmp_path, payload
+):
+    snapshots, _ = repository(tmp_path)
+    cache_key = "/api/schedule?term=2026-2027-1"
+    stale = {"rows": [{"KCH": "00000001", "KCM": "高等数学"}]}
+    snapshots.save("alice", cache_key, stale)
+    monkeypatch.setattr(main, "portal_snapshots", snapshots)
+    session = Session(username="alice", castgc="ticket", expires_at=2_000_000_000)
+
+    async def malformed_loader(*_args, **_kwargs):
+        return payload
+
+    monkeypatch.setattr(main, "run_cli", malformed_loader)
+
+    assert await main.schedule(
+        session, term="2026-2027-1", refresh=True
+    ) == stale
+    assert snapshots.get("alice", cache_key)["value"] == stale

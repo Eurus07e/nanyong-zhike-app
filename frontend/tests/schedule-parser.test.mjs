@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { layoutScheduleSlots, parseSchedule } from '../src/utils.ts'
+import { isValidSchedulePayload, layoutScheduleSlots, parseSchedule } from '../src/utils.ts'
 
 const course = (overrides = {}) => ({
   KCH: '00000030',
@@ -13,6 +13,15 @@ const course = (overrides = {}) => ({
   PKDWDM_DISPLAY: '马克思主义学院',
   KCFLDM_DISPLAY: '通修课程',
   ...overrides,
+})
+
+test('accepts only schedule payloads with an array of course objects', () => {
+  assert.equal(isValidSchedulePayload({ rows: [] }), true)
+  assert.equal(isValidSchedulePayload({ rows: [course()] }), true)
+  assert.equal(isValidSchedulePayload([]), false)
+  assert.equal(isValidSchedulePayload({}), false)
+  assert.equal(isValidSchedulePayload({ rows: 'bad' }), false)
+  assert.equal(isValidSchedulePayload({ rows: [null] }), false)
 })
 
 test('keeps comma-separated discrete weeks in one visible schedule slot', () => {
