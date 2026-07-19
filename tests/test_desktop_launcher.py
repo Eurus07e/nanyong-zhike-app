@@ -299,6 +299,15 @@ def test_prepare_release_bundles_upstream_source_and_cache_patch(
     assert not (third_party.parent / "南雍知课.desktop").exists()
 
 
+def test_prepare_release_preserves_signed_macos_bundle_structure() -> None:
+    source = (ROOT / "desktop" / "prepare_release.py").read_text(encoding="utf-8")
+
+    assert '"ditto"' in source
+    assert '"--sequesterRsrc"' in source
+    assert '"--keepParent"' in source
+    assert "shutil.make_archive" in source
+
+
 def test_launcher_uses_file_logging_when_no_console_is_available(
     monkeypatch, tmp_path
 ):

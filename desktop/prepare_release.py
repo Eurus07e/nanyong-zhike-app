@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import subprocess
 from pathlib import Path
 
 
@@ -59,7 +60,25 @@ def main() -> None:
     shutil.copy2(args.nju_source, third_party / "nju-cli-v1.4.6.tar.gz")
     shutil.copy2(nju_patch, third_party / nju_patch.name)
 
-    archive = shutil.make_archive(str(release_root / package_name), "zip", release_root, package_name)
+    archive_path = release_root / f"{package_name}.zip"
+    if args.platform == "macos":
+        # Python's zipfile handling can flatten framework symlinks and make a
+        # signed .app fail Gatekeeper's bundle validation after extraction.
+        subprocess.run(
+            [
+                "ditto",
+                "-c",
+                "-k",
+                "--sequesterRsrc",
+                "--keepParent",
+                str(package),
+                str(archive_path),
+            ],
+            check=True,
+        )
+    else:
+        shutil.make_archive(str(release_root / package_name), "zip", release_root, package_name)
+    archive = str(archive_path)
     print(archive)
 
 
