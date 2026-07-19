@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import threading
 import time
 from contextlib import asynccontextmanager, suppress
@@ -282,7 +283,16 @@ async def portal_cache_first(
         )
         if cached is not None:
             return cached["value"]
-    value = await loader()
+    try:
+        value = await loader()
+    except HTTPException as error:
+        if error.status_code >= 500:
+            cached = await asyncio.to_thread(
+                portal_snapshots.get, session.username, cache_key
+            )
+            if cached is not None:
+                return cached["value"]
+        raise
     return await save_portal_snapshot(session, cache_key, value)
 
 
@@ -521,13 +531,26 @@ async def schedule_terms(
     session: Annotated[Session, Depends(current_session)],
     refresh: bool = False,
 ) -> Any:
+    async def load() -> list[dict[str, Any]]:
+        value = await run_cli(
+            session, ["ehall", "my-course-schedule", "terms", "--json"]
+        )
+        if not isinstance(value, list) or not value or any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("DM"), str)
+            or not re.fullmatch(r"\d{4}-\d{4}-[123]", item["DM"])
+            or not isinstance(item.get("MC"), str)
+            or not item["MC"].strip()
+            for item in value
+        ):
+            raise HTTPException(status_code=502, detail="教务系统返回的学期数据格式异常")
+        return value
+
     return await portal_cache_first(
         session,
         "/api/schedule/terms",
         refresh,
-        lambda: run_cli(
-            session, ["ehall", "my-course-schedule", "terms", "--json"]
-        ),
+        load,
     )
 
 

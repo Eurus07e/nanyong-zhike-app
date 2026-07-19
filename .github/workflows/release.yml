@@ -3,7 +3,7 @@ name: Release desktop packages
 on:
   push:
     tags:
-      - "v2.0.3"
+      - "v3.0"
 
 permissions:
   contents: read
@@ -51,16 +51,6 @@ jobs:
             platform: windows
             arch: x86_64
             nju_binary: nju-cli.exe
-          - label: Linux x86_64
-            os: ubuntu-22.04
-            platform: linux
-            arch: x86_64
-            nju_binary: nju-cli
-          - label: Linux arm64
-            os: ubuntu-24.04-arm
-            platform: linux
-            arch: arm64
-            nju_binary: nju-cli
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -124,17 +114,10 @@ jobs:
           PY
       - name: Build desktop package
         shell: bash
-        env:
-          RELEASE_PLATFORM: ${{ matrix.platform }}
-          RELEASE_ARCH: ${{ matrix.arch }}
         run: |
           python -m PyInstaller --noconfirm --clean desktop/nanyong_zhike.spec
           python desktop/smoke_test_release.py --dist dist/NanyongZhike
-          python desktop/prepare_release.py \
-            --platform "$RELEASE_PLATFORM" \
-            --arch "$RELEASE_ARCH" \
-            --nju-source .release-tools/nju-cli-v1.4.6-source.tar.gz
-      - name: Build macOS disk image
+      - name: Sign and verify macOS app
         if: matrix.platform == 'macos'
         shell: bash
         run: |
@@ -144,12 +127,32 @@ jobs:
           xattr -dr 'com.apple.fileprovider.fpfs#P' "dist/南雍知课.app" 2>/dev/null || true
           codesign --force --deep --sign - "dist/南雍知课.app"
           codesign --verify --deep --strict "dist/南雍知课.app"
+      - name: Prepare release archive
+        shell: bash
+        env:
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+          RELEASE_ARCH: ${{ matrix.arch }}
+        run: |
+          python desktop/prepare_release.py \
+            --platform "$RELEASE_PLATFORM" \
+            --arch "$RELEASE_ARCH" \
+            --nju-source .release-tools/nju-cli-v1.4.6-source.tar.gz
+      - name: Build macOS disk image
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          verify_root="$(mktemp -d)"
+          unzip -q "release/NanyongZhike-macos-arm64.zip" -d "$verify_root"
+          codesign --verify --deep --strict "$verify_root/NanyongZhike-macos-arm64/南雍知课.app"
+          rm -rf "$verify_root"
           staging="release/dmg-root"
           mkdir -p "$staging"
           cp -R "dist/南雍知课.app" "$staging/南雍知课.app"
           ln -s /Applications "$staging/Applications"
           hdiutil create -volname "南雍知课" -srcfolder "$staging" -ov -format UDZO \
             "release/NanyongZhike-macos-arm64.dmg"
+          hdiutil verify "release/NanyongZhike-macos-arm64.dmg"
           rm -rf "$staging"
       - name: Build Windows installer
         if: matrix.platform == 'windows'
@@ -157,7 +160,7 @@ jobs:
         run: |
           $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $compiler)) { throw "Inno Setup is unavailable on this runner" }
-          & $compiler "/DAppVersion=2.0.3" "desktop\windows-installer.iss"
+          & $compiler "/DAppVersion=3.0.0" "desktop\windows-installer.iss"
           if ($LASTEXITCODE -ne 0) { throw "Windows installer compilation failed" }
           if (-not (Test-Path -LiteralPath "release\NanyongZhike-windows-x86_64-setup.exe" -PathType Leaf)) {
             throw "Windows installer was not created"

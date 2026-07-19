@@ -69,15 +69,17 @@ def test_login_url_must_stay_on_nju_authserver():
 def test_exchange_timeout_explains_the_campus_network_requirement():
     error = _connection_error(TimeoutError())
 
-    assert "南京大学 VPN" in str(error)
-    assert "校园网" in str(error)
+    assert str(error) == "交换生系统暂时不可用，请连接校园网或vpn并稍后重试"
 
 
 def test_exchange_network_failure_explains_the_campus_network_requirement():
-    assert "南京大学 VPN" in str(_connection_error(URLError("timed out")))
+    assert (
+        str(_connection_error(URLError("timed out")))
+        == "交换生系统暂时不可用，请连接校园网或vpn并稍后重试"
+    )
 
 
-def test_exchange_server_error_keeps_the_generic_retry_message():
+def test_exchange_server_error_uses_the_same_actionable_message():
     upstream = HTTPError(
         "http://elite.nju.edu.cn/exchangesystem/",
         500,
@@ -86,4 +88,25 @@ def test_exchange_server_error_keeps_the_generic_retry_message():
         None,
     )
 
-    assert str(_connection_error(upstream)) == "交换生系统暂时不可用，请稍后重试"
+    assert (
+        str(_connection_error(upstream))
+        == "交换生系统暂时不可用，请连接校园网或vpn并稍后重试"
+    )
+
+
+@pytest.mark.parametrize("status_code", [403, 483])
+def test_exchange_restricted_network_response_uses_the_same_actionable_message(
+    status_code,
+):
+    upstream = HTTPError(
+        "http://elite.nju.edu.cn/exchangesystem/",
+        status_code,
+        "restricted",
+        {},
+        None,
+    )
+
+    assert (
+        str(_connection_error(upstream))
+        == "交换生系统暂时不可用，请连接校园网或vpn并稍后重试"
+    )

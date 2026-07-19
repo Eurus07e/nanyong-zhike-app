@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { GraduationCap, Info, LayoutList, LoaderCircle, RotateCcw, Search, X, ZoomIn, ZoomOut } from 'lucide-react'
-import { api, ApiError, query } from '../api'
+import { api, ApiError, query, withRefresh } from '../api'
 import { adjustMapScale, formatMapScale } from '../map-scale'
 import {
   aggregateNodeCourses,
   buildProgramTree,
   classifyProgramNodesForYear,
+  courseCreditValue,
+  formatCourseCredit,
+  resolveProgramNodeCreditRequirement,
   resolveProgramRequirements,
   summarizeProgramNode,
   type ProgramNodeSummary,
@@ -72,7 +75,8 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
   const loadPrograms = useCallback(async (targetYear: string, keyword = '', targetDepartment = '', targetType = '') => {
     const requestId = ++programListRequestRef.current
     const path = query('/api/programs', { grade: targetYear })
-    if (!api.hasCache(path)) setLoading(true)
+    const hadProgramsCache = api.hasCache(path)
+    if (!hadProgramsCache) setLoading(true)
     setError('')
     try {
       const items = await api.cached<Program[]>(query('/api/programs', {
@@ -85,6 +89,16 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
       const effectiveDepartment = targetDepartment && availableDepartments.has(targetDepartment) ? targetDepartment : ''
       if (effectiveDepartment !== targetDepartment) setDepartment('')
       applyProgramFilters(items, keyword, effectiveDepartment, targetType)
+      if (hadProgramsCache) {
+        const freshItems = await api.cached<Program[]>(withRefresh(path, true), { ttl: 30 * 60_000, force: true })
+        if (requestId !== programListRequestRef.current) return
+        api.setCache(path, freshItems, 30 * 60_000)
+        setAllPrograms(freshItems)
+        const freshDepartments = new Set(freshItems.map((item) => item.DWDM_DISPLAY).filter(Boolean))
+        const freshDepartment = targetDepartment && freshDepartments.has(targetDepartment) ? targetDepartment : ''
+        if (freshDepartment !== targetDepartment) setDepartment('')
+        applyProgramFilters(freshItems, keyword, freshDepartment, targetType)
+      }
     } catch (caught) {
       if (requestId !== programListRequestRef.current) return
       if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
@@ -105,16 +119,28 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
 
   useEffect(() => {
     let active = true
-    void api.cached<AcademicProfile>('/api/academic/profile', { ttl: 30 * 60_000 }).then((profile) => {
-      if (!active) return
-      profileRef.current = profile
-      setYear(profile.grade)
-      return loadPrograms(profile.grade)
-    }).catch((caught) => {
-      if (!active) return
-      if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
-      void loadPrograms(gradeYear(session.username))
-    })
+    void (async () => {
+      const profilePath = '/api/academic/profile'
+      const hadProfileCache = api.hasCache(profilePath)
+      try {
+        const profile = await api.cached<AcademicProfile>(profilePath, { ttl: 30 * 60_000 })
+        if (!active) return
+        profileRef.current = profile
+        setYear(profile.grade)
+        await loadPrograms(profile.grade)
+        if (!active || !hadProfileCache) return
+        const freshProfile = await api.cached<AcademicProfile>(withRefresh(profilePath, true), { ttl: 30 * 60_000, force: true })
+        if (!active) return
+        api.setCache(profilePath, freshProfile, 30 * 60_000)
+        profileRef.current = freshProfile
+        setYear(freshProfile.grade)
+        if (freshProfile.grade !== profile.grade) await loadPrograms(freshProfile.grade)
+      } catch (caught) {
+        if (!active) return
+        if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
+        if (!profileRef.current) void loadPrograms(gradeYear(session.username))
+      }
+    })()
     return () => { active = false }
   }, [loadPrograms, onUnauthorized, session.username])
 
@@ -136,6 +162,7 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
     const programPath = `/api/programs/${encodeURIComponent(programId)}`
     const cachedDetail = api.peek<Program>(programPath)
     const cachedNodes = api.peek<ProgramNode[]>(`${programPath}/nodes`)
+    const hadProgramCache = Boolean(cachedDetail && cachedNodes)
     if (cachedDetail && cachedNodes) {
       setDetail(cachedDetail)
       setNodes(cachedNodes)
@@ -155,10 +182,14 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
     void (async () => {
       try {
         const [program, nodeItems] = await Promise.all([
-          api.cached<Program>(`/api/programs/${encodeURIComponent(programId)}`, { ttl: 30 * 60_000 }),
-          api.cached<ProgramNode[]>(`/api/programs/${encodeURIComponent(programId)}/nodes`, { ttl: 30 * 60_000 }),
+          api.cached<Program>(withRefresh(programPath, hadProgramCache), { ttl: 30 * 60_000, force: hadProgramCache }),
+          api.cached<ProgramNode[]>(withRefresh(`${programPath}/nodes`, hadProgramCache), { ttl: 30 * 60_000, force: hadProgramCache }),
         ])
         if (requestId !== programRequestRef.current) return
+        if (hadProgramCache) {
+          api.setCache(programPath, program, 30 * 60_000)
+          api.setCache(`${programPath}/nodes`, nodeItems, 30 * 60_000)
+        }
 
         const courseNodes = nodeItems.filter((node) => node.KZLXDM === '01')
         const prefetchedCourses: Record<string, ProgramCourse[]> = {}
@@ -167,14 +198,17 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
           if (requestId !== programRequestRef.current) return
           const batch = courseNodes.slice(index, index + 4)
           const responses = await Promise.allSettled(batch.map((node) =>
-            api.cached<ProgramCourse[]>(`/api/programs/${encodeURIComponent(programId)}/nodes/${encodeURIComponent(node.KZH)}/courses`, { ttl: 30 * 60_000 })
+            api.cached<ProgramCourse[]>(withRefresh(`${programPath}/nodes/${encodeURIComponent(node.KZH)}/courses`, hadProgramCache), { ttl: 30 * 60_000, force: hadProgramCache })
           ))
           if (requestId !== programRequestRef.current) return
           const authFailure = responses.find((response) => response.status === 'rejected' && response.reason instanceof ApiError && response.reason.status === 401)
           if (authFailure?.status === 'rejected') throw authFailure.reason
           batch.forEach((node, batchIndex) => {
             const response = responses[batchIndex]
-            if (response.status === 'fulfilled') prefetchedCourses[node.KZH] = response.value
+            if (response.status === 'fulfilled') {
+              prefetchedCourses[node.KZH] = response.value
+              if (hadProgramCache) api.setCache(`${programPath}/nodes/${encodeURIComponent(node.KZH)}/courses`, response.value, 30 * 60_000)
+            }
             else failedCourses[node.KZH] = response.reason instanceof Error ? response.reason.message : '课程加载失败'
           })
         }
@@ -188,7 +222,7 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
       } catch (caught) {
         if (requestId !== programRequestRef.current) return
         if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
-        setError(caught instanceof Error ? caught.message : '方案内容加载失败')
+        if (!hadProgramCache) setError(caught instanceof Error ? caught.message : '方案内容加载失败')
       } finally {
         if (requestId === programRequestRef.current) setLoading(false)
       }
@@ -213,10 +247,11 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
     if (!programId || !nodeIds.length || courseRetryLoading) return
     const requestId = ++courseRetryRequestRef.current
     const activeProgramId = programId
+    const basePaths = nodeIds.map((nodeId) => `/api/programs/${encodeURIComponent(activeProgramId)}/nodes/${encodeURIComponent(nodeId)}/courses`)
     setCourseRetryLoading(true)
     try {
-      const responses = await Promise.allSettled(nodeIds.map((nodeId) =>
-        api.cached<ProgramCourse[]>(`/api/programs/${encodeURIComponent(activeProgramId)}/nodes/${encodeURIComponent(nodeId)}/courses`, { ttl: 30 * 60_000, force: true })
+      const responses = await Promise.allSettled(basePaths.map((basePath) =>
+        api.cached<ProgramCourse[]>(withRefresh(basePath, true), { ttl: 30 * 60_000, force: true })
       ))
       if (requestId !== courseRetryRequestRef.current || activeProgramId !== programId) return
       const authFailure = responses.find((response) => response.status === 'rejected' && response.reason instanceof ApiError && response.reason.status === 401)
@@ -225,7 +260,11 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
       const failures: Record<string, string> = {}
       responses.forEach((response, index) => {
         const nodeId = nodeIds[index]
-        if (response.status === 'fulfilled') additions[nodeId] = response.value
+        const basePath = basePaths[index]
+        if (response.status === 'fulfilled') {
+          additions[nodeId] = response.value
+          api.setCache(basePath, response.value, 30 * 60_000)
+        }
         else failures[nodeId] = response.reason instanceof Error ? response.reason.message : '课程加载失败'
       })
       setCourses((current) => ({ ...current, ...additions }))
@@ -337,10 +376,10 @@ export function ProgramView({ session, onUnauthorized }: { session: Session; onU
             <div className="year-label"><span>第{['一', '二', '三', '四'][index] || index + 1}学年</span><strong>{academicYear.label}</strong></div>
             <div className="term-columns">{academicYear.terms.map((term) => {
               const items = fixedCourses.filter((course) => course.XNXQ === term.code || courseTerm(course) === term.code)
-              const credits = items.reduce((sum, item) => sum + Number(item.XF || 0), 0)
+              const credits = items.reduce((sum, item) => sum + (courseCreditValue(item.XF) || 0), 0)
               return <section className="term-column" key={term.code}>
                 <header><div><strong>{term.label}</strong><span>{term.code}</span></div><small>{items.length} 门 · {formatCredits(credits)} 学分</small></header>
-                {items.length ? <div className="term-courses">{items.map((course, courseIndex) => <button type="button" onClick={() => setSelectedCourse(course)} key={`${course.KCH}-${courseIndex}`}><strong>{course.KCM}</strong><span>{course.KCH} · {course.XF || '—'} 学分</span></button>)}</div> : <div className="term-empty">暂无指定课程</div>}
+                {items.length ? <div className="term-courses">{items.map((course, courseIndex) => <button type="button" onClick={() => setSelectedCourse(course)} key={`${course.KCH}-${courseIndex}`}><strong>{course.KCM}</strong><span>{course.KCH} · {formatCourseCredit(course.XF)} 学分</span></button>)}</div> : <div className="term-empty">暂无指定课程</div>}
               </section>
             })}</div>
           </article>)}
@@ -466,28 +505,33 @@ function MapBranch({ node, parentId, summaries, selected, onSelect }: { node: Pr
 function formatRequiredSummary(summary: ProgramNodeSummary) {
   const parts = []
   if (summary.requiredCourses != null) parts.push(`应修 ${formatCredits(summary.requiredCourses)} 门`)
-  if (summary.requiredCreditOptions && summary.requiredCreditOptions.length > 1) {
-    parts.push(`应修 ${summary.requiredCreditOptions.map(formatCredits).join(' / ')} 学分`)
-  } else if (summary.requiredCredits != null) parts.push(`应修 ${formatCredits(summary.requiredCredits)} 学分`)
+  const creditRequirement = resolveProgramNodeCreditRequirement(summary)
+  if (creditRequirement?.source === 'required') {
+    parts.push(`应修 ${creditRequirement.values.map(formatCredits).join(' / ')} 学分`)
+  } else if (creditRequirement?.source === 'fixed-course-list') {
+    parts.push(`固定课程清单 ${creditRequirement.values.map(formatCredits).join(' / ')} 学分`)
+  }
   if (parts.length) return parts.join(' · ')
-  if (summary.moduleCount > 0) return `${summary.moduleCount} 个课程模块`
-  return '要求以方案说明为准'
+  if (summary.moduleCount > 0) return `${summary.moduleCount} 个课程模块 · 学分待确认`
+  return '要求学分待确认'
 }
 
 function formatMapSummary(summary: ProgramNodeSummary) {
-  const requirement = formatRequiredSummary(summary)
-  if (requirement !== '要求以方案说明为准') return requirement
+  const creditRequirement = resolveProgramNodeCreditRequirement(summary)
+  if (summary.requiredCourses != null || creditRequirement?.source === 'required') return formatRequiredSummary(summary)
   const parts = []
   if (summary.poolCourses != null) parts.push(`${formatCredits(summary.poolCourses)} 门`)
   if (summary.poolCredits != null) parts.push(`${formatCredits(summary.poolCredits)} 学分`)
-  return parts.length ? `课程清单 ${parts.join(' · ')}` : requirement
+  if (summary.poolCredits == null && summary.poolCourses != null) parts.push('学分待确认')
+  return parts.length ? `课程清单 ${parts.join(' · ')}` : formatRequiredSummary(summary)
 }
 
 function formatPoolSummary(summary: ProgramNodeSummary) {
   const parts = []
   if (summary.poolCourses != null) parts.push(`${formatCredits(summary.poolCourses)} 门`)
   if (summary.poolCredits != null) parts.push(`${formatCredits(summary.poolCredits)} 学分`)
-  return parts.length ? `课程池 ${parts.join(' · ')}` : '未提供固定课程清单'
+  if (summary.poolCredits == null && summary.poolCourses != null) parts.push('学分待确认')
+  return parts.length ? `课程池 ${parts.join(' · ')}` : '未提供固定课程清单 · 学分待确认'
 }
 
 function formatCredits(value: number) {
@@ -496,7 +540,7 @@ function formatCredits(value: number) {
 
 function CourseTable({ courses, compact = false, onSelect }: { courses: ProgramCourse[]; compact?: boolean; onSelect?: (course: ProgramCourse) => void }) {
   if (!courses.length) return <div className="empty-inline">该节点暂无课程，或课程由其他模块统一维护。</div>
-  return <div className={`data-table-wrap ${compact ? 'compact' : ''}`}><table className="data-table"><thead><tr><th>课程</th><th>学分</th><th>建议学期</th><th>开课单位</th></tr></thead><tbody>{courses.map((course, index) => <tr key={`${course.KCH}-${index}`}><td><button type="button" className="course-table-button" onClick={() => onSelect?.(course)}><strong>{course.KCM}</strong><small>{course.KCH}</small></button></td><td>{String(course.XF ?? '—')}</td><td>{courseTerm(course) || '—'}</td><td>{String(course.KKYX_DISPLAY || course.KKDWDM_DISPLAY || course.KKDW_DISPLAY || '—')}</td></tr>)}</tbody></table></div>
+  return <div className={`data-table-wrap ${compact ? 'compact' : ''}`}><table className="data-table"><thead><tr><th>课程</th><th>学分</th><th>建议学期</th><th>开课单位</th></tr></thead><tbody>{courses.map((course, index) => <tr key={`${course.KCH}-${index}`}><td><button type="button" className="course-table-button" onClick={() => onSelect?.(course)}><strong>{course.KCM}</strong><small>{course.KCH}</small></button></td><td>{formatCourseCredit(course.XF)}</td><td>{courseTerm(course) || '—'}</td><td>{String(course.KKYX_DISPLAY || course.KKDWDM_DISPLAY || course.KKDW_DISPLAY || '—')}</td></tr>)}</tbody></table></div>
 }
 
 function NodeDetailModal({ node, summary, courses, loading, missingCount, onRetry, onClose, onCourse }: { node: ProgramNode; summary: ProgramNodeSummary; courses: ProgramCourse[]; loading: boolean; missingCount: number; onRetry: () => void; onClose: () => void; onCourse: (course: ProgramCourse) => void }) {
@@ -557,8 +601,8 @@ function sortNodeCourses(courses: ProgramCourse[], sort: NodeCourseSort) {
   const sorted = [...courses]
   if (sort === 'course-asc') return sorted.sort((left, right) => left.KCM.localeCompare(right.KCM, 'zh-CN'))
   if (sort === 'course-desc') return sorted.sort((left, right) => right.KCM.localeCompare(left.KCM, 'zh-CN'))
-  if (sort === 'credit-desc') return sorted.sort((left, right) => Number(right.XF || 0) - Number(left.XF || 0))
-  if (sort === 'credit-asc') return sorted.sort((left, right) => Number(left.XF || 0) - Number(right.XF || 0))
+  if (sort === 'credit-desc') return sorted.sort((left, right) => (courseCreditValue(right.XF) || 0) - (courseCreditValue(left.XF) || 0))
+  if (sort === 'credit-asc') return sorted.sort((left, right) => (courseCreditValue(left.XF) || 0) - (courseCreditValue(right.XF) || 0))
   if (sort === 'term-asc') return sorted.sort((left, right) => (courseTerm(left) || 'zzzz').localeCompare(courseTerm(right) || 'zzzz'))
   return sorted
 }
@@ -566,7 +610,7 @@ function sortNodeCourses(courses: ProgramCourse[], sort: NodeCourseSort) {
 function ProgramCourseModal({ course, onClose }: { course: ProgramCourse; onClose: () => void }) {
   const facts = [
     ['课程号', course.KCH],
-    ['学分', `${String(course.XF ?? '—')} 学分`],
+    ['学分', `${formatCourseCredit(course.XF)} 学分`],
     ['建议学期', courseTerm(course) || '未指定'],
     ['开课单位', String(course.KKYX_DISPLAY || course.KKDWDM_DISPLAY || course.KKDW_DISPLAY || '—')],
     ['课程性质', String(course.KCXZDM_DISPLAY || course.KCLBDM_DISPLAY || '—')],

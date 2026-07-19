@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import tempfile
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -109,44 +109,65 @@ class NjuCli:
                 return bundled
             raise RuntimeError("发行包不完整：内置 nju-cli 不可用，请重新下载并完整解压")
 
+        system = platform.system()
         machine = platform.machine().lower()
-        target = "macos-aarch64" if platform.system() == "Darwin" else (
-            "linux-aarch64" if machine in {"arm64", "aarch64"} else "linux-x86_64"
-        )
+        if system == "Darwin":
+            target, executable_name = "macos-aarch64", "nju-cli"
+            launcher_names = {"nju-cli"}
+        elif system == "Windows":
+            target, executable_name = "windows-x86_64", "nju-cli.exe"
+            launcher_names = {"nju-cli.ps1"}
+        else:
+            target = (
+                "linux-aarch64"
+                if machine in {"arm64", "aarch64"}
+                else "linux-x86_64"
+            )
+            executable_name = "nju-cli"
+            launcher_names = {"nju-cli"}
         home = Path(os.environ.get("HOME") or Path.home())
+        cache_roots: list[Path] = []
+        if system == "Windows" and os.environ.get("LOCALAPPDATA"):
+            cache_roots.append(Path(os.environ["LOCALAPPDATA"]))
+        elif os.environ.get("XDG_CACHE_HOME"):
+            cache_roots.append(Path(os.environ["XDG_CACHE_HOME"]))
+        cache_roots.append(home)
         candidates: list[Path] = []
         if self.settings.nju_cli_bin:
             configured = Path(self.settings.nju_cli_bin).expanduser()
-            if configured.name == "nju-cli" and configured.parent.name == "scripts":
+            if configured.name in launcher_names and configured.parent.name == "scripts":
                 plugin_root = configured.parent.parent
-                candidates.append(plugin_root / "bin" / target / "nju-cli")
-                xdg_root = os.environ.get("XDG_CACHE_HOME")
-                if xdg_root:
-                    candidates.append(
-                        Path(xdg_root) / "nju-cli-plugin" / "v1.4.6" / target / "nju-cli"
-                    )
-                candidates.append(
-                    home / "nju-cli-plugin" / "v1.4.6" / target / "nju-cli"
+                candidates.append(plugin_root / "bin" / target / executable_name)
+                candidates.extend(
+                    root / "nju-cli-plugin" / "v1.4.6" / target / executable_name
+                    for root in cache_roots
                 )
-            candidates.append(configured)
-        found = shutil.which("nju-cli")
+            if system != "Windows" or configured.suffix.casefold() == ".exe":
+                candidates.append(configured)
+        found = shutil.which(executable_name)
         if found:
             candidates.append(Path(found))
 
-        candidates.append(home / "nju-cli-plugin" / "v1.4.6" / target / "nju-cli")
         candidates.extend(
-            home.glob(
-                ".codex/plugins/cache/nju-cli/nju-cli/*/bin/*/nju-cli"
-            )
+            root / "nju-cli-plugin" / "v1.4.6" / target / executable_name
+            for root in cache_roots
         )
         candidates.extend(
             home.glob(
-                ".codex/plugins/cache/nju-cli/nju-cli/*/scripts/nju-cli"
+                f".codex/plugins/cache/nju-cli/nju-cli/*/bin/*/{executable_name}"
             )
         )
+        if system != "Windows":
+            candidates.extend(
+                home.glob(
+                    ".codex/plugins/cache/nju-cli/nju-cli/*/scripts/nju-cli"
+                )
+            )
 
         for candidate in candidates:
-            if candidate.is_file() and os.access(candidate, os.X_OK):
+            if candidate.is_file() and (
+                system == "Windows" or os.access(candidate, os.X_OK)
+            ):
                 return candidate
         raise RuntimeError(
             "未找到 nju-cli。请安装 nju-cli 1.4.6，或设置 NJU_CLI_BIN。"
@@ -273,6 +294,13 @@ class NjuCli:
             return {"creationflags": cls._WINDOWS_CREATE_NO_WINDOW}
         return {}
 
+    @staticmethod
+    async def _terminate_and_reap(process: Any) -> None:
+        if process.returncode is None:
+            with suppress(ProcessLookupError, OSError):
+                process.kill()
+        await asyncio.shield(process.communicate())
+
     async def _execute(
         self,
         args: list[str],
@@ -294,9 +322,12 @@ class NjuCli:
                 stdout, stderr = await asyncio.wait_for(
                     process.communicate(), timeout=timeout
                 )
+            except asyncio.CancelledError:
+                # Request cancellation must not leave a credential-bearing child alive.
+                await self._terminate_and_reap(process)
+                raise
             except TimeoutError as error:
-                process.kill()
-                await process.communicate()
+                await self._terminate_and_reap(process)
                 raise NjuCliError("学校服务响应超时，请稍后重试") from error
 
         if process.returncode != 0:

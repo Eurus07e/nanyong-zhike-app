@@ -17,6 +17,11 @@ if str(ROOT) not in sys.path:
 
 PHONE_PATTERN = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
 EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
+GROUP_CONTACT_PATTERN = re.compile(
+    r"QQ\s*群|群\s*号|进群|群密码|邀请码|课堂码|会议号|"
+    r"qm\.qq\.com|qun\.qq\.com|joinchat|腾讯会议",
+    re.IGNORECASE,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -86,32 +91,47 @@ def sanitize_value(path: str, value: Any) -> Any:
                     for item in items
                 ],
             }
-        value = redact_contact_details(value)
-    if path.startswith("/api/schedule") or path == "/api/academic/overview":
-        value = redact_contact_details(value)
-    return value
+    return redact_contact_details(value)
 
 
 def redact_contact_details(value: Any) -> Any:
     if isinstance(value, dict):
         sanitized: dict[str, Any] = {}
         for key, item in value.items():
-            if key == "JSHS" and isinstance(item, str):
-                teachers = [
-                    re.split(r"\s+电话：", teacher, maxsplit=1)[0].strip()
-                    for teacher in item.split(",")
-                ]
-                sanitized[key] = ",".join(teacher for teacher in teachers if teacher)
-            elif key in {"SKSM", "description"} and isinstance(item, str):
-                sanitized[key] = PHONE_PATTERN.sub(
-                    "已隐藏", EMAIL_PATTERN.sub("已隐藏", item)
-                )
+            if key in {"JSHS", "SKSM", "description"}:
+                # These upstream free-text fields regularly contain private groups,
+                # passwords, invitation links, phone numbers, and email addresses.
+                sanitized[key] = ""
             else:
                 sanitized[key] = redact_contact_details(item)
         return sanitized
     if isinstance(value, list):
         return [redact_contact_details(item) for item in value]
+    if isinstance(value, str):
+        if GROUP_CONTACT_PATTERN.search(value):
+            return ""
+        value = PHONE_PATTERN.sub("已隐藏", value)
+        return EMAIL_PATTERN.sub("已隐藏", value)
     return value
+
+
+def has_sensitive_contact(value: Any) -> bool:
+    if isinstance(value, dict):
+        return any(has_sensitive_contact(item) for item in value.values())
+    if isinstance(value, list):
+        return any(has_sensitive_contact(item) for item in value)
+    if not isinstance(value, str):
+        return False
+    return bool(
+        PHONE_PATTERN.search(value)
+        or EMAIL_PATTERN.search(value)
+        or GROUP_CONTACT_PATTERN.search(value)
+    )
+
+
+def assert_no_sensitive_contact(serialized: str) -> None:
+    if has_sensitive_contact(serialized):
+        raise RuntimeError("Privacy check failed: contact details remain in fixture")
 
 
 def redact_student_id(value: Any, username: str) -> Any:
@@ -134,18 +154,24 @@ def load_reviews(connection: sqlite3.Connection) -> list[dict[str, Any]]:
         FROM reviews
         WHERE LENGTH(TRIM(review_text)) >= 20
         ORDER BY id
-        LIMIT 180
+        LIMIT 240
         """
     ).fetchall()
-    return [
-        {
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        review = str(row["review_text"])
+        item = {
             "courseName": str(row["course_name"]),
             "teacher": str(row["teacher"]),
-            "review": str(row["review_text"]),
+            "review": review,
             "sources": json.loads(str(row["sources_json"])),
         }
-        for row in rows
-    ]
+        if has_sensitive_contact(item):
+            continue
+        items.append(item)
+        if len(items) == 180:
+            break
+    return items
 
 
 def demo_memos(now: int) -> list[dict[str, Any]]:
@@ -259,7 +285,7 @@ def main() -> int:
         "meta": {
             "generatedAt": now,
             "sessionUsername": "Rick Sanchez",
-            "version": "2.0.3",
+            "version": "3.0.0",
             "notice": "演示数据已脱敏，学号及身份字段不会公开。",
         },
         "entries": entries,
@@ -277,13 +303,14 @@ def main() -> int:
         "reviews": reviews,
         "memos": demo_memos(now),
     }
-    fixture = redact_student_id(fixture, username)
+    fixture = redact_contact_details(redact_student_id(fixture, username))
 
     serialized = json.dumps(
         fixture, ensure_ascii=False, indent=2, sort_keys=True
     )
     if username in serialized:
         raise RuntimeError("Privacy check failed: source student ID remains in fixture")
+    assert_no_sensitive_contact(serialized)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(serialized + "\n", encoding="utf-8")

@@ -316,7 +316,20 @@ export function buildCourseMatches(node: ProgramNode, courses: ProgramCourse[], 
 }
 
 export function gradePassed(grade: Grade) {
-  return grade.SFJG === '1' || grade.SFJG_DISPLAY === '是'
+  return String(grade.SFJG ?? '') === '1' || grade.SFJG_DISPLAY === '是'
+}
+
+export function gradeCreditLabel(grade: Pick<Grade, 'XF'>) {
+  return academicDisplayText(grade.XF) || '待确认'
+}
+
+export function gradeScoreLabel(grade: Grade) {
+  return academicDisplayText(grade.ZCJ) || (gradePassed(grade) ? '已通过' : '待确认')
+}
+
+function academicDisplayText(value: unknown) {
+  const text = String(value ?? '').trim()
+  return !text || /^(?:[/／—–−－-]+|n\s*\/\s*a|null|none|undefined|未知|待定)$/i.test(text) ? '' : text
 }
 
 function parseCategoryRequirements(note: string) {
@@ -376,6 +389,7 @@ function deduplicateLatest(grades: Grade[]) {
 
 function graduationCategoryForName(name: string): GraduationCategory {
   if (name.includes('毕业')) return '毕业论文/设计'
+  if (name.includes('多元发展')) return '多元发展课程'
   if (name.includes('选修') && !name.includes('通识')) return '多元发展课程'
   if (['平台', '学科', '专业'].some((label) => name.includes(label))) return '学科专业课程'
   return '通识通修课程'

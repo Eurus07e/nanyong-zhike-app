@@ -2,19 +2,22 @@ from __future__ import annotations
 
 import argparse
 import shutil
-import stat
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SUPPORTED_TARGETS = {("macos", "arm64"), ("windows", "x86_64")}
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--platform", required=True, choices=("macos", "windows", "linux"))
+    parser.add_argument("--platform", required=True, choices=("macos", "windows"))
     parser.add_argument("--arch", required=True, choices=("arm64", "x86_64"))
     parser.add_argument("--nju-source", required=True, type=Path)
-    return parser.parse_args()
+    args = parser.parse_args()
+    if (args.platform, args.arch) not in SUPPORTED_TARGETS:
+        parser.error(f"unsupported release target: {args.platform}-{args.arch}")
+    return args
 
 
 def main() -> None:
@@ -47,14 +50,6 @@ def main() -> None:
         shutil.copytree(mac_application, package / mac_application.name)
     else:
         shutil.copytree(distribution, package, dirs_exist_ok=True)
-
-    if args.platform == "linux":
-        launcher = package / "启动南雍知课.sh"
-        shutil.copy2(ROOT / "desktop" / "launchers" / launcher.name, launcher)
-        desktop_entry = package / "南雍知课.desktop"
-        shutil.copy2(ROOT / "desktop" / "launchers" / desktop_entry.name, desktop_entry)
-        for executable in (launcher, desktop_entry, package / "NanyongZhike"):
-            executable.chmod(executable.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     for document in ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "SECURITY.md"):
         shutil.copy2(ROOT / document, package / document)

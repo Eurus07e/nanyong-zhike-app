@@ -76,7 +76,7 @@ def test_reading_plan_uses_the_standard_course_row_layout() -> None:
     )
 
     assert "__readingPlan: true" in source
-    assert "培养方案认定 · ${String(course.XF ?? '—')} 学分 · 三门课程" in source
+    assert "培养方案认定 · ${formatCourseCredit(course.XF)} 学分 · 三门课程" in source
     assert "已完成 · 平均成绩 ${grade.ZCJ}" in source
     assert "悦读经典计划已认定" not in source
 
@@ -137,7 +137,7 @@ def test_nju_tabs_uses_sanitized_default_urls_and_user_scoped_storage() -> None:
     assert "恢复默认网站" in source
 
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
-    assert '.segmented[data-active-index="4"] .segmented-indicator { transform: translateX(400%); }' in styles
+    assert '.segmented[data-active-index="4"] .segmented-indicator' not in styles
     assert ".nju-site-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));" in styles
 
 
@@ -205,20 +205,32 @@ def test_program_selector_uses_compact_type_and_height() -> None:
     assert "font-size: 12px;" in styles
 
 
-def test_mail_placeholder_and_about_release_note_match_v2_0_3_copy() -> None:
+def test_campus_services_omits_the_standalone_mail_tab_and_styles() -> None:
     campus_services = (
         ROOT / "frontend" / "src" / "components" / "CampusServices.tsx"
     ).read_text(encoding="utf-8")
+    styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    assert "type ServiceTab = 'notices' | 'links' | 'five' | 'second-class'" in campus_services
+    assert "{ id: 'mail', label: '邮件' }" not in campus_services
+    assert "active === 'mail'" not in campus_services
+    assert "mail.smail.nju.edu.cn" not in campus_services
+    assert "mail-service" not in styles
+    assert ".service-hero-icon" not in styles
+    assert '.segmented[data-active-index="4"]' not in styles
+    assert ".service-tabs { --segment-count: 4;" in styles
+
+
+def test_about_release_note_matches_v3_copy() -> None:
     about = (ROOT / "frontend" / "src" / "components" / "About.tsx").read_text(
         encoding="utf-8"
     )
 
-    assert "邮箱接口暂未开放，敬请期待。" in campus_services
-    assert "邮箱内容暂不由本站读取" not in campus_services
-    assert "v2.0.3" in about
-    assert "课表" in about
-    assert "教务通知" in about
-    assert "完善十二节课表与异常课程兜底，并增强教务通知获取的稳定性。" in about
+    assert "v3.0" in about
+    assert "接口刷新与旧快照兜底" in about
+    assert "培养方案学分显示" in about
+    assert "清理过时文案" in about
+    assert "Windows 与 macOS" in about
     assert "Apple 公证" not in about
 
 
@@ -244,14 +256,47 @@ def test_academic_views_render_snapshots_before_background_refresh() -> None:
     assert "await academicRefresh" in overview
     assert "loading || rankingLoading ? 'spin'" in overview
     assert "const hadCache = !force && api.hasCache(basePath)" in schedule
-    assert "refresh: 'true'" in schedule
+    assert "withRefresh" in schedule
     assert "const initialDetail = initialProgramPath ? api.peek<Program>" in program
+
+
+def test_manual_refresh_reaches_portal_and_updates_base_cache() -> None:
+    overview = (ROOT / "frontend" / "src" / "components" / "Overview.tsx").read_text(
+        encoding="utf-8"
+    )
+    program = (ROOT / "frontend" / "src" / "components" / "Program.tsx").read_text(
+        encoding="utf-8"
+    )
+    schedule = (ROOT / "frontend" / "src" / "components" / "Schedule.tsx").read_text(
+        encoding="utf-8"
+    )
+    planner = (ROOT / "frontend" / "src" / "components" / "PlannerBoard.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "withRefresh" in overview
+    assert "api.setCache(profilePath" in overview
+    assert "withRefresh" in program
+    assert "api.setCache(basePath" in program
+    assert "withRefresh" in schedule
+    assert "api.setCache(basePath" in schedule
+    assert "withRefresh" in planner
+
+
+def test_schedule_ignores_stale_term_requests() -> None:
+    schedule = (ROOT / "frontend" / "src" / "components" / "Schedule.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "scheduleRequestRef" in schedule
+    assert "++scheduleRequestRef.current" in schedule
+    assert "requestId !== scheduleRequestRef.current" in schedule
 
 
 def test_link_hover_language_matches_notice_titles() -> None:
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
 
-    assert ".notice-title-button:hover, .nju-site-list article > a:not(.icon-button):hover strong, .mail-service-link:hover strong, .contact-list a:hover strong { color: var(--purple); }" in styles
+    assert ".notice-title-button:hover, .nju-site-list article > a:not(.icon-button):hover strong, .contact-list a:hover strong { color: var(--purple); }" in styles
 
 
 def test_program_and_campus_use_the_same_segmented_control_interaction() -> None:
@@ -286,18 +331,23 @@ def test_program_and_campus_use_the_same_segmented_control_interaction() -> None
     assert ".service-tabs button:hover" not in styles
 
 
-def test_ai_assistant_beta_entry_is_visible_and_read_only() -> None:
+def test_ai_assistant_entry_is_visible_without_beta_badges() -> None:
     shell = (ROOT / "frontend" / "src" / "components" / "Shell.tsx").read_text(encoding="utf-8")
     app = (ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
     assistant = (ROOT / "frontend" / "src" / "components" / "AiAssistant.tsx").read_text(encoding="utf-8")
     styles = (ROOT / "frontend" / "src" / "styles.css").read_text(encoding="utf-8")
 
     assert "label: 'AI 助手'" in shell
-    assert "nav-beta" in shell
+    assert "Beta" not in shell
+    assert "nav-beta" not in shell
     assert "AiAssistant" in app
+    assert "Beta" not in assistant
+    assert "beta-badge" not in assistant
     assert "仅保存在当前浏览器" in assistant
     assert "/api/ai/chat" in assistant
     assert ".ai-layout {" in styles
+    assert ".nav-beta" not in styles
+    assert ".beta-badge" not in styles
 
 
 def test_ai_chat_uses_one_bubble_and_scrolls_only_the_transcript() -> None:
@@ -499,10 +549,12 @@ def test_five_education_uses_real_read_only_dashboard() -> None:
     assert "<CampusServices username={session.username} onUnauthorized={handleUnauthorized}" in app
     assert "const OVERVIEW_PATH = '/api/five-education/overview'" in component
     assert "const ACTIVITIES_PATH = '/api/five-education/activities'" in component
+    assert "我的五育暂时不可用，请连接校园网或vpn并稍后重试" in component
     assert "api.cached<FiveEducationOverview>(`${OVERVIEW_PATH}?refresh=true`" in component
     assert 'aria-label="五育活动分布雷达图"' in component
     assert "同年级平均" in component
     assert "成长模块" in component
+    assert "无固定数值阈值" not in component
     assert "劳育构成" in component
     assert "我的活动" in component
     assert "查看学习导引图" in component
@@ -517,6 +569,27 @@ def test_five_education_uses_real_read_only_dashboard() -> None:
     assert "updateSearchMks" not in component
     assert "wdhdMe" not in component
     assert "电子成绩单" not in component
+
+
+def test_academic_and_program_views_use_verified_credit_fallbacks() -> None:
+    program = (ROOT / "frontend" / "src" / "components" / "Program.tsx").read_text(
+        encoding="utf-8"
+    )
+    overview = (ROOT / "frontend" / "src" / "components" / "Overview.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "resolveProgramNodeCreditRequirement" in program
+    assert "固定课程清单" in program
+    assert "学分待确认" in program
+    assert "resolveProgramNodeCreditRequirement" in overview
+    assert "待确认" in overview
+    assert " / {groupRequired ?? '—'} 学分" not in overview
+    assert "gradeCreditLabel(grade)" in overview
+    assert "gradeScoreLabel(grade)" in overview
+    assert "String(course.XF ?? '—')" not in program
+    assert "String(course.XF ?? '—')" not in overview
+    assert "parts.push('学分待确认')" in program
 
 
 def test_five_education_dimension_table_and_labor_cards_are_visually_consistent() -> None:
@@ -631,3 +704,43 @@ def test_second_classroom_replaces_placeholder_with_real_profile() -> None:
         assert label in component
     assert "报名通过率" not in component
     assert "完成率" not in component
+
+
+def test_bootstrap_cached_academic_and_program_data_refreshes_in_background() -> None:
+    components = ROOT / "frontend" / "src" / "components"
+    overview = (components / "Overview.tsx").read_text(encoding="utf-8")
+    program = (components / "Program.tsx").read_text(encoding="utf-8")
+
+    assert "profileHadCache" in overview
+    assert "programsHadCache" in overview
+    assert "refreshAcademicProgramData" in overview
+    assert "withRefresh(profilePath, true)" in overview
+    assert "withRefresh(programsPath, true)" in overview
+
+    assert "hadProgramsCache" in program
+    assert "hadProfileCache" in program
+    assert "hadProgramCache" in program
+    assert "const hadProgramCache = Boolean(cachedDetail && cachedNodes)" in program
+    assert "withRefresh(path, true)" in program
+    assert "withRefresh(profilePath, true)" in program
+    assert "withRefresh(programPath, hadProgramCache)" in program
+
+
+def test_notice_detail_ignores_stale_responses_after_switch_or_close() -> None:
+    campus = (ROOT / "frontend" / "src" / "components" / "CampusServices.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "noticeDetailRequestRef" in campus
+    assert "const requestId = ++noticeDetailRequestRef.current" in campus
+    assert "if (requestId !== noticeDetailRequestRef.current) return" in campus
+    assert "noticeDetailRequestRef.current += 1" in campus
+
+
+def test_credit_drilldown_uses_the_same_program_category_aliases() -> None:
+    overview = (ROOT / "frontend" / "src" / "components" / "Overview.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert "canonicalProgramCategory(node.KZM) === category" in overview
+    assert "roots.flatMap((root) => collectCourseLeafIds(nodes, root.KZH))" in overview

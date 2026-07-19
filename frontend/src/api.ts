@@ -74,18 +74,20 @@ function setCache<T>(path: string, value: T, ttl = 5 * 60_000) {
 async function cached<T>(path: string, options: { ttl?: number; force?: boolean } = {}): Promise<T> {
   const ttl = options.ttl ?? 5 * 60_000
   const current = responseCache.get(path)
+  if (current?.promise) return current.promise as Promise<T>
   if (!options.force && current && current.expiresAt > Date.now()) {
     if (current.value !== undefined) return current.value as T
-    if (current.promise) return current.promise as Promise<T>
   }
   const promise = request<T>(path)
   responseCache.set(path, { expiresAt: Date.now() + ttl, promise })
   try {
     const value = await promise
-    responseCache.set(path, { expiresAt: Date.now() + ttl, value })
+    if (responseCache.get(path)?.promise === promise) {
+      responseCache.set(path, { expiresAt: Date.now() + ttl, value })
+    }
     return value
   } catch (error) {
-    responseCache.delete(path)
+    if (responseCache.get(path)?.promise === promise) responseCache.delete(path)
     throw error
   }
 }
@@ -117,4 +119,12 @@ export function query(path: string, params: Record<string, string | undefined>) 
   })
   const suffix = search.toString()
   return suffix ? `${path}?${suffix}` : path
+}
+
+export function withRefresh(path: string, refresh: boolean) {
+  if (!refresh) return path
+  if (/(?:\?|&)refresh=[^&]*/.test(path)) {
+    return path.replace(/([?&])refresh=[^&]*/, '$1refresh=true')
+  }
+  return `${path}${path.includes('?') ? '&' : '?'}refresh=true`
 }

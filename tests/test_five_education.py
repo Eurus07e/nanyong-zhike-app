@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 import pytest
 from fastapi.testclient import TestClient
@@ -307,10 +307,17 @@ def test_activity_route_uses_current_encrypted_session(
     ("error", "status_code"),
     [
         (FiveEducationError("统一身份认证登录已过期", auth_expired=True), 401),
-        (FiveEducationError("南京大学五育系统暂时不可用"), 502),
+        (
+            FiveEducationError(
+                "我的五育暂时不可用，请连接校园网或vpn并稍后重试"
+            ),
+            502,
+        ),
     ],
 )
-def test_activity_route_maps_safe_upstream_errors(monkeypatch, error, status_code) -> None:
+def test_activity_route_maps_safe_upstream_errors(
+    monkeypatch, isolated_portal_snapshots, error, status_code
+) -> None:
     async def activities(_: str) -> dict:
         raise error
 
@@ -335,16 +342,32 @@ def test_only_cas_and_five_education_hosts_are_allowed() -> None:
     assert not _allowed_url("https://example.com/")
 
 
-def test_network_restriction_uses_the_requested_vpn_message() -> None:
-    upstream = HTTPError(
-        "https://ndwy.nju.edu.cn/dztml/",
-        483,
-        "",
-        None,
-        None,
+@pytest.mark.parametrize(
+    "upstream",
+    [
+        HTTPError(
+            "https://ndwy.nju.edu.cn/dztml/",
+            483,
+            "",
+            None,
+            None,
+        ),
+        HTTPError(
+            "https://ndwy.nju.edu.cn/dztml/",
+            500,
+            "server error",
+            None,
+            None,
+        ),
+        URLError("timed out"),
+        TimeoutError(),
+    ],
+)
+def test_connection_failures_use_the_requested_vpn_message(upstream) -> None:
+    assert (
+        str(_connection_error(upstream))
+        == "我的五育暂时不可用，请连接校园网或vpn并稍后重试"
     )
-
-    assert str(_connection_error(upstream)) == "请连接vpn或校园网访问最新数据"
 
 
 def test_overview_route_uses_current_encrypted_session(
@@ -409,10 +432,17 @@ def test_five_education_routes_use_encrypted_portal_snapshots(
     ("error", "status_code"),
     [
         (FiveEducationError("统一身份认证登录已过期", auth_expired=True), 401),
-        (FiveEducationError("南京大学五育系统暂时不可用"), 502),
+        (
+            FiveEducationError(
+                "我的五育暂时不可用，请连接校园网或vpn并稍后重试"
+            ),
+            502,
+        ),
     ],
 )
-def test_overview_route_maps_safe_upstream_errors(monkeypatch, error, status_code) -> None:
+def test_overview_route_maps_safe_upstream_errors(
+    monkeypatch, isolated_portal_snapshots, error, status_code
+) -> None:
     async def overview(_: str) -> dict:
         raise error
 

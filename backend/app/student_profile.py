@@ -10,6 +10,7 @@ from urllib.parse import urlencode, urlparse
 from urllib.request import HTTPCookieProcessor, Request, build_opener
 
 from .exchange_system import _castgc_cookie
+from .version import APP_USER_AGENT
 
 
 APP_ID = "4770397878132218"
@@ -109,7 +110,7 @@ class StudentProfileClient:
         request = Request(
             url,
             data=b"" if post else None,
-            headers={"User-Agent": "NanyongZhike/0.1 read-only"},
+            headers={"User-Agent": APP_USER_AGENT},
         )
         with opener.open(request, timeout=20) as response:
             final = urlparse(response.geturl())

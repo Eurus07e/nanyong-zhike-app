@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, CircleHelp, RefreshCw, Trash2, X } from 'lucide-react'
-import { api, ApiError, query } from '../api'
+import { api, ApiError, query, withRefresh } from '../api'
+import { courseCreditValue, formatCourseCredit } from '../program-requirements'
 import type { ScheduleCourse, Term } from '../types'
 import {
   createPlannerId,
@@ -99,10 +100,14 @@ export function PlannerBoard({ username, onUnauthorized }: { username: string; o
     setCoursesLoading(true)
     setCourseError('')
     try {
-      const terms = await api.cached<Term[]>('/api/schedule/terms', { ttl: 30 * 60_000, force })
+      const termsPath = '/api/schedule/terms'
+      const terms = await api.cached<Term[]>(withRefresh(termsPath, force), { ttl: 30 * 60_000, force })
+      if (force) api.setCache(termsPath, terms, 30 * 60_000)
       if (!terms[0]) { setCourses([]); return }
-      const path = query('/api/schedule', { term: terms[0].DM, ...(force ? { refresh: 'true' } : {}) })
+      const basePath = query('/api/schedule', { term: terms[0].DM })
+      const path = withRefresh(basePath, force)
       const response = await api.cached<{ rows: ScheduleCourse[] }>(path, { ttl: 2 * 60_000, force })
+      if (force) api.setCache(basePath, response, 2 * 60_000)
       const unique = new Map(response.rows.map((course) => [course.KCH || course.JXBID, course]))
       setCourses([...unique.values()])
     } catch (error) {
@@ -156,7 +161,9 @@ export function PlannerBoard({ username, onUnauthorized }: { username: string; o
         source: linkedCourse ? 'course' : 'manual',
         courseCode: linkedCourse?.KCH || linkedCourse?.JXBID,
         courseName: linkedCourse?.KCM || linkedCourse?.JXBMC,
-        credits: linkedCourse?.XF || undefined,
+        credits: linkedCourse && courseCreditValue(linkedCourse.XF) != null
+          ? formatCourseCredit(linkedCourse.XF)
+          : undefined,
         listId: targetList,
         tags: linkedCourse ? ['课程'] : [],
         createdAt: now,
@@ -265,7 +272,7 @@ export function PlannerBoard({ username, onUnauthorized }: { username: string; o
       {linkedCourse && <span className="planner-linked-course">#{linkedCourse.KCM || linkedCourse.JXBMC || linkedCourse.KCH}<button type="button" onClick={() => setLinkedCourse(null)} aria-label="移除课程"><X size={12} /></button></span>}
       {showCoursePicker && coursePickerPosition && typeof document !== 'undefined' && createPortal(<div className="planner-course-picker" style={coursePickerPosition} role="listbox" aria-label="课程列表" onMouseDown={(event) => event.preventDefault()}>
         <header><strong>选择课程</strong><button type="button" className="icon-button" onClick={() => setComposerTitle((current) => current.replace(/(?:^|\s)#[^\s#]*$/, '').trimEnd())} aria-label="关闭课程列表"><X size={15} /></button></header>
-        {coursesLoading ? <p><RefreshCw size={14} className="spin" />正在读取课程</p> : matchingCourses.map((course) => <button type="button" role="option" key={course.KCH || course.JXBID} onClick={() => selectCourse(course)}><span>{course.KCM || course.JXBMC || course.KCH}</span><small>{course.KCH || course.JXBID}{course.XF ? ` · ${course.XF} 学分` : ''}</small></button>)}
+        {coursesLoading ? <p><RefreshCw size={14} className="spin" />正在读取课程</p> : matchingCourses.map((course) => <button type="button" role="option" key={course.KCH || course.JXBID} onClick={() => selectCourse(course)}><span>{course.KCM || course.JXBMC || course.KCH}</span><small>{course.KCH || course.JXBID}{courseCreditValue(course.XF) != null ? ` · ${formatCourseCredit(course.XF)} 学分` : ''}</small></button>)}
         {!coursesLoading && matchingCourses.length === 0 && <p>没有匹配的课程</p>}
       </div>, document.body)}
     </form>

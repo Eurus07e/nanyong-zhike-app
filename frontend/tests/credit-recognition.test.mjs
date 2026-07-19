@@ -1,13 +1,25 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import {
+import * as creditRecognition from '../src/credit-recognition.ts'
+
+const {
   applyGeneralEducationRecognition,
   buildGraduationCategoryAssignments,
   buildCourseMatches,
   mergeGeneralEducationCourseDisplay,
   recognizeGeneralEducation,
-} from '../src/credit-recognition.ts'
+} = creditRecognition
+
+function gradeCreditLabel(grade) {
+  assert.equal(typeof creditRecognition.gradeCreditLabel, 'function')
+  return creditRecognition.gradeCreditLabel(grade)
+}
+
+function gradeScoreLabel(grade) {
+  assert.equal(typeof creditRecognition.gradeScoreLabel, 'function')
+  return creditRecognition.gradeScoreLabel(grade)
+}
 
 const generalNode = {
   KZH: 'general',
@@ -32,6 +44,18 @@ const readingGrades = [
   { KCH: 'R2', KCM: '阅读二', XF: '0', ZCJ: '90', SFJG: '1', KCXZDM_DISPLAY: '通识', XGXKLBDM_DISPLAY: '悦读计划', XNXQDM: '2025-2026-1' },
   { KCH: 'R3', KCM: '阅读三', XF: '0', ZCJ: '100', SFJG: '1', KCXZDM_DISPLAY: '通识', XGXKLBDM_DISPLAY: '悦读计划', XNXQDM: '2025-2026-2' },
 ]
+
+test('renders stable academic fallbacks for missing or sentinel values', () => {
+  assert.equal(gradeCreditLabel({ XF: '/', SFJG: '1' }), '待确认')
+  assert.equal(gradeCreditLabel({ XF: '／', SFJG: '1' }), '待确认')
+  assert.equal(gradeCreditLabel({ XF: 'N/A', SFJG: '1' }), '待确认')
+  assert.equal(gradeCreditLabel({ XF: '－', SFJG: '1' }), '待确认')
+  assert.equal(gradeCreditLabel({ XF: '3', SFJG: '1' }), '3')
+  assert.equal(gradeScoreLabel({ ZCJ: '/', SFJG: '1' }), '已通过')
+  assert.equal(gradeScoreLabel({ ZCJ: '未知', SFJG: '0' }), '待确认')
+  assert.equal(gradeScoreLabel({ ZCJ: '—', SFJG: '0' }), '待确认')
+  assert.equal(gradeScoreLabel({ ZCJ: '/', SFJG: 1 }), '已通过')
+})
 
 test('recognizes official general education categories and the completed reading plan', () => {
   const recognition = recognizeGeneralEducation(generalNode, [...directGeneralGrades, ...readingGrades])
@@ -260,6 +284,23 @@ test('moves officially classified general education out of a conflicting raw nat
   assert.equal(adjusted.categories.find((item) => item.name === '通识')?.credits, 2)
   assert.equal(adjusted.graduationCategories.find((item) => item.name === '通识通修课程')?.credits, 2)
   assert.equal(adjusted.graduationCategories.find((item) => item.name === '多元发展课程')?.credits, 0)
+})
+
+test('keeps courses under the canonical development root in the development category', () => {
+  const nodes = [
+    { KZH: 'development-root', FKZH: '-1', KZM: '多元发展课程', KZLXDM: '02' },
+    { KZH: 'development-course', FKZH: 'development-root', KZM: '创新实践', KZLXDM: '01' },
+  ]
+  const course = { KCH: 'DEV-001', KCM: '创新实践', XF: '2' }
+  const grade = { ...course, ZCJ: '合格', SFJG: '1', KCXZDM_DISPLAY: '通修课程' }
+
+  const assignments = buildGraduationCategoryAssignments(
+    nodes,
+    { 'development-course': [course] },
+    [grade],
+  )
+
+  assert.equal(assignments.get(grade), '多元发展课程')
 })
 
 test('applies dynamic PE slot recognition to overview graduation categories', () => {

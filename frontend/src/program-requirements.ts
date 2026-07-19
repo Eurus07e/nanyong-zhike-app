@@ -19,6 +19,11 @@ export type ProgramNodeSummary = {
   source: 'program-text' | 'required-fields' | 'course-list' | 'node-fields' | 'children' | 'unknown'
 }
 
+export type ProgramNodeCreditRequirement = {
+  values: number[]
+  source: 'required' | 'fixed-course-list'
+}
+
 export type AggregatedNodeCourses = {
   courses: ProgramCourse[]
   leafIds: string[]
@@ -32,23 +37,42 @@ const GRADUATION_CATEGORIES = [
   '毕业论文/设计',
 ] as const
 
+const GRADUATION_CATEGORY_ALIASES: Record<(typeof GRADUATION_CATEGORIES)[number], string[]> = {
+  '通识通修课程': ['通识通修课程', '通修课程'],
+  '学科专业课程': ['学科专业课程'],
+  '多元发展课程': ['多元发展课程', '多元发展选修课程', '专业选修课程'],
+  '毕业论文/设计': ['毕业论文/设计', '毕业论文', '毕业设计', '临床实习'],
+}
+
 export function parseProgramRequirements(text: string): ProgramRequirements {
-  const compact = text.replace(/\s+/g, ' ')
-  const valuesAfter = (label: string) => {
-    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const matches = compact.matchAll(new RegExp(
-      `${escaped}(?:[（(][^）)]{0,160}[）)])?[^，。；;\\d]{0,30}?(\\d+(?:\\.\\d+)?)\\s*学?分`,
-      'g',
-    ))
-    return [...new Set([...matches].map((match) => Number(match[1])))]
+  const compact = normalizeNumericText(text).replace(/\s+/g, ' ')
+  const valuesAfter = (labels: string | string[]) => {
+    const values: number[] = []
+    const number = '(?:\\d+(?:\\.\\d+)?|\\.\\d+)'
+    const separators = '(?:\\s*[/、,，\\-—–－−~～至]\\s*|\\s*或\\s*)'
+    for (const label of Array.isArray(labels) ? labels : [labels]) {
+      const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const matches = compact.matchAll(new RegExp(
+        `${escaped}(?:[（(][^）)]{0,160}[）)])?[^，。；;\\d]{0,30}?(${number}(?:${separators}${number})*)\\s*学?分`,
+        'g',
+      ))
+      for (const match of matches) {
+        for (const value of match[1].matchAll(new RegExp(number, 'g'))) values.push(Number(value[0]))
+      }
+    }
+    return [...new Set(values)]
   }
-  const totalMatch = compact.match(/(?:应修总学分|总学分)[^，。；;\d]{0,12}(\d+(?:\.\d+)?)(?:\s*学分)?/)
-  const categoryOptions = Object.fromEntries(GRADUATION_CATEGORIES.map((name) => [name, valuesAfter(name)]))
+  const totalMatch = compact.match(/(?:应修总学分|总学分)[^，。；;\d]{0,12}((?:\d+(?:\.\d+)?|\.\d+))(?:\s*学分)?/)
+  const categoryOptions = Object.fromEntries(GRADUATION_CATEGORIES.map((name) => [name, valuesAfter(GRADUATION_CATEGORY_ALIASES[name])]))
   if (!categoryOptions['学科专业课程'].length) {
     const foundation = valuesAfter('学科基础课程')
     const core = valuesAfter('专业核心课程')
     if (foundation.length && foundation.length === core.length) {
       categoryOptions['学科专业课程'] = foundation.map((value, index) => normalizeNumber(value + core[index]))
+    } else if (core.length) {
+      categoryOptions['学科专业课程'] = core
+    } else if (foundation.length) {
+      categoryOptions['学科专业课程'] = foundation
     }
   }
   return {
@@ -60,15 +84,13 @@ export function parseProgramRequirements(text: string): ProgramRequirements {
 
 export function resolveProgramRequirements(text: string, nodes: ProgramNode[]): ProgramRequirements {
   const parsed = parseProgramRequirements(text)
-  const topLevelNodes = new Map(nodes
-    .filter((node) => node.FKZH === '-1')
-    .map((node) => [node.KZM, node]))
+  const nodeFallbacks = resolveTopLevelNodeRequirements(nodes)
   const categories = Object.fromEntries(GRADUATION_CATEGORIES.map((name) => [
     name,
-    parsed.categories[name] ?? positiveNumber(topLevelNodes.get(name)?.ZSXDXF),
+    parsed.categories[name] ?? nodeFallbacks[name],
   ]))
   const categoryOptions = Object.fromEntries(GRADUATION_CATEGORIES.map((name) => {
-    const fallback = positiveNumber(topLevelNodes.get(name)?.ZSXDXF)
+    const fallback = nodeFallbacks[name]
     return [name, parsed.categoryOptions[name].length ? parsed.categoryOptions[name] : fallback == null ? [] : [fallback]]
   }))
   return {
@@ -76,6 +98,17 @@ export function resolveProgramRequirements(text: string, nodes: ProgramNode[]): 
     categories,
     categoryOptions,
   }
+}
+
+export function canonicalProgramCategory(name: string) {
+  const normalized = normalizeProgramNodeName(name)
+  for (const category of GRADUATION_CATEGORIES) {
+    if (GRADUATION_CATEGORY_ALIASES[category].some((alias) => normalizeProgramNodeName(alias) === normalized)) {
+      return category
+    }
+  }
+  if (['学科基础课程', '专业核心课程'].includes(normalized)) return '学科专业课程'
+  return null
 }
 
 export function buildProgramTree(nodes: ProgramNode[]): ProgramTreeNode[] {
@@ -154,6 +187,26 @@ export function summarizeProgramNode(
   )
 }
 
+export function resolveProgramNodeCreditRequirement(
+  summary: Pick<ProgramNodeSummary, 'requiredCredits' | 'requiredCreditOptions' | 'poolCredits' | 'isElectivePool'>,
+): ProgramNodeCreditRequirement | null {
+  const options = uniquePositive(summary.requiredCreditOptions || [])
+  if (options.length) return { values: options, source: 'required' }
+  const required = positiveNumber(summary.requiredCredits)
+  if (required != null) return { values: [required], source: 'required' }
+  const fixedPool = !summary.isElectivePool ? positiveNumber(summary.poolCredits) : null
+  return fixedPool == null ? null : { values: [fixedPool], source: 'fixed-course-list' }
+}
+
+export function formatCourseCredit(value: unknown) {
+  const number = numberValue(value)
+  return number == null ? '待确认' : normalizeNumber(number).toString()
+}
+
+export function courseCreditValue(value: unknown) {
+  return numberValue(value)
+}
+
 export function classifyProgramNodesForYear(
   nodes: ProgramNode[],
   summaries: ReadonlyMap<string, ProgramNodeSummary>,
@@ -193,8 +246,10 @@ function summarize(
   const { hasUsableCourseList, listedCourses, listedCredits } = resolveNodePool(node, nodes, coursesByNode)
   const requiredCoursesField = positiveNumber(node.ZSXDMS)
   const requiredCreditsField = positiveNumber(node.ZSXDXF)
-  const textRequirement = node.FKZH === '-1' ? requirements.categories[node.KZM] : null
-  const textRequirementOptions = node.FKZH === '-1' ? requirements.categoryOptions[node.KZM] || [] : []
+  const category = node.FKZH === '-1' ? canonicalProgramCategory(node.KZM) : null
+  const splitDisciplineNode = isSplitDisciplineNode(node, nodes)
+  const textRequirement = category && !splitDisciplineNode ? requirements.categories[category] : null
+  const textRequirementOptions = category && !splitDisciplineNode ? requirements.categoryOptions[category] || [] : []
   const constrainedByText = listedCredits != null
     && textRequirementOptions.some((requirement) => requirement < listedCredits)
   const elective = inheritedElective
@@ -212,7 +267,7 @@ function summarize(
       poolCredits: listedCredits,
       moduleCount: children.length,
       isElectivePool: elective,
-      requiredCreditOptions: requirements.categoryOptions[node.KZM],
+      requiredCreditOptions: category ? requirements.categoryOptions[category] : undefined,
       source: 'program-text',
     }
   }
@@ -267,7 +322,8 @@ function hasElectiveAncestor(
   while (parent && !visited.has(parent.KZH)) {
     const { listedCourses, listedCredits } = resolveNodePool(parent, nodes, coursesByNode)
     if (isElectiveCoursePool(parent, listedCourses, listedCredits)) return true
-    const textRequirements = parent.FKZH === '-1' ? requirements.categoryOptions[parent.KZM] || [] : []
+    const category = parent.FKZH === '-1' ? canonicalProgramCategory(parent.KZM) : null
+    const textRequirements = category ? requirements.categoryOptions[category] || [] : []
     if (listedCredits != null && textRequirements.some((requirement) => requirement < listedCredits)) return true
     visited.add(parent.KZH)
     parent = byId.get(parent.FKZH)
@@ -304,7 +360,13 @@ function isElectiveCoursePool(node: ProgramNode, poolCourses: number | null, poo
 }
 
 function sumCredits(courses: ProgramCourse[]) {
-  return normalizeNumber(courses.reduce((sum, course) => sum + (numberValue(course.XF) || 0), 0))
+  let total = 0
+  for (const course of courses) {
+    const credit = numberValue(course.XF)
+    if (credit == null) return null
+    total += credit
+  }
+  return normalizeNumber(total)
 }
 
 function sumComplete(values: Array<number | null>) {
@@ -326,8 +388,62 @@ function maximumPositive(...values: unknown[]) {
 
 function numberValue(value: unknown) {
   if (value === null || value === undefined || value === '') return null
-  const number = Number(value)
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value !== 'string') return null
+  const normalized = normalizeNumericText(value).trim()
+  if (!normalized || /^(?:[/—–−－-]|n\s*\/\s*a|null|none|undefined|未知|待定)$/i.test(normalized)) return null
+  const match = normalized.match(/^[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:\s*(?:学分|分|门))?$/)
+  if (!match) return null
+  const number = Number(match[0].replace(/\s*(?:学分|分|门)$/, ''))
   return Number.isFinite(number) ? number : null
+}
+
+function normalizeNumericText(value: string) {
+  return value
+    .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - '０'.charCodeAt(0) + '0'.charCodeAt(0)))
+    .replace(/．/g, '.')
+    .replace(/／/g, '/')
+}
+
+function uniquePositive(values: unknown[]) {
+  return [...new Set(values.map(positiveNumber).filter((value): value is number => value != null))]
+}
+
+function resolveTopLevelNodeRequirements(nodes: ProgramNode[]) {
+  const topLevelNodes = nodes.filter((node) => node.FKZH === '-1')
+  const valueForAliases = (aliases: string[]) => {
+    const normalizedAliases = new Set(aliases.map(normalizeProgramNodeName))
+    return topLevelNodes
+      .filter((node) => normalizedAliases.has(normalizeProgramNodeName(node.KZM)))
+      .map((node) => positiveNumber(node.ZSXDXF))
+      .find((value): value is number => value != null) ?? null
+  }
+  const directDiscipline = valueForAliases(['学科专业课程'])
+  const foundation = valueForAliases(['学科基础课程'])
+  const core = valueForAliases(['专业核心课程'])
+  const discipline = directDiscipline
+    ?? (foundation != null && core != null ? normalizeNumber(foundation + core) : core ?? foundation)
+
+  return {
+    '通识通修课程': valueForAliases(GRADUATION_CATEGORY_ALIASES['通识通修课程']),
+    '学科专业课程': discipline,
+    '多元发展课程': valueForAliases(GRADUATION_CATEGORY_ALIASES['多元发展课程']),
+    '毕业论文/设计': valueForAliases(GRADUATION_CATEGORY_ALIASES['毕业论文/设计']),
+  }
+}
+
+function normalizeProgramNodeName(value: string) {
+  return value.replace(/[（(][^）)]*[）)]/g, '').replace(/\s+/g, '').trim()
+}
+
+function isSplitDisciplineNode(node: ProgramNode, nodes: ProgramNode[]) {
+  const name = normalizeProgramNodeName(node.KZM)
+  const counterpart = name === '学科基础课程'
+    ? '专业核心课程'
+    : name === '专业核心课程' ? '学科基础课程' : ''
+  return Boolean(counterpart && nodes.some((item) =>
+    item.FKZH === '-1' && normalizeProgramNodeName(item.KZM) === counterpart
+  ))
 }
 
 function normalizeNumber(value: number) {

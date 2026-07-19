@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LoaderCircle, RefreshCw, X } from 'lucide-react'
-import { api, ApiError, query } from '../api'
+import { api, ApiError, query, withRefresh } from '../api'
 import {
   applyGeneralEducationRecognition,
   buildGraduationCategoryAssignments,
   buildCourseMatches,
   dynamicRecognitionCourseNodeIds,
+  gradeCreditLabel,
   gradePassed,
+  gradeScoreLabel,
   isGeneralEducationNode,
   mergeGeneralEducationCourseDisplay,
   recognizeGeneralEducation,
@@ -14,6 +16,10 @@ import {
 } from '../credit-recognition'
 import {
   collectCourseLeafIds,
+  canonicalProgramCategory,
+  courseCreditValue,
+  formatCourseCredit,
+  resolveProgramNodeCreditRequirement,
   resolveProgramRequirements,
   summarizeProgramNode,
   type ProgramNodeSummary,
@@ -61,13 +67,15 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
     try {
       const basePath = '/api/academic/ranking'
       const hadCache = !force && api.hasCache(basePath)
-      const path = force ? `${basePath}?refresh=true` : basePath
+      const path = withRefresh(basePath, force)
       const data = await api.cached<AcademicRanking>(path, { ttl: 30 * 60_000, force })
       if (requestId !== rankingRequestRef.current) return
+      if (force) api.setCache(basePath, data, 30 * 60_000)
       setRanking(data)
       if (hadCache) {
-        const fresh = await api.cached<AcademicRanking>(`${basePath}?refresh=true`, { force: true })
+        const fresh = await api.cached<AcademicRanking>(withRefresh(basePath, true), { force: true })
         if (requestId !== rankingRequestRef.current) return
+        api.setCache(basePath, fresh, 30 * 60_000)
         setRanking(fresh)
       }
     } catch (caught) {
@@ -86,23 +94,33 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
     setDrilldown(null)
     setError('')
     try {
+      const programPath = `/api/programs/${encodeURIComponent(nextProgramId)}`
+      const nodesPath = `${programPath}/nodes`
       const [detail, nodes] = await Promise.all([
-        api.cached<Program>(`/api/programs/${encodeURIComponent(nextProgramId)}`, { ttl: 30 * 60_000, force }),
-        api.cached<ProgramNode[]>(`/api/programs/${encodeURIComponent(nextProgramId)}/nodes`, { ttl: 30 * 60_000, force }),
+        api.cached<Program>(withRefresh(programPath, force), { ttl: 30 * 60_000, force }),
+        api.cached<ProgramNode[]>(withRefresh(nodesPath, force), { ttl: 30 * 60_000, force }),
       ])
       if (requestId !== requirementRequestRef.current) return
+      if (force) {
+        api.setCache(programPath, detail, 30 * 60_000)
+        api.setCache(nodesPath, nodes, 30 * 60_000)
+      }
       setRequirements(resolveProgramRequirements(detail.XDYQ || '', nodes))
       setProgramNodes(nodes)
       const dynamicNodeIds = dynamicRecognitionCourseNodeIds(nodes)
+      const coursePaths = dynamicNodeIds.map((nodeId) => `${nodesPath}/${encodeURIComponent(nodeId)}/courses`)
       const responses = await Promise.allSettled(dynamicNodeIds.map((nodeId) =>
-        api.cached<ProgramCourse[]>(`/api/programs/${encodeURIComponent(nextProgramId)}/nodes/${encodeURIComponent(nodeId)}/courses`, { ttl: 30 * 60_000, force })
+        api.cached<ProgramCourse[]>(withRefresh(`${nodesPath}/${encodeURIComponent(nodeId)}/courses`, force), { ttl: 30 * 60_000, force })
       ))
       if (requestId !== requirementRequestRef.current) return
       const authFailure = responses.find((response) => response.status === 'rejected' && response.reason instanceof ApiError && response.reason.status === 401)
       if (authFailure?.status === 'rejected') throw authFailure.reason
       const loadedCourses: Record<string, ProgramCourse[]> = {}
       responses.forEach((response, index) => {
-        if (response.status === 'fulfilled') loadedCourses[dynamicNodeIds[index]] = response.value
+        if (response.status === 'fulfilled') {
+          loadedCourses[dynamicNodeIds[index]] = response.value
+          if (force) api.setCache(coursePaths[index], response.value, 30 * 60_000)
+        }
       })
       setProgramCourses(loadedCourses)
     } catch (caught) {
@@ -112,6 +130,18 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
     }
   }, [onUnauthorized])
 
+  const refreshAcademicProgramData = useCallback(async () => {
+    const profilePath = '/api/academic/profile'
+    const freshProfile = await api.cached<AcademicProfile>(withRefresh(profilePath, true), { force: true })
+    api.setCache(profilePath, freshProfile, 30 * 60_000)
+    const programsPath = query('/api/programs', { grade: freshProfile.grade })
+    const freshPrograms = await api.cached<Program[]>(withRefresh(programsPath, true), { force: true })
+    api.setCache(programsPath, freshPrograms, 30 * 60_000)
+    const selected = selectOwnedProgram(freshPrograms, freshProfile)
+    if (!selected) throw new Error(`未找到与本人专业“${freshProfile.majorName}”匹配的主修培养方案`)
+    await loadProgramRequirements(selected.PYFADM, true)
+  }, [loadProgramRequirements])
+
   const load = useCallback(async (force = false) => {
     setLoading(true)
     setError('')
@@ -120,9 +150,13 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
     setDrilldown(null)
     void loadRanking(force)
     try {
-      const profilePromise = api.cached<AcademicProfile>('/api/academic/profile', { ttl: 30 * 60_000, force })
-      const overviewPath = force ? '/api/academic/overview?refresh=true' : '/api/academic/overview'
+      const profilePath = '/api/academic/profile'
+      const profileHadCache = !force && api.hasCache(profilePath)
+      const profilePromise = api.cached<AcademicProfile>(withRefresh(profilePath, force), { ttl: 30 * 60_000, force })
+      const overviewBasePath = '/api/academic/overview'
+      const overviewPath = withRefresh(overviewBasePath, force)
       const academicData = await api.cached<AcademicOverview>(overviewPath, { force })
+      if (force) api.setCache(overviewBasePath, academicData)
       setSummary(academicData.summary)
       setGrades(academicData.grades)
       setNewGradeCount(academicData.newGradeCount)
@@ -130,7 +164,8 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
 
       let academicRefresh: Promise<void> | null = null
       if (!force && academicData.source === 'cache') {
-        academicRefresh = api.cached<AcademicOverview>('/api/academic/overview?refresh=true', { force: true }).then((fresh) => {
+        academicRefresh = api.cached<AcademicOverview>(withRefresh(overviewBasePath, true), { force: true }).then((fresh) => {
+          api.setCache(overviewBasePath, fresh)
           setSummary(fresh.summary)
           setGrades(fresh.grades)
           setNewGradeCount(fresh.newGradeCount)
@@ -140,18 +175,27 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
       }
 
       const profile = await profilePromise
-      const programs = await api.cached<Program[]>(query('/api/programs', { grade: profile.grade }), { ttl: 30 * 60_000, force })
+      if (force) api.setCache(profilePath, profile, 30 * 60_000)
+      const programsPath = query('/api/programs', { grade: profile.grade })
+      const programsHadCache = !force && api.hasCache(programsPath)
+      const programs = await api.cached<Program[]>(withRefresh(programsPath, force), { ttl: 30 * 60_000, force })
+      if (force) api.setCache(programsPath, programs, 30 * 60_000)
       const selected = selectOwnedProgram(programs, profile)
       if (!selected) throw new Error(`未找到与本人专业“${profile.majorName}”匹配的主修培养方案`)
       await loadProgramRequirements(selected.PYFADM, force)
       await academicRefresh
+      if (!force && (profileHadCache || programsHadCache)) {
+        void refreshAcademicProgramData().catch((caught) => {
+          if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
+        })
+      }
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
       setError(caught instanceof Error ? caught.message : '加载失败')
     } finally {
       setLoading(false)
     }
-  }, [loadProgramRequirements, loadRanking, onUnauthorized])
+  }, [loadProgramRequirements, loadRanking, onUnauthorized, refreshAcademicProgramData])
 
   useEffect(() => { void load() }, [load])
   const allGrades = useMemo(() => grades?.rows || [], [grades])
@@ -185,9 +229,9 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
     try {
       const nodes = await api.cached<ProgramNode[]>(`/api/programs/${encodeURIComponent(activeProgramId)}/nodes`, { ttl: 30 * 60_000 })
       if (requestId !== drilldownRequestRef.current) return
-      const root = nodes.find((node) => node.FKZH === '-1' && node.KZM === category)
-      if (!root) throw new Error('培养方案中未找到该学分类别')
-      const leafIds = collectCourseLeafIds(nodes, root.KZH)
+      const roots = nodes.filter((node) => node.FKZH === '-1' && canonicalProgramCategory(node.KZM) === category)
+      if (!roots.length) throw new Error('培养方案中未找到该学分类别')
+      const leafIds = [...new Set(roots.flatMap((root) => collectCourseLeafIds(nodes, root.KZH)))]
       const leaves = leafIds.map((nodeId) => nodes.find((node) => node.KZH === nodeId)).filter((node): node is ProgramNode => Boolean(node))
       const responses = await Promise.allSettled(leaves.map((node) => api.cached<ProgramCourse[]>(`/api/programs/${encodeURIComponent(activeProgramId)}/nodes/${encodeURIComponent(node.KZH)}/courses`, { ttl: 30 * 60_000 })))
       if (requestId !== drilldownRequestRef.current) return
@@ -238,7 +282,7 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
       </div>
       {error && <div className="error-banner">{error}</div>}
       <section className="metric-grid" aria-busy={loading || rankingLoading}>
-        <article className="metric"><p>毕业学分进度</p><strong>{displaySummary?.earnedCredits ?? '—'}<small> / {requirements.total ?? '—'}</small></strong><span>已获学分 / 培养方案总学分</span></article>
+        <article className="metric"><p>毕业学分进度</p><strong>{displaySummary?.earnedCredits ?? '—'}<small> / {requirements.total ?? '待确认'}</small></strong><span>已获学分 / 培养方案总学分</span></article>
         <article className="metric metric-with-secondary metric-score-pair">
           <div className="metric-value-grid">
             <div><p>所有课学分绩</p><strong>{displaySummary?.gpa ?? '—'}<small> / 5.0</small></strong></div>
@@ -293,8 +337,8 @@ export function Overview({ onUnauthorized }: { session: Session; onUnauthorized:
               const passed = gradePassed(grade)
               return <tr key={`${grade.XNXQDM}-${grade.KCH}`}>
                 <td><strong>{grade.KCM}</strong><small>{grade.KCH}</small></td>
-                <td>{grade.XNXQDM_DISPLAY || grade.XNXQDM}</td><td>{grade.KCXZDM_DISPLAY || '—'}</td><td>{grade.XF}</td>
-                <td><span className="score">{grade.ZCJ}</span></td><td><span className={passed ? 'status-text passed' : 'status-text'}>{passed ? '已通过' : '未通过'}</span></td>
+                <td>{grade.XNXQDM_DISPLAY || grade.XNXQDM}</td><td>{grade.KCXZDM_DISPLAY || '—'}</td><td>{gradeCreditLabel(grade)}</td>
+                <td><span className="score">{gradeScoreLabel(grade)}</span></td><td><span className={passed ? 'status-text passed' : 'status-text'}>{passed ? '已通过' : '未通过'}</span></td>
               </tr>
             })}</tbody>
           </table>
@@ -334,8 +378,8 @@ function CreditDrilldownModal({ data, grades, categoryEarned, required, requirem
         {data.groups.map(({ node, courses, summary: nodeSummary, recognition }) => {
           const matches = buildCourseMatches(node, courses, grades)
           const completed = courses.filter((course) => matches.has(course))
-          const earned = recognition?.earnedCredits ?? completed.reduce((sum, course) => sum + Number(course.XF || 0), 0)
-          const groupRequired = nodeSummary.requiredCredits
+          const earned = recognition?.earnedCredits ?? completed.reduce((sum, course) => sum + (courseCreditValue(course.XF) || 0), 0)
+          const groupRequirementLabel = formatProgramNodeCreditRequirement(nodeSummary)
           const readingPlan = recognition?.readingBonusCredits && recognition.readingAverage != null ? {
             KCH: 'READING_PLAN',
             KCM: '悦读经典计划',
@@ -353,7 +397,7 @@ function CreditDrilldownModal({ data, grades, categoryEarned, required, requirem
           })
           const visibleCourses = filterCourses(displayCourses, displayMatches)
           return <section key={node.KZH}>
-            <header><div><strong>{node.KZM}</strong><span>{requirementTextForCredit(nodeSummary)}</span></div><small>{displayCourses.length ? formatNumber(earned) : '待认定'} / {groupRequired ?? '—'} 学分</small></header>
+            <header><div><strong>{node.KZM}</strong><span>{requirementTextForCredit(nodeSummary)}</span></div><small>{displayCourses.length ? formatNumber(earned) : '待认定'} / {groupRequirementLabel} 学分</small></header>
             {displayCourses.length ? visibleCourses.length ? <div className="credit-course-list">{visibleCourses.map((course, index) => {
               const grade = displayMatches.get(course)
               const isReadingPlan = course.__readingPlan === true
@@ -361,11 +405,11 @@ function CreditDrilldownModal({ data, grades, categoryEarned, required, requirem
               const equivalent = grade && grade.KCH !== course.KCH ? `（等效：${grade.KCM || grade.KCH}）` : ''
               const officialCategory = [course.BY9_DISPLAY, course.XGXKLBDM_DISPLAY, course.KCFLDM_DISPLAY].map(String).filter((value) => value && value !== 'undefined').join(' · ')
               const courseMeta = isReadingPlan
-                ? `培养方案认定 · ${String(course.XF ?? '—')} 学分 · 三门课程`
+                ? `培养方案认定 · ${formatCourseCredit(course.XF)} 学分 · 三门课程`
                 : isRequirementPlaceholder
-                  ? `培养方案要求 · ${String(course.XF ?? '—')} 学分`
-                  : `${course.KCH} · ${String(course.XF ?? '—')} 学分${officialCategory ? ` · ${officialCategory}` : ''}`
-              return <div key={`${course.KCH}-${index}`}><span><strong>{course.KCM}</strong><small>{courseMeta}</small></span><b className={grade ? 'completed' : ''}>{grade ? isReadingPlan ? `已完成 · 平均成绩 ${grade.ZCJ}` : `已完成 · ${grade.ZCJ || '已通过'}${equivalent}` : '未直接匹配'}</b></div>
+                  ? `培养方案要求 · ${formatCourseCredit(course.XF)} 学分`
+                  : `${course.KCH} · ${formatCourseCredit(course.XF)} 学分${officialCategory ? ` · ${officialCategory}` : ''}`
+              return <div key={`${course.KCH}-${index}`}><span><strong>{course.KCM}</strong><small>{courseMeta}</small></span><b className={grade ? 'completed' : ''}>{grade ? isReadingPlan ? `已完成 · 平均成绩 ${grade.ZCJ}` : `已完成 · ${gradeScoreLabel(grade)}${equivalent}` : '未直接匹配'}</b></div>
             })}</div> : <div className="empty-inline">该课程组没有匹配筛选条件的课程。</div> : <p>开放选修或模块课程，培养方案未提供固定课程清单。</p>}
           </section>
         })}
@@ -379,14 +423,23 @@ function CreditDrilldownModal({ data, grades, categoryEarned, required, requirem
 function requirementTextForCredit(summary: ProgramNodeSummary) {
   const parts = []
   if (summary.requiredCourses != null) parts.push(`应修 ${formatNumber(summary.requiredCourses)} 门`)
-  if (summary.requiredCreditOptions && summary.requiredCreditOptions.length > 1) {
-    parts.push(`应修 ${summary.requiredCreditOptions.map(formatNumber).join(' / ')} 学分`)
-  } else if (summary.requiredCredits != null) parts.push(`应修 ${formatNumber(summary.requiredCredits)} 学分`)
-  return parts.join(' · ') || '要求以方案说明为准'
+  const creditRequirement = resolveProgramNodeCreditRequirement(summary)
+  if (creditRequirement?.source === 'required') {
+    parts.push(`应修 ${creditRequirement.values.map(formatNumber).join(' / ')} 学分`)
+  } else if (creditRequirement?.source === 'fixed-course-list') {
+    parts.push(`固定课程清单 ${creditRequirement.values.map(formatNumber).join(' / ')} 学分`)
+  }
+  if (parts.length) return parts.join(' · ')
+  return summary.moduleCount > 0 ? `${summary.moduleCount} 个课程模块 · 学分待确认` : '要求学分待确认'
+}
+
+function formatProgramNodeCreditRequirement(summary: ProgramNodeSummary) {
+  const requirement = resolveProgramNodeCreditRequirement(summary)
+  return requirement ? requirement.values.map(formatNumber).join(' / ') : '待确认'
 }
 
 function formatRequirementValue(required: number | null, options: number[]) {
-  return options.length ? options.map(formatNumber).join(' / ') : required == null ? '—' : formatNumber(required)
+  return options.length ? options.map(formatNumber).join(' / ') : required == null ? '待确认' : formatNumber(required)
 }
 
 function formatNumber(value: number) {

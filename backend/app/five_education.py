@@ -11,6 +11,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlparse
 from urllib.request import HTTPRedirectHandler, HTTPCookieProcessor, Request, build_opener
 
+from .version import APP_USER_AGENT
+
 
 AUTH_HOST = "authserver.nju.edu.cn"
 FIVE_EDUCATION_HOST = "ndwy.nju.edu.cn"
@@ -38,9 +40,7 @@ class FiveEducationError(RuntimeError):
 
 
 def _connection_error(error: HTTPError | URLError | TimeoutError) -> FiveEducationError:
-    if isinstance(error, HTTPError) and error.code == 483:
-        return FiveEducationError("请连接vpn或校园网访问最新数据")
-    return FiveEducationError("南京大学五育系统暂时不可用，请稍后重试")
+    return FiveEducationError("我的五育暂时不可用，请连接校园网或vpn并稍后重试")
 
 
 def _allowed_url(url: str) -> bool:
@@ -455,7 +455,7 @@ class FiveEducationClient:
             method=method,
             headers={
                 "Accept": accept,
-                "User-Agent": "NanyongZhike/1.2 read-only",
+                "User-Agent": APP_USER_AGENT,
             },
         )
         with opener.open(request, timeout=20) as response:

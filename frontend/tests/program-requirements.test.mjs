@@ -1,15 +1,24 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import {
+import * as programRequirements from '../src/program-requirements.ts'
+
+const {
   aggregateNodeCourses,
   buildProgramTree,
   classifyProgramNodesForYear,
   collectCourseLeafIds,
+  formatCourseCredit,
+  courseCreditValue,
   parseProgramRequirements,
   resolveProgramRequirements,
   summarizeProgramNode,
-} from '../src/program-requirements.ts'
+} = programRequirements
+
+function resolveProgramNodeCreditRequirement(summary) {
+  assert.equal(typeof programRequirements.resolveProgramNodeCreditRequirement, 'function')
+  return programRequirements.resolveProgramNodeCreditRequirement(summary)
+}
 
 const detailText = [
   '应修总学分 144 学分。',
@@ -66,6 +75,37 @@ test('parses the authoritative graduation requirements from program text', () =>
   })
 })
 
+test('parses full-width numbers and slash-separated track requirements', () => {
+  const requirements = parseProgramRequirements('专业应修总学分１５０，其中学科专业课程（必修）４７／６４学分。')
+
+  assert.equal(requirements.total, 150)
+  assert.deepEqual(requirements.categoryOptions['学科专业课程'], [47, 64])
+  assert.equal(requirements.categories['学科专业课程'], 47)
+})
+
+test('recognizes official category aliases and hyphen/range separators', () => {
+  const requirements = parseProgramRequirements(
+    '应修总学分 144 学分；通修课程 58 至 62 学分；专业核心课程 47 学分；多元发展选修课程 19-21 学分；毕业论文 4 学分。',
+  )
+
+  assert.deepEqual(requirements.categoryOptions['通识通修课程'], [58, 62])
+  assert.deepEqual(requirements.categoryOptions['学科专业课程'], [47])
+  assert.deepEqual(requirements.categoryOptions['多元发展课程'], [19, 21])
+  assert.deepEqual(requirements.categoryOptions['毕业论文/设计'], [4])
+})
+
+test('formats numeric course credits and marks missing sentinels for confirmation', () => {
+  assert.equal(formatCourseCredit('３．５ 学分'), '3.5')
+  assert.equal(formatCourseCredit('.25'), '0.25')
+  assert.equal(formatCourseCredit('/'), '待确认')
+  assert.equal(formatCourseCredit('N/A'), '待确认')
+  assert.equal(formatCourseCredit('－'), '待确认')
+  assert.equal(courseCreditValue('N/A'), null)
+  assert.equal(courseCreditValue('—'), null)
+  assert.equal(courseCreditValue('3.5'), 3.5)
+  assert.equal(formatCourseCredit(null), '待确认')
+})
+
 test('fills all graduation categories from top-level required credits and derives their complete total', () => {
   const fallbackNodes = [
     { KZH: 'general', FKZH: '-1', KZM: '通识通修课程', ZSXDXF: 59, KCZXF: 159 },
@@ -89,6 +129,37 @@ test('fills all graduation categories from top-level required credits and derive
       '毕业论文/设计': [6],
     },
   })
+})
+
+test('maps official top-level node aliases when program text is empty', () => {
+  const fallbackNodes = [
+    { KZH: 'general', FKZH: '-1', KZM: '通修课程', ZSXDXF: 59 },
+    { KZH: 'foundation', FKZH: '-1', KZM: '学科基础课程', ZSXDXF: 13 },
+    { KZH: 'core', FKZH: '-1', KZM: '专业核心课程', ZSXDXF: 34 },
+    { KZH: 'development', FKZH: '-1', KZM: '多元发展选修课程', ZSXDXF: 34 },
+    { KZH: 'thesis', FKZH: '-1', KZM: '毕业论文（必修）', ZSXDXF: 4 },
+  ]
+
+  const requirements = resolveProgramRequirements('', fallbackNodes)
+
+  assert.deepEqual(requirements.categories, {
+    '通识通修课程': 59,
+    '学科专业课程': 47,
+    '多元发展课程': 34,
+    '毕业论文/设计': 4,
+  })
+  assert.equal(requirements.total, 144)
+})
+
+test('keeps split discipline subcategory node credits instead of repeating their sum', () => {
+  const nodes = [
+    { KZH: 'foundation', FKZH: '-1', KZM: '学科基础课程', ZSXDXF: 13 },
+    { KZH: 'core', FKZH: '-1', KZM: '专业核心课程', ZSXDXF: 34 },
+  ]
+  const requirements = resolveProgramRequirements('', nodes)
+
+  assert.equal(summarizeProgramNode(nodes[0], nodes, {}, requirements).requiredCredits, 13)
+  assert.equal(summarizeProgramNode(nodes[1], nodes, {}, requirements).requiredCredits, 34)
 })
 
 test('keeps program text authoritative over conflicting node required credits', () => {
@@ -116,6 +187,54 @@ test('does not derive a total from course pool credits when a required category 
   const requirements = resolveProgramRequirements('', incompleteNodes)
   assert.equal(requirements.total, null)
   assert.equal(requirements.categories['毕业论文/设计'], null)
+})
+
+test('uses complete fixed course-pool credits when a module has no required field', () => {
+  const moduleNodes = [
+    { KZH: 'root', FKZH: '-1', KZM: '通识通修课程', KZLXDM: '02' },
+    { KZH: 'common', FKZH: 'root', KZM: '通修课程', KZLXDM: '02', KCZMS: 2 },
+    { KZH: 'common-a', FKZH: 'common', KZM: '通修课程 A', KZLXDM: '01' },
+    { KZH: 'common-b', FKZH: 'common', KZM: '通修课程 B', KZLXDM: '01' },
+  ]
+  const courses = {
+    'common-a': [{ KCH: 'A', KCM: '课程 A', XF: '3' }],
+    'common-b': [{ KCH: 'B', KCM: '课程 B', XF: '5' }],
+  }
+
+  const summary = summarizeProgramNode(moduleNodes[1], moduleNodes, courses, parseProgramRequirements(''))
+
+  assert.equal(summary.requiredCredits, null)
+  assert.equal(summary.poolCredits, 8)
+  assert.deepEqual(resolveProgramNodeCreditRequirement(summary), {
+    values: [8],
+    source: 'fixed-course-list',
+  })
+})
+
+test('does not derive a fixed denominator from a course list with unknown credits', () => {
+  const node = { KZH: 'incomplete', FKZH: '-1', KZM: '固定课程', KZLXDM: '01' }
+  const summary = summarizeProgramNode(
+    node,
+    [node],
+    { incomplete: [{ KCH: 'A', KCM: '课程 A', XF: '2' }, { KCH: 'B', KCM: '课程 B', XF: '—' }] },
+    parseProgramRequirements(''),
+  )
+
+  assert.equal(summary.poolCredits, null)
+  assert.equal(resolveProgramNodeCreditRequirement(summary), null)
+})
+
+test('keeps an elective course pool without an authoritative denominator', () => {
+  const node = { KZH: 'optional', FKZH: '-1', KZM: '专业选修课程', KZLXDM: '01' }
+  const summary = summarizeProgramNode(
+    node,
+    [node],
+    { optional: [{ KCH: 'A', KCM: '课程 A', XF: '3' }, { KCH: 'B', KCM: '课程 B', XF: '4' }] },
+    parseProgramRequirements(''),
+  )
+
+  assert.equal(summary.isElectivePool, true)
+  assert.equal(resolveProgramNodeCreditRequirement(summary), null)
 })
 
 test('uses program text instead of misleading parent pool totals', () => {
@@ -151,6 +270,10 @@ test('keeps track-specific requirements separate from descendant course-list tot
   assert.deepEqual(requirements.categoryOptions['学科专业课程'], [47, 64])
   assert.equal(parent.requiredCredits, 47)
   assert.deepEqual(parent.requiredCreditOptions, [47, 64])
+  assert.deepEqual(resolveProgramNodeCreditRequirement(parent), {
+    values: [47, 64],
+    source: 'required',
+  })
   assert.equal(foundation.requiredCredits, null)
   assert.equal(foundation.poolCredits, 13)
   assert.equal(core.requiredCredits, null)

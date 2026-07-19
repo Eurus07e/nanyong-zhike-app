@@ -1,9 +1,9 @@
 {
   "entries": {
     "/api/academic/overview": {
-      "updatedAt": 1784194703,
+      "updatedAt": 1784490603,
       "value": {
-        "cachedAt": 1784194703,
+        "cachedAt": 1784490603,
         "grades": {
           "extParams": null,
           "pageNumber": 1,
@@ -53,6 +53,48 @@
             },
             {
               "CJBZBS": null,
+              "KCFL1": "1",
+              "KCFL1_DISPLAY": "理论类课程",
+              "KCFLDM": "22",
+              "KCFLDM_DISPLAY": "通修课程",
+              "KCH": "00020022B6",
+              "KCM": "学术英语写作",
+              "KCXZDM": "04",
+              "KCXZDM_DISPLAY": "通修",
+              "SFJG": "1",
+              "SFJG_DISPLAY": "是",
+              "SFXGXK": "1",
+              "SFXGXK_DISPLAY": "是",
+              "XF": "2",
+              "XH": "已隐藏",
+              "XNXQDM": "2025-2026-2",
+              "XNXQDM_DISPLAY": "2025-2026学年 第2学期",
+              "YWKCM": "Academic English Writing",
+              "ZCJ": "92"
+            },
+            {
+              "CJBZBS": null,
+              "KCFL1": "5",
+              "KCFL1_DISPLAY": "理论+实践课程",
+              "KCFLDM": "22",
+              "KCFLDM_DISPLAY": "通修课程",
+              "KCH": "00020032B3",
+              "KCM": "国际学术交流英语",
+              "KCXZDM": "04",
+              "KCXZDM_DISPLAY": "通修",
+              "SFJG": "1",
+              "SFJG_DISPLAY": "是",
+              "SFXGXK": "1",
+              "SFXGXK_DISPLAY": "是",
+              "XF": "2",
+              "XH": "已隐藏",
+              "XNXQDM": "2025-2026-2",
+              "XNXQDM_DISPLAY": "2025-2026学年 第2学期",
+              "YWKCM": "English for International Academic Communication",
+              "ZCJ": "93"
+            },
+            {
+              "CJBZBS": null,
               "KCFL1": "3",
               "KCFL1_DISPLAY": "实践类课程",
               "KCFLDM": "22",
@@ -71,6 +113,27 @@
               "XNXQDM_DISPLAY": "2025-2026学年 第2学期",
               "YWKCM": "The improvement of physical health",
               "ZCJ": "94"
+            },
+            {
+              "CJBZBS": null,
+              "KCFL1": "1",
+              "KCFL1_DISPLAY": "理论类课程",
+              "KCFLDM": "22",
+              "KCFLDM_DISPLAY": "通修课程",
+              "KCH": "00050010",
+              "KCM": "军事理论",
+              "KCXZDM": "04",
+              "KCXZDM_DISPLAY": "通修",
+              "SFJG": "1",
+              "SFJG_DISPLAY": "是",
+              "SFXGXK": "1",
+              "SFXGXK_DISPLAY": "是",
+              "XF": "2",
+              "XH": "已隐藏",
+              "XNXQDM": "2025-2026-2",
+              "XNXQDM_DISPLAY": "2025-2026学年 第2学期",
+              "YWKCM": "Military Theory",
+              "ZCJ": "84"
             },
             {
               "BY9": "0037",
@@ -570,14 +633,14 @@
               "ZCJ": "95"
             }
           ],
-          "totalSize": 26
+          "totalSize": 29
         },
         "newGradeCount": 0,
         "source": "cache",
         "summary": {
           "categories": [
             {
-              "credits": 28.75,
+              "credits": 34.75,
               "name": "通修"
             },
             {
@@ -591,11 +654,11 @@
           ],
           "degreeGpa": null,
           "degreeGpaUnavailableReason": "eHall 成绩接口未提供学位课标记，无法可靠区分学位课。",
-          "earnedCredits": 52.75,
+          "earnedCredits": 58.75,
           "gpa": 4.55,
           "graduationCategories": [
             {
-              "credits": 37.75,
+              "credits": 43.75,
               "name": "通识通修课程"
             },
             {
@@ -611,23 +674,23 @@
               "name": "毕业论文/设计"
             }
           ],
-          "passedCourses": 26,
+          "passedCourses": 29,
           "terms": [
             {
               "credits": 33.0,
               "name": "2025-2026学年 第1学期"
             },
             {
-              "credits": 19.75,
+              "credits": 25.75,
               "name": "2025-2026学年 第2学期"
             }
           ],
-          "weightedAverage": 91.07
+          "weightedAverage": 90.92
         }
       }
     },
     "/api/academic/profile": {
-      "updatedAt": 1784097167,
+      "updatedAt": 1784490606,
       "value": {
         "departmentCode": "400760",
         "departmentName": "智能科学与技术学院",
@@ -637,20 +700,20 @@
       }
     },
     "/api/academic/ranking": {
-      "updatedAt": 1784161870,
+      "updatedAt": 1784473408,
       "value": {
-        "averageScore": 4.56,
+        "averageScore": 4.55,
         "majorTotal": 262,
-        "rank": 23,
-        "rankPercent": 8.78
+        "rank": 24,
+        "rankPercent": 9.16
       }
     },
     "/api/five-education/activities": {
-      "updatedAt": 1784161871,
+      "updatedAt": 1784486512,
       "value": {
         "academicYear": "2025-2026",
         "count": 8,
-        "fetchedAt": 1784161871,
+        "fetchedAt": 1784486512,
         "items": [
           {
             "activityDuration": 2.0,
@@ -663,7 +726,7 @@
             "contactEmail": "",
             "contactPhone": "",
             "coordinator": "",
-            "description": "学习安全质量管理制度，参与检查实践，为高品质后勤贡献智慧和力量。南大教超安质内容包括：超市商品陈列、服务技能技巧、氛围营造、消费者沟通。大三大四劳育时长未达标学生，可根据个人补时需求，申请延长单次劳动教育实践时长，老师将按实际参与时长如实核算、累计学时。\n谷老师已隐藏",
+            "description": "",
             "englishTitle": "Supermarket Store Assistant",
             "grade": "优秀",
             "id": "631295",
@@ -693,7 +756,7 @@
             "contactEmail": "",
             "contactPhone": "",
             "coordinator": "",
-            "description": "学习安全质量管理制度，参与检查实践，为高品质后勤贡献智慧和力量。南大教超安质内容包括：超市商品陈列、服务技能技巧、氛围营造、消费者沟通。大三大四劳育时长未达标学生，可根据个人补时需求，申请延长单次劳动教育实践时长，老师将按实际参与时长如实核算、累计学时。\n谷老师已隐藏",
+            "description": "",
             "englishTitle": "Supermarket Store Assistant",
             "grade": "良好",
             "id": "631296",
@@ -723,7 +786,7 @@
             "contactEmail": "",
             "contactPhone": "",
             "coordinator": "",
-            "description": "营造“安全、健康、文明、和谐”的宿舍环境，健雄书院面向全院学生开展文明宿舍评选活动。",
+            "description": "",
             "englishTitle": "Cilized dormitory seleecttiong theme activity",
             "grade": "良好",
             "id": "635426",
@@ -753,7 +816,7 @@
             "contactEmail": "",
             "contactPhone": "",
             "coordinator": "",
-            "description": "邀请留学归国青年教师与学生开展对话交流。",
+            "description": "",
             "englishTitle": "Lecture: \"The Evolution of AI Technology: Customizing Your 'AI+' Strategy\"",
             "grade": "优秀",
             "id": "625817",
@@ -783,7 +846,7 @@
             "contactEmail": "",
             "contactPhone": "",
             "coordinator": "",
-            "description": "劳动内容：协助鼓楼逸夫馆、郑钢楼、新教学楼、南教学楼、费彝民楼教室区域开展节能减排维护和检查工作。过程中对无人使用教室各数据进行统计，关闭灯、空调、窗户、门。提醒自习同学离开时关灯、关空调、关窗，养成良好的习惯。\n劳动要求：准时到岗，及时签到，遵守规章制度。服从安排，积极投入，认真完成指导老师安排的内容。穿合适服装，注意个人安全与卫生防护。精神饱满，在确保身体舒适状态下报名参与活动，如有不适请及时报告；另若报名后因有事确不能参与活动时，需提前发请假邮件至指导老师邮箱。",
+            "description": "",
             "englishTitle": "Do Our Utmost for Conservation · Green Class , Energy Conservation and Emission Reduction Inspection in Public Classrooms",
             "grade": "良好",
             "id": "617149",
@@ -813,7 +876,7 @@
             "contactEmail": "",
             "contactPhone": "",
             "coordinator": "",
-            "description": "书院将继续秉承“严谨、求实、勤奋、创新”的学风，为师生们提供更多高水平的学术交流平台，共同推动科学研究的繁荣发展。",
+            "description": "",
             "englishTitle": "Golden Seed Double Selection Fair",
             "grade": "合格",
             "id": "621592",
@@ -843,7 +906,7 @@
             "contactEmail": "",
             "contactPhone": "",
             "coordinator": "",
-            "description": "本次“如何安全养龙虾？”——ArkClaw校园安全实践工作坊由南京大学学生OpenHarmony技术俱乐部联合开甲书院、软件学院与字节跳动火山引擎平台共同举办。活动旨在帮助同学们安全、高效地掌握AI Agent工具，让AI成为学习路上的得力助手。活动于3月21日（周六）15:00-16:20在鼓楼校区新教207举行。现场设置签到、主题分享、实操演练、互动交流及合影等环节。资深“养虾”玩家将分享实践经验与避坑技巧，并开展手把手Skill教学与实战演练，提供全时段安全护航，助力同学们科学使用AI工具。",
+            "description": "",
             "englishTitle": "ArkClaw Campus Safety Practice Workshop",
             "grade": "良好",
             "id": "611547",
@@ -873,7 +936,7 @@
             "contactEmail": "",
             "contactPhone": "",
             "coordinator": "",
-            "description": "本科招生服务育人，开展南星梦想计划、各类招生宣传活动、招生志愿活动等。",
+            "description": "",
             "englishTitle": "Nanxing Dream Program",
             "grade": "成功参加",
             "id": "676366",
@@ -882,7 +945,7 @@
             "module": "",
             "organizer": "本科生院",
             "participationStatus": "参加",
-            "recognitionStatus": "待提交",
+            "recognitionStatus": "已提交",
             "recognizedDuration": 0,
             "recordedDuration": 0,
             "registeredAt": "2026-07-14T16:00:00.000+00:00",
@@ -898,14 +961,14 @@
       }
     },
     "/api/five-education/overview": {
-      "updatedAt": 1784161870,
+      "updatedAt": 1784486509,
       "value": {
         "dimensions": [
           {
             "cohortAverage": 0.6,
             "key": "moral",
             "label": "德",
-            "personalCount": 0
+            "personalCount": 1
           },
           {
             "cohortAverage": 1.3,
@@ -932,7 +995,7 @@
             "personalCount": 6
           }
         ],
-        "fetchedAt": 1784161870,
+        "fetchedAt": 1784486509,
         "growthModules": [
           {
             "achieved": true,
@@ -989,7 +1052,7 @@
           "evaluationRate": 0.625,
           "evaluationTotal": 8,
           "laborTotalDuration": 12.0,
-          "totalActivities": 9
+          "totalActivities": 10
         }
       }
     },
@@ -5965,7 +6028,7 @@
       "value": []
     },
     "/api/programs/3D94644018F56B98E0633C7EDBDB7E05": {
-      "updatedAt": 1784097183,
+      "updatedAt": 1784490637,
       "value": {
         "BY1": null,
         "BY10": null,
@@ -6045,7 +6108,7 @@
       }
     },
     "/api/programs/3D94644018F56B98E0633C7EDBDB7E05/nodes": {
-      "updatedAt": 1784097186,
+      "updatedAt": 1784490637,
       "value": [
         {
           "BZ": null,
@@ -6812,7 +6875,7 @@
       ]
     },
     "/api/programs/3D94644018F56B98E0633C7EDBDB7E05/nodes/31ea3e90c3914eac8207d922fca43a52/courses": {
-      "updatedAt": 1784097195,
+      "updatedAt": 1784490640,
       "value": [
         {
           "BY1": "1",
@@ -11145,7 +11208,7 @@
       ]
     },
     "/api/programs/3D94644018F56B98E0633C7EDBDB7E05/nodes/c9619a99b4c0401099cb3c04a0ec625e/courses": {
-      "updatedAt": 1784097203,
+      "updatedAt": 1784490640,
       "value": [
         {
           "BY1": "1",
@@ -11749,7 +11812,7 @@
       "value": []
     },
     "/api/programs?grade=2025": {
-      "updatedAt": 1784097181,
+      "updatedAt": 1784490610,
       "value": [
         {
           "BZ": null,
@@ -19879,7 +19942,7 @@
       ]
     },
     "/api/schedule/terms": {
-      "updatedAt": 1784097167,
+      "updatedAt": 1784490569,
       "value": [
         {
           "BY1": null,
@@ -20923,7 +20986,7 @@
         "pageSize": 200,
         "rows": [
           {
-            "JSHS": "张一品",
+            "JSHS": "",
             "JXBID": "20252026100000080A22",
             "JXBMC": "形势与政策(健雄2班)",
             "KCFL1": "1",
@@ -20941,7 +21004,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "张一品",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": ".25",
             "XKLY": "03",
@@ -20950,7 +21013,7 @@
             "ZCXQJCDD": "周六 3-4节 3周 方肇周体育馆,周三 7-8节 7-9周 费A-206"
           },
           {
-            "JSHS": "蒋天婵",
+            "JSHS": "",
             "JXBID": "2025202610000011017",
             "JXBMC": "马克思主义基本原理17班",
             "KCFL1": "5",
@@ -20968,7 +21031,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "蒋天婵",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "3",
             "XKLY": "02",
@@ -20977,7 +21040,7 @@
             "ZCXQJCDD": "周五 5-7节 4-18周 馆3-203"
           },
           {
-            "JSHS": "李浩",
+            "JSHS": "",
             "JXBID": "2025202610000016004",
             "JXBMC": "国家安全教育04班（健雄班）",
             "KCFL1": "1",
@@ -20993,7 +21056,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "0",
             "SKJS": "李浩",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "1",
             "XKLY": "03",
@@ -21002,7 +21065,7 @@
             "ZCXQJCDD": "自由时间  1-3周 自由地点"
           },
           {
-            "JSHS": "崔小军",
+            "JSHS": "",
             "JXBID": "20252026100010011A14",
             "JXBMC": "微积分I(第一层次)(健雄2班)",
             "KCFL1": "5",
@@ -21020,7 +21083,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "崔小军",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "5",
             "XKLY": "03",
@@ -21029,7 +21092,7 @@
             "ZCXQJCDD": "周一 5-6节 4-18周 教201,周三 3-4节 4-18周 教201,周一 1-2节 4-18周 教201"
           },
           {
-            "JSHS": "邵荣",
+            "JSHS": "",
             "JXBID": "20252026100010011C13",
             "JXBMC": "线性代数(第一层次)(健雄2班)",
             "KCFL1": "1",
@@ -21047,7 +21110,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "邵荣",
-            "SKSM": "本课程教材：《线性代数讲义》江惠坤等编。本课程需要同学访问南京大学智慧教学平台（手机通过南京大学app的智慧教学平台进入，电脑通过网址：https://lms.nju.edu.cn进入(是LMS的小写)），进入自己的课程，用于布置和提交作业，也需要同学加入QQ教学群\"线性代数-技术科学2025\"(QQ号：549141411)，批准进群后查看你的群名称，将群名称改成学号+实名(如181843572张三)。QQ群用于通知和答疑讨论。本课程不接受鼓楼校区以外校区的同学选修，以免跨校区上课无法保证。本人信箱：已隐藏",
+            "SKSM": "",
             "TKJG": null,
             "XF": "4",
             "XKLY": "03",
@@ -21056,7 +21119,7 @@
             "ZCXQJCDD": "周二 3-4节 4-18周 馆3-103,周四 3-4节 4-18周 馆3-103"
           },
           {
-            "JSHS": "金颖哲",
+            "JSHS": "",
             "JXBID": "20252026100020022A53",
             "JXBMC": "基础学术英语-读写53班",
             "KCFL1": "1",
@@ -21074,7 +21137,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "金颖哲",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XKLY": "03",
@@ -21083,7 +21146,7 @@
             "ZCXQJCDD": "周四 5-6节 4-18周 费A-204"
           },
           {
-            "JSHS": "刘骎",
+            "JSHS": "",
             "JXBID": "20252026100020032A13",
             "JXBMC": "基础学术英语-听说13班",
             "KCFL1": "1",
@@ -21101,7 +21164,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "刘骎",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XKLY": "03",
@@ -21110,7 +21173,7 @@
             "ZCXQJCDD": "周二 1-2节 4-18周 新教-502"
           },
           {
-            "JSHS": "赵岚",
+            "JSHS": "",
             "JXBID": "2025202610004205019",
             "JXBMC": "体适能19",
             "KCFL1": "3",
@@ -21128,7 +21191,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "赵岚",
-            "SKSM": "上课地点田径场班级QQ群1063718597",
+            "SKSM": "",
             "TKJG": null,
             "XF": ".75",
             "XKLY": "02",
@@ -21139,7 +21202,7 @@
           {
             "BY9": "0031",
             "BY9_DISPLAY": "通识课-人文与社会科学",
-            "JSHS": "柴忠东",
+            "JSHS": "",
             "JXBID": "2025202610020228001",
             "JXBMC": "透视纷繁复杂的世界经济01班",
             "KCFL1": "1",
@@ -21157,7 +21220,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "柴忠东",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XGXKLBDM": "02",
@@ -21170,7 +21233,7 @@
           {
             "BY9": "0034",
             "BY9_DISPLAY": "通识课-自然科学与技术",
-            "JSHS": "刘嘉",
+            "JSHS": "",
             "JXBID": "2025202610020269001",
             "JXBMC": "数据之眼01班",
             "KCFL1": "5",
@@ -21188,7 +21251,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "刘嘉",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XGXKLBDM": "02",
@@ -21199,7 +21262,7 @@
             "ZCXQJCDD": "周三 9-11节 8-15周 新教-304"
           },
           {
-            "JSHS": "严新明,任正臣,周瑞瑞,李乾坤,李海超,武海宝,胡大平",
+            "JSHS": "",
             "JXBID": "20252026100372480A03",
             "JXBMC": "大学生劳动教育（理论部分）03班",
             "KCFL1": "1",
@@ -21217,7 +21280,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "严新明,任正臣,周瑞瑞,李乾坤,李海超,武海宝,胡大平",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "1",
             "XGXKLBDM": "01",
@@ -21228,7 +21291,7 @@
             "ZCXQJCDD": "自由时间  7-18周 自由地点"
           },
           {
-            "JSHS": "汤剑平,王骏,盛乐标,陆现彩,陈鹏飞,雷群利,黎书华",
+            "JSHS": "",
             "JXBID": "2025202610039925001",
             "JXBMC": "“科学之光”——计算改变世界01班",
             "KCFL1": "1",
@@ -21244,7 +21307,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "1",
             "SKJS": "汤剑平,王骏,盛乐标,陆现彩,陈鹏飞,雷群利,黎书华",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "1",
             "XGXKLBDM": "09",
@@ -21257,7 +21320,7 @@
           {
             "BY9": "0042",
             "BY9_DISPLAY": "悦读课-历史与文明",
-            "JSHS": "郑先武",
+            "JSHS": "",
             "JXBID": "2025202610042008001",
             "JXBMC": "《全球通史》阅读01班",
             "KCFL1": "1",
@@ -21275,7 +21338,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "郑先武",
-            "SKSM": "线下课均在仙林校区进行。请同学们尽快加入QQ学习群1028793854。",
+            "SKSM": "",
             "TKJG": null,
             "XF": "0",
             "XGXKLBDM": "03",
@@ -21288,7 +21351,7 @@
           {
             "BY9": "0046",
             "BY9_DISPLAY": "悦读课-全球化与领导力",
-            "JSHS": "张桐",
+            "JSHS": "",
             "JXBID": "2025202610046001002",
             "JXBMC": "《世界是平的：21世纪简史》阅读02班",
             "KCFL1": "1",
@@ -21306,7 +21369,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "张桐",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "0",
             "XGXKLBDM": "03",
@@ -21319,7 +21382,7 @@
           {
             "BY9": "0060",
             "BY9_DISPLAY": "人工智能通识核心课",
-            "JSHS": "俞扬,刘嘉,吴建鑫,周志华,张一品,戴新宇,申富饶,谢磊,谭铁牛,陈云松,高阳",
+            "JSHS": "",
             "JXBID": "2025202610060001021",
             "JXBMC": "人工智能通识与应用21班",
             "KCFL1": "1",
@@ -21335,7 +21398,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "0",
             "SKJS": "俞扬,刘嘉,吴建鑫,周志华,张一品,戴新宇,申富饶,谢磊,谭铁牛,陈云松,高阳",
-            "SKSM": "9月28日补10月7日的课",
+            "SKSM": "",
             "TKJG": null,
             "XF": "1",
             "XGXKLBDM": "01",
@@ -21346,7 +21409,7 @@
             "ZCXQJCDD": "周日 9-10节 5周 费A-206,周三 7-8节 5周 大礼堂,周二 9-10节 8-15周 第8、9、10、11、12、13、15周：费A-206；第14周（11月25日）：大礼堂,自由时间  4-18周 自由地点"
           },
           {
-            "JSHS": "杨已彪",
+            "JSHS": "",
             "JXBID": "2025202619021110102",
             "JXBMC": "C语言程序设计基础(健雄02班)",
             "KCFL1": "5",
@@ -21362,7 +21425,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "1",
             "SKJS": "杨已彪",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "3",
             "XKLY": "02",
@@ -21371,7 +21434,7 @@
             "ZCXQJCDD": "周五 9-11节 4-18周 馆3-101"
           },
           {
-            "JSHS": "李昀,陆显扬",
+            "JSHS": "",
             "JXBID": "2025202619031110104",
             "JXBMC": "信息科学中的物理学（上）04班",
             "KCFL1": "1",
@@ -21387,7 +21450,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "1",
             "SKJS": "李昀,陆显扬",
-            "SKSM": "请加入课程QQ群：597635603",
+            "SKSM": "",
             "TKJG": null,
             "XF": "3",
             "XKLY": "02",
@@ -21400,7 +21463,7 @@
       }
     },
     "/api/schedule?term=2025-2026-2": {
-      "updatedAt": 1784127290,
+      "updatedAt": 1784448438,
       "value": {
         "extParams": {
           "code": 1,
@@ -21410,7 +21473,7 @@
         "pageSize": 200,
         "rows": [
           {
-            "JSHS": "吴科",
+            "JSHS": "",
             "JXBID": "20252026200000080B22",
             "JXBMC": "形势与政策（健雄02班）",
             "KCFL1": "1",
@@ -21428,7 +21491,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "吴科",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": ".25",
             "XKLY": "03",
@@ -21437,7 +21500,7 @@
             "ZCXQJCDD": "周三 7-8节 3-6周 第3，4、5周：费A-206；第6周：大礼堂"
           },
           {
-            "JSHS": "彭麒蒙",
+            "JSHS": "",
             "JXBID": "2025202620000010013",
             "JXBMC": "思想道德与法治（健雄04班）",
             "KCFL1": "5",
@@ -21455,7 +21518,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "彭麒蒙",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "3",
             "XKLY": "03",
@@ -21464,7 +21527,7 @@
             "ZCXQJCDD": "周二 9-11节 1-16周 馆3-103"
           },
           {
-            "JSHS": "邓建平",
+            "JSHS": "",
             "JXBID": "20252026200010011B04",
             "JXBMC": "微积分II(第一层次)（健雄03班）",
             "KCFL1": "5",
@@ -21482,7 +21545,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "邓建平",
-            "SKSM": "班级qq群交流群号：1084149961\n群名: 25-26-2微积分2(第一层次)健雄3班",
+            "SKSM": "",
             "TKJG": null,
             "XF": "5",
             "XKLY": "03",
@@ -21491,7 +21554,7 @@
             "ZCXQJCDD": "周五 3-4节 1-16周 馆3-101,周五 5-6节 1-16周 馆3-101,周三 1-2节 1-16周 馆3-101"
           },
           {
-            "JSHS": "徐翠芹",
+            "JSHS": "",
             "JXBID": "20252026200020022B607",
             "JXBMC": "学术英语写作07班",
             "KCFL1": "1",
@@ -21509,7 +21572,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "徐翠芹",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XKLY": "03",
@@ -21518,7 +21581,7 @@
             "ZCXQJCDD": "周四 3-4节 1-16周 教301"
           },
           {
-            "JSHS": "朱静怡",
+            "JSHS": "",
             "JXBID": "20252026200020032B302",
             "JXBMC": "国际学术交流英语02班",
             "KCFL1": "5",
@@ -21536,7 +21599,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "朱静怡",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XKLY": "03",
@@ -21545,7 +21608,7 @@
             "ZCXQJCDD": "周一 5-6节 1-16周 教318"
           },
           {
-            "JSHS": "李海军",
+            "JSHS": "",
             "JXBID": "2025202620004205018",
             "JXBMC": "鼓楼体适能18",
             "KCFL1": "3",
@@ -21563,7 +21626,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "李海军",
-            "SKSM": "班级QQ群号：1083257646",
+            "SKSM": "",
             "TKJG": null,
             "XF": ".75",
             "XKLY": "02",
@@ -21572,7 +21635,7 @@
             "ZCXQJCDD": "周二 5-6节 1-16周 苏浙田径场"
           },
           {
-            "JSHS": "人武部教师",
+            "JSHS": "",
             "JXBID": "2025202620005001012",
             "JXBMC": "军事理论（健雄02班）",
             "KCFL1": "1",
@@ -21590,7 +21653,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "人武部教师",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XKLY": "03",
@@ -21601,7 +21664,7 @@
           {
             "BY9": "0037",
             "BY9_DISPLAY": "0037",
-            "JSHS": "吴维忆",
+            "JSHS": "",
             "JXBID": "2025202620037218001",
             "JXBMC": "媒体人文01班",
             "KCFL1": "1",
@@ -21619,7 +21682,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "吴维忆",
-            "SKSM": "本学期媒体人文01班的课程将于第3周（3月20日）正式开始，请同学们尽快加入课程QQ群766145202（进群密码：1234）。申请加入时请务必注明本人姓名和学号，否则无法通过验证!!!该QQ群是本课程发布各种即时信息，阅读材料以及相互沟通的重要渠道，请大家及时加入。",
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XGXKLBDM": "10",
@@ -21632,7 +21695,7 @@
           {
             "BY9": "0045",
             "BY9_DISPLAY": "悦读课-自然与生命",
-            "JSHS": "吴楠",
+            "JSHS": "",
             "JXBID": "2025202620045006001",
             "JXBMC": "《信息简史》阅读01班",
             "KCFL1": "1",
@@ -21650,7 +21713,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "吴楠",
-            "SKSM": "本课程对已选课同学开放。现已在SPOC平台发布课程，第三周起开课并发布每周阅读任务。课程QQ群群号为：1079675310，请申请加入并将群昵称改为学号+姓名形式。",
+            "SKSM": "",
             "TKJG": null,
             "XF": "0",
             "XGXKLBDM": "03",
@@ -21663,7 +21726,7 @@
           {
             "BY9": "760712401",
             "BY9_DISPLAY": "学科基础",
-            "JSHS": "郭兰哲",
+            "JSHS": "",
             "JXBID": "2025202627607016001",
             "JXBMC": "人工智能导论（智科01班）",
             "KCFL1": "1",
@@ -21679,7 +21742,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "0",
             "SKJS": "郭兰哲",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XKLY": "03",
@@ -21690,7 +21753,7 @@
           {
             "BY9": "760712401",
             "BY9_DISPLAY": "学科基础",
-            "JSHS": "陈硕",
+            "JSHS": "",
             "JXBID": "2025202627607017001",
             "JXBMC": "矩阵计算与优化（智科01班）",
             "KCFL1": "1",
@@ -21706,7 +21769,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "0",
             "SKJS": "陈硕",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "2",
             "XKLY": "03",
@@ -21715,7 +21778,7 @@
             "ZCXQJCDD": "周三 9-10节 2-16周(双) 新教-107,周三 3-4节 2-16周(双) 新教-107"
           },
           {
-            "JSHS": "朱昊,王聪",
+            "JSHS": "",
             "JXBID": "2025202629011110301",
             "JXBMC": "数字系统设计基础（智科01班）",
             "KCFL1": "5",
@@ -21731,7 +21794,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "0",
             "SKJS": "朱昊,王聪",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "4",
             "XKLY": "03",
@@ -21742,7 +21805,7 @@
           {
             "BY9": "9000",
             "BY9_DISPLAY": "全部课程",
-            "JSHS": "杨已彪,陈家骏",
+            "JSHS": "",
             "JXBID": "2025202629011210101",
             "JXBMC": "高级程序设计（智科01班）",
             "KCFL1": "5",
@@ -21758,7 +21821,7 @@
             "QTXX": "请咨询院系或任课教师",
             "SFKT": "0",
             "SKJS": "杨已彪,陈家骏",
-            "SKSM": "课程QQ群：1075201051（请备注学号姓名）\n\n课程教学班级：【教学课堂邀请】杨已彪老师邀请您加入平台教学课堂-《高级程序设计2026春-智科（陈家骏）》，您可以访问下方的链接，以学生身份加入该教学课堂。”\n链接：https://cslab-cms.nju.edu.cn/classrooms/USOXBHQN?code=UFPKE",
+            "SKSM": "",
             "TKJG": null,
             "XF": "3",
             "XKLY": "03",
@@ -21771,7 +21834,7 @@
       }
     },
     "/api/schedule?term=2026-2027-1": {
-      "updatedAt": 1784190301,
+      "updatedAt": 1784490578,
       "value": {
         "extParams": {
           "code": 1,
@@ -21781,7 +21844,7 @@
         "pageSize": 200,
         "rows": [
           {
-            "JSHS": "张田田,王浩宇",
+            "JSHS": "",
             "JXBID": "20262027100000080C06",
             "JXBMC": "形势与政策06班",
             "KCFL1": "1",
@@ -21799,7 +21862,7 @@
             "SFXGXK": "1",
             "SFXGXK_DISPLAY": "是",
             "SKJS": "张田田,王浩宇",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": ".25",
             "XKLY": "01",
@@ -21810,7 +21873,7 @@
           {
             "BY9": "760712401",
             "BY9_DISPLAY": "学科基础",
-            "JSHS": "单彩峰,王贝贝",
+            "JSHS": "",
             "JXBID": "2026202717607028001",
             "JXBMC": "数据结构与算法01班",
             "KCFL1": "1",
@@ -21826,7 +21889,7 @@
             "QTXX": null,
             "SFKT": "1",
             "SKJS": "单彩峰,王贝贝",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "4",
             "XKLY": "02",
@@ -21837,7 +21900,7 @@
           {
             "BY9": "760712403",
             "BY9_DISPLAY": "专业选修",
-            "JSHS": "戴望州",
+            "JSHS": "",
             "JXBID": "2026202717607037001",
             "JXBMC": "逻辑与推理01班",
             "KCFL1": "1",
@@ -21853,7 +21916,7 @@
             "QTXX": null,
             "SFKT": "1",
             "SKJS": "戴望州",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "3",
             "XKLY": "02",
@@ -21862,7 +21925,7 @@
             "ZCXQJCDD": "周五 3-4节 1-17周(单) 苏教B201,周一 3-4节 1-18周 苏教B201"
           },
           {
-            "JSHS": "张姗姗,李俊",
+            "JSHS": "",
             "JXBID": "2026202719011120202",
             "JXBMC": "概率论与数理统计02班",
             "KCFL1": "1",
@@ -21878,7 +21941,7 @@
             "QTXX": null,
             "SFKT": "1",
             "SKJS": "张姗姗,李俊",
-            "SKSM": null,
+            "SKSM": "",
             "TKJG": null,
             "XF": "4",
             "XKLY": "02",
@@ -21891,14 +21954,14 @@
       }
     },
     "/api/second-classroom/profile": {
-      "updatedAt": 1784194666,
+      "updatedAt": 1784490557,
       "value": {
         "activityCount": 4,
         "college": "新生学院",
         "dishonestyCount": 0,
         "email": "已隐藏",
         "englishLevel": "无",
-        "fetchedAt": 1784194666,
+        "fetchedAt": 1784490557,
         "grade": "2025",
         "name": "Rick Sanchez",
         "otherLanguages": "无",
@@ -21912,7 +21975,7 @@
   "memos": [
     {
       "content": "确认下学期培养方案中的通识课程安排 #选课",
-      "createdAt": 1784188638,
+      "createdAt": 1784484191,
       "id": 3,
       "linkLabel": null,
       "linkUrl": null,
@@ -21920,11 +21983,11 @@
       "tags": [
         "选课"
       ],
-      "updatedAt": 1784194038
+      "updatedAt": 1784489591
     },
     {
       "content": "整理本周课程笔记，完成课程项目阶段总结 #学习",
-      "createdAt": 1784109438,
+      "createdAt": 1784404991,
       "id": 2,
       "linkLabel": null,
       "linkUrl": null,
@@ -21932,11 +21995,11 @@
       "tags": [
         "学习"
       ],
-      "updatedAt": 1784109438
+      "updatedAt": 1784404991
     },
     {
       "content": "查看本科生院最新通知并加入计划 #校园",
-      "createdAt": 1784023038,
+      "createdAt": 1784318591,
       "id": 1,
       "linkLabel": "打开本科生院",
       "linkUrl": "https://jw.nju.edu.cn/main.psp",
@@ -21944,33 +22007,33 @@
       "tags": [
         "校园"
       ],
-      "updatedAt": 1784023038
+      "updatedAt": 1784318591
     }
   ],
   "meta": {
-    "generatedAt": 1784195838,
+    "generatedAt": 1784491391,
     "notice": "演示数据已脱敏，学号及身份字段不会公开。",
     "sessionUsername": "Rick Sanchez",
-    "version": "2.0.3"
+    "version": "3.0.0"
   },
   "noticeDetails": {
     "preview-1": {
       "content": "这是南雍知课交互预览中的通知正文示例。正式使用时，应用会从南京大学本科生院读取原始通知内容。",
-      "date": "2026-07-16",
+      "date": "2026-07-20",
       "id": "preview-1",
       "title": "关于本科生课程学习与学业安排的近期通知",
       "url": "https://jw.nju.edu.cn/main.psp"
     },
     "preview-2": {
       "content": "这是南雍知课交互预览中的通知正文示例。正式使用时，应用会从南京大学本科生院读取原始通知内容。",
-      "date": "2026-07-16",
+      "date": "2026-07-20",
       "id": "preview-2",
       "title": "关于学生培养方案与课程认定工作的说明",
       "url": "https://jw.nju.edu.cn/main.psp"
     },
     "preview-3": {
       "content": "这是南雍知课交互预览中的通知正文示例。正式使用时，应用会从南京大学本科生院读取原始通知内容。",
-      "date": "2026-07-16",
+      "date": "2026-07-20",
       "id": "preview-3",
       "title": "近期校园教学服务事项提醒",
       "url": "https://jw.nju.edu.cn/main.psp"
@@ -21978,19 +22041,19 @@
   },
   "notices": [
     {
-      "date": "2026-07-16",
+      "date": "2026-07-20",
       "id": "preview-1",
       "title": "关于本科生课程学习与学业安排的近期通知",
       "url": "https://jw.nju.edu.cn/main.psp"
     },
     {
-      "date": "2026-07-16",
+      "date": "2026-07-20",
       "id": "preview-2",
       "title": "关于学生培养方案与课程认定工作的说明",
       "url": "https://jw.nju.edu.cn/main.psp"
     },
     {
-      "date": "2026-07-16",
+      "date": "2026-07-20",
       "id": "preview-3",
       "title": "近期校园教学服务事项提醒",
       "url": "https://jw.nju.edu.cn/main.psp"
@@ -22797,15 +22860,6 @@
       "teacher": "李俊"
     },
     {
-      "courseName": "《量子之谜：物理学遇到意识》阅读",
-      "review": "关于时间投入:不定时会布置一些问题，会互评。但不多  关于难度:是有一点难懂，但量子这个东西本身就挺抽象的  好像就一次线下，一次腾讯会议部分同学做pre（原本是要线下的）",
-      "sources": [
-        "NJU Table - 2021",
-        "南小宝.json"
-      ],
-      "teacher": "龚彦晓"
-    },
-    {
       "courseName": "《论人与人之间不平等的起因和基础》阅读",
       "review": "一般的课程，事情也不能算少，因为要答题所以把书认真看完了，给分也就那回事。",
       "sources": [
@@ -23607,13 +23661,22 @@
       "teacher": "葛扬"
     },
     {
-      "courseName": "《资本论》阅读",
-      "review": "感觉没有说的那么红或者那么水，真的认真写作业了（三次作文在阅读课里应该不算少吧），而且每次线下课出勤，线上课腾讯会议，最后的大作业也是认真写的剧本，不得不说花的时间还是挺长的，但是给分80多确实很一般，是我这学期最低分了，除了最后一次课会给一些零食什么的，别的方面实在建议换别的课吧。。。",
+      "courseName": "20世纪欧洲哲学思想",
+      "review": "全英文，但是不算很难挺懂，老师也说这门课也当是练听力和口语了",
       "sources": [
         "NJU Table - 2021",
         "南小宝.json"
       ],
-      "teacher": "葛扬"
+      "teacher": "Kangal Kaan"
+    },
+    {
+      "courseName": "20世纪中国重要文学现象研讨",
+      "review": "关于给分:给分高，意想不到的高  关于课程特色:老师很温柔，能看出你的长处和不足并且给出建议。总体很好，课堂研讨氛围也不错。选！",
+      "sources": [
+        "NJU Table - 2021",
+        "南小宝.json"
+      ],
+      "teacher": "张光芒"
     }
   ]
 }

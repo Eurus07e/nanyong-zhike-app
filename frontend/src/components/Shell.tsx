@@ -13,9 +13,9 @@ const navigation = [
   { id: 'schedule' as const, label: '我的课表', icon: CalendarDays },
   { id: 'reviews' as const, label: '红黑榜', icon: Search },
   { id: 'campus' as const, label: '校园服务', icon: BellRing },
-  { id: 'planner' as const, label: '我的计划', icon: PanelsTopLeft, beta: true },
+  { id: 'planner' as const, label: '我的计划', icon: PanelsTopLeft },
   { id: 'memos' as const, label: '备忘录', icon: StickyNote },
-  { id: 'ai' as const, label: 'AI 助手', icon: Sparkles, beta: true },
+  { id: 'ai' as const, label: 'AI 助手', icon: Sparkles },
   { id: 'about' as const, label: '关于本站', icon: Info },
 ]
 
@@ -91,7 +91,6 @@ export function Shell({
             >
               <item.icon size={19} />
               {item.label}
-              {'beta' in item && item.beta ? <small className="nav-beta">Beta</small> : null}
             </button>
           ))}
         </nav>

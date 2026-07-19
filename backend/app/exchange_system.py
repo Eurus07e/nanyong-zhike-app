@@ -11,6 +11,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import HTTPCookieProcessor, Request, build_opener
 
+from .version import APP_USER_AGENT
+
 
 BASE_URL = "http://elite.nju.edu.cn/exchangesystem/"
 SUMMARY_URL = f"{BASE_URL}index/create?pid=4"
@@ -28,15 +30,7 @@ class ExchangeSystemError(RuntimeError):
 def _connection_error(
     error: HTTPError | URLError | TimeoutError,
 ) -> ExchangeSystemError:
-    if isinstance(error, HTTPError):
-        if error.code in {403, 483}:
-            return ExchangeSystemError(
-                "交换生系统仅支持校园网访问，请连接南京大学 VPN 或校园网后重试"
-            )
-        return ExchangeSystemError("交换生系统暂时不可用，请稍后重试")
-    return ExchangeSystemError(
-        "交换生系统仅支持校园网访问，请连接南京大学 VPN 或校园网后重试"
-    )
+    return ExchangeSystemError("交换生系统暂时不可用，请连接校园网或vpn并稍后重试")
 
 
 @dataclass(frozen=True)
@@ -193,7 +187,7 @@ class ExchangeSystemClient:
     def _read(
         opener: Any, url: str, *, include_final_url: bool = False
     ) -> str | tuple[str, str]:
-        request = Request(url, headers={"User-Agent": "NanyongZhike/0.1 read-only"})
+        request = Request(url, headers={"User-Agent": APP_USER_AGENT})
         with opener.open(request, timeout=20) as response:
             charset = response.headers.get_content_charset() or "utf-8"
             body = response.read().decode(charset, errors="replace")

@@ -5,6 +5,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 from desktop import launcher, prepare_release
 
 
@@ -56,6 +58,26 @@ def test_user_data_dir_supports_test_override(monkeypatch, tmp_path):
     assert launcher.user_data_dir() == target.resolve()
 
 
+@pytest.mark.parametrize(
+    ("system", "environment", "expected_parts"),
+    [
+        ("Darwin", {}, ("Library", "Application Support", "NanyongZhike")),
+        ("Windows", {"LOCALAPPDATA": "native-local-data"}, ("native-local-data", "NanyongZhike")),
+    ],
+)
+def test_user_data_dir_uses_native_macos_and_windows_locations(
+    monkeypatch, tmp_path, system, environment, expected_parts
+):
+    monkeypatch.delenv("NANYONG_ZHIKE_DATA_DIR", raising=False)
+    monkeypatch.setattr(launcher.platform, "system", lambda: system)
+    monkeypatch.setattr(launcher.Path, "home", classmethod(lambda cls: tmp_path))
+    for name, value in environment.items():
+        monkeypatch.setenv(name, str(tmp_path / value))
+
+    expected = tmp_path.joinpath(*expected_parts)
+    assert launcher.user_data_dir() == expected
+
+
 def test_launcher_only_reuses_same_version_desktop_instance():
     compatible = getattr(launcher, "is_compatible_health", None)
     assert callable(compatible), "launcher must distinguish release and dev servers"
@@ -63,7 +85,7 @@ def test_launcher_only_reuses_same_version_desktop_instance():
     expected = {
         "status": "ok",
         "service": "南雍知课",
-        "version": "2.0.3",
+        "version": "3.0.0",
         "deployment": "desktop",
     }
     assert compatible(expected) is True
@@ -135,7 +157,7 @@ def test_release_builds_and_verifies_patched_nju_cli_from_pinned_source():
     assert "desktop/verify_nju_cli_patch.py" in workflow
     assert "releases/download/v1.4.6" not in workflow
     assert "NJU_CLI_PATH=" in workflow
-    assert 'tags:\n      - "v2.0.3"' in workflow
+    assert 'tags:\n      - "v3.0"' in workflow
     assert "NJU_CLI_BIN: /bin/true" in workflow
     assert "console=False" in (ROOT / "desktop" / "nanyong_zhike.spec").read_text(
         encoding="utf-8"
@@ -154,6 +176,59 @@ def test_release_builds_and_verifies_patched_nju_cli_from_pinned_source():
     assert "d3f86a106a0bac45b974a628896c90dbdf5c8093" in workflow
     publish = workflow[workflow.index("  publish:") :]
     assert "contents: write" in publish
+
+
+def test_release_package_matrix_targets_only_supported_desktop_platforms():
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
+
+    verify = workflow[workflow.index("  verify:") : workflow.index("  package:")]
+    package = workflow[workflow.index("  package:") : workflow.index("  publish:")]
+
+    assert "runs-on: ubuntu-latest" in verify
+    assert package.count("platform: macos") == 1
+    assert package.count("platform: windows") == 1
+    assert "platform: linux" not in package
+    assert "ubuntu-22.04" not in package
+    assert "ubuntu-24.04-arm" not in package
+    assert "NanyongZhike-linux" not in package
+
+
+def test_readme_states_the_desktop_shell_boundary_and_verified_interfaces():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "PyInstaller 负责打包和启动，不提供 WebView 或原生内容窗口" in readme
+    assert "默认浏览器" in readme
+    assert "仅发布 macOS Apple Silicon 与 Windows x86_64" in readme
+    assert "NJU_CLI_CACHE_DIR" in readme
+    assert "CREATE_NO_WINDOW" in readme
+    assert "不是原生桌面界面" in readme
+
+
+@pytest.mark.parametrize(
+    ("platform_name", "arch"),
+    [("linux", "x86_64"), ("macos", "x86_64"), ("windows", "arm64")],
+)
+def test_prepare_release_rejects_targets_outside_the_v3_matrix(
+    monkeypatch, platform_name, arch
+):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prepare_release.py",
+            "--platform",
+            platform_name,
+            "--arch",
+            arch,
+            "--nju-source",
+            "/tmp/nju-cli-source.tar.gz",
+        ],
+    )
+
+    with pytest.raises(SystemExit):
+        prepare_release.parse_args()
 
 
 def test_packaged_smoke_test_rechecks_nju_cli_cache_isolation():
@@ -208,7 +283,7 @@ def test_prepare_release_bundles_upstream_source_and_cache_patch(
         [
             "prepare_release.py",
             "--platform",
-            "linux",
+            "windows",
             "--arch",
             "x86_64",
             "--nju-source",
@@ -218,15 +293,10 @@ def test_prepare_release_bundles_upstream_source_and_cache_patch(
 
     prepare_release.main()
 
-    third_party = (
-        tmp_path
-        / "release"
-        / "NanyongZhike-linux-x86_64"
-        / "third-party-sources"
-    )
+    third_party = tmp_path / "release" / "NanyongZhike-windows-x86_64" / "third-party-sources"
     assert (third_party / "nju-cli-v1.4.6.tar.gz").read_bytes() == source.read_bytes()
     assert (third_party / patch.name).read_bytes() == patch.read_bytes()
-    assert (third_party.parent / "南雍知课.desktop").is_file()
+    assert not (third_party.parent / "南雍知课.desktop").exists()
 
 
 def test_launcher_uses_file_logging_when_no_console_is_available(
@@ -373,7 +443,7 @@ def test_release_windows_installer_build_checks_exit_code_and_exact_output() -> 
     build_end = workflow.index("      - uses: actions/upload-artifact@", build_start)
     build_step = workflow[build_start:build_end]
 
-    assert '& $compiler "/DAppVersion=2.0.3" "desktop\\windows-installer.iss"' in build_step
+    assert '& $compiler "/DAppVersion=3.0.0" "desktop\\windows-installer.iss"' in build_step
     assert "$LASTEXITCODE" in build_step
     assert (
         'Test-Path -LiteralPath "release\\NanyongZhike-windows-x86_64-setup.exe" '
@@ -387,7 +457,7 @@ def test_macos_release_builds_without_apple_developer_credentials() -> None:
     assert "console=False" in spec
     assert "BUNDLE(" in spec
     assert 'name="南雍知课.app"' in spec
-    assert '"CFBundleShortVersionString": "2.0.3"' in spec
+    assert '"CFBundleShortVersionString": "3.0.0"' in spec
     assert "MACOS_CODESIGN_IDENTITY" not in spec
     assert "CODESIGN_IDENTITY" not in spec
     assert "codesign_identity" not in spec
@@ -423,6 +493,12 @@ def test_macos_release_builds_without_apple_developer_credentials() -> None:
     assert 'cp -R "dist/南雍知课.app" "$staging/南雍知课.app"' in workflow
     assert "hdiutil create" in workflow
     assert 'rm -rf "$staging"' in workflow
+    sign_index = workflow.index('codesign --force --deep --sign - "dist/南雍知课.app"')
+    prepare_index = workflow.index("python desktop/prepare_release.py")
+    dmg_index = workflow.index("hdiutil create")
+    assert sign_index < prepare_index < dmg_index
+    assert 'codesign --verify --deep --strict "$verify_root/NanyongZhike-macos-arm64/南雍知课.app"' in workflow
+    assert 'hdiutil verify "release/NanyongZhike-macos-arm64.dmg"' in workflow
     for forbidden in (
         "MACOS_CERTIFICATE_P12_BASE64",
         "MACOS_CERTIFICATE_PASSWORD",

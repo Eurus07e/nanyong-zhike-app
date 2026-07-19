@@ -2,6 +2,12 @@ import json
 import re
 from pathlib import Path
 
+from scripts.generate_preview_data import (
+    assert_no_sensitive_contact,
+    redact_contact_details,
+    sanitize_value,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,7 +31,7 @@ def test_pages_preview_build_uses_relative_static_assets() -> None:
 
     assert page.exists()
     source = page.read_text(encoding="utf-8")
-    assert "<title>南雍知课 v2.0.3 · 交互预览</title>" in source
+    assert "<title>南雍知课 v3.0 · 交互预览</title>" in source
     assert '<div id="root"></div>' in source
     assert 'src="./assets/' in source
     assert 'href="./assets/' in source
@@ -57,6 +63,74 @@ def test_preview_fixture_masks_identity_fields() -> None:
     contact_text = "\n".join(user_facing_contact_text(fixture))
     assert not re.search(r"1[3-9]\d{9}", contact_text)
     assert not re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", contact_text)
+
+    def free_form_course_contacts(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key in {"JSHS", "SKSM", "description"}:
+                    yield item
+                yield from free_form_course_contacts(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from free_form_course_contacts(item)
+
+    assert all(value == "" for value in free_form_course_contacts(fixture))
+    serialized = json.dumps(fixture, ensure_ascii=False)
+    assert not re.search(
+        r"QQ\s*群|群\s*号|进群|群密码|邀请码|课堂码|会议号|"
+        r"qm\.qq\.com|qun\.qq\.com|joinchat|腾讯会议",
+        serialized,
+        re.IGNORECASE,
+    )
+
+
+def test_preview_sanitizer_removes_free_form_course_contact_instructions() -> None:
+    source = {
+        "rows": [{
+            "KCM": "测试课程",
+            "SKJS": "测试教师",
+            "SKSM": "课程群 123456789，口令 secret，https://example.com/invite",
+            "JSHS": "测试教师 电话：13800000000 QQ：123456789",
+        }]
+    }
+
+    sanitized = sanitize_value("/api/schedule?term=2026-2027-1", source)
+
+    assert sanitized["rows"][0]["KCM"] == "测试课程"
+    assert sanitized["rows"][0]["SKJS"] == "测试教师"
+    assert sanitized["rows"][0]["SKSM"] == ""
+    assert sanitized["rows"][0]["JSHS"] == ""
+
+
+def test_preview_sanitizer_recursively_removes_contacts_from_arbitrary_fields() -> None:
+    source = {
+        "BZ": "请联系 13800000000 或 helper@example.com",
+        "registrationMethod": "加入 QQ群 123456789 后填写邀请码",
+        "children": [{"KZM": "毕业论文答疑群，群号 987654321"}],
+    }
+
+    sanitized = redact_contact_details(source)
+    serialized = json.dumps(sanitized, ensure_ascii=False)
+
+    assert "13800000000" not in serialized
+    assert "helper@example.com" not in serialized
+    assert "QQ群" not in serialized
+    assert "邀请码" not in serialized
+    assert_no_sensitive_contact(serialized)
+
+
+def test_preview_privacy_scan_rejects_any_remaining_contact() -> None:
+    for serialized in (
+        '{"BZ":"13800000000"}',
+        '{"email":"helper@example.com"}',
+        '{"registrationMethod":"请加入QQ群"}',
+    ):
+        try:
+            assert_no_sensitive_contact(serialized)
+        except RuntimeError as error:
+            assert "contact" in str(error).lower()
+        else:
+            raise AssertionError("privacy scan accepted sensitive contact data")
 
 
 def test_readme_links_to_the_interactive_pages_preview() -> None:

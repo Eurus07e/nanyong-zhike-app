@@ -44,7 +44,7 @@ export function About() {
       </section>
       <section className="about-copy-section">
         <h2>近期更新</h2>
-        <p><strong>v2.0.3</strong> 完善十二节课表与异常课程兜底，并增强教务通知获取的稳定性。</p>
+        <p><strong>v3.0</strong> 增强校园接口刷新与旧快照兜底，修正培养方案学分显示，清理过时文案，并将桌面发行收窄为 Windows 与 macOS。</p>
       </section>
       <section className="about-copy-section">
         <h2>隐私说明</h2>

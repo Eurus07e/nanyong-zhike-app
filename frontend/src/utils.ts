@@ -38,7 +38,7 @@ export type ScheduleParseResult = {
 
 const scheduleMarkerPattern = /(?:周|星期)[一二三四五六日天]|自由时间/g
 const scheduleDayPeriodPattern = /^(?:周|星期)([一二三四五六日天])\s*第?\s*(\d{1,2})(?:\s*(?:-|至)\s*第?\s*(\d{1,2}))?\s*节\s*/
-const scheduleWeekPattern = /^((?:(?:第?\s*\d{1,2}\s*(?:-|至)\s*第?\s*\d{1,2}周|第?\s*\d{1,2}周(?:\s*[,，、]\s*第?\s*\d{1,2}周)*|第?\s*\d{1,2}(?:\s*[,，、]\s*第?\s*\d{1,2})+周)(?:\s*(?:[（(]\s*[单双](?:周)?\s*[）)]|[单双]周))?|[单双]周))(?:\s+(.*))?$/
+const scheduleWeekPattern = /^((?:(?:第?\s*\d{1,2}\s*(?:-|至)\s*第?\s*\d{1,2}周|第?\s*\d{1,2}周(?:\s*[,，、]\s*第?\s*\d{1,2}周)*|第?\s*\d{1,2}(?:\s*[,，、]\s*第?\s*\d{1,2})+周)(?:\s*(?:[（(]\s*[单双](?:周)?\s*[）)]|[单双]周))?|[单双]周))(?:(?:\s*[,，;；]\s*|\s+)(.*))?$/
 const scheduleWeekLookingPattern = /^(?:第?\s*\d{1,2}(?:\s*(?:-|至|[,，、])\s*第?\s*\d{1,2})*\s*周|[单双]周)/
 
 function normalizeSchedulePunctuation(value: string) {

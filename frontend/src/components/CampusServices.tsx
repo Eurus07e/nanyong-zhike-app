@@ -6,7 +6,6 @@ import {
   Check,
   Landmark,
   LoaderCircle,
-  Mail,
   RefreshCw,
   X,
 } from 'lucide-react'
@@ -20,14 +19,13 @@ import { FiveEducation } from './FiveEducation'
 import { SegmentedControl } from './SegmentedControl'
 import { SecondClassroom } from './SecondClassroom'
 
-type ServiceTab = 'notices' | 'links' | 'five' | 'second-class' | 'mail'
+type ServiceTab = 'notices' | 'links' | 'five' | 'second-class'
 
 const tabs: { id: ServiceTab; label: string }[] = [
   { id: 'notices', label: '重要通知' },
   { id: 'links', label: 'NJU Tabs' },
   { id: 'five', label: '五育系统' },
   { id: 'second-class', label: '第二课堂' },
-  { id: 'mail', label: '邮件' },
 ]
 
 export function CampusServices({ username, onUnauthorized }: { username: string; onUnauthorized: () => void }) {
@@ -41,6 +39,7 @@ export function CampusServices({ username, onUnauthorized }: { username: string;
   const [detailError, setDetailError] = useState('')
   const [memoStates, setMemoStates] = useState<Record<string, 'saving' | 'saved' | 'error'>>({})
   const noticeDialogRef = useRef<HTMLDialogElement>(null)
+  const noticeDetailRequestRef = useRef(0)
 
   async function loadNotices(force = false) {
     setLoading(true)
@@ -57,6 +56,7 @@ export function CampusServices({ username, onUnauthorized }: { username: string;
   }
 
   useEffect(() => { void loadNotices() }, [])
+  useEffect(() => () => { noticeDetailRequestRef.current += 1 }, [])
 
   useEffect(() => {
     async function syncNoticeMemoStates() {
@@ -84,23 +84,29 @@ export function CampusServices({ username, onUnauthorized }: { username: string;
   }, [selectedNotice])
 
   async function openNotice(notice: Notice) {
+    const requestId = ++noticeDetailRequestRef.current
     setSelectedNotice(notice)
     setNoticeDetail(null)
     setDetailError('')
     setDetailLoading(true)
     try {
-      setNoticeDetail(await api.cached<NoticeDetail>(`/api/notices/${notice.id}`, { ttl: 30 * 60_000 }))
+      const detail = await api.cached<NoticeDetail>(`/api/notices/${notice.id}`, { ttl: 30 * 60_000 })
+      if (requestId !== noticeDetailRequestRef.current) return
+      setNoticeDetail(detail)
     } catch (caught) {
+      if (requestId !== noticeDetailRequestRef.current) return
       setDetailError(caught instanceof Error ? caught.message : '通知正文加载失败')
     } finally {
-      setDetailLoading(false)
+      if (requestId === noticeDetailRequestRef.current) setDetailLoading(false)
     }
   }
 
   function closeNotice() {
+    noticeDetailRequestRef.current += 1
     setSelectedNotice(null)
     setNoticeDetail(null)
     setDetailError('')
+    setDetailLoading(false)
   }
 
   async function addNoticeToMemos(notice: Notice) {
@@ -167,14 +173,6 @@ export function CampusServices({ username, onUnauthorized }: { username: string;
     {active === 'five' && <FiveEducation onUnauthorized={onUnauthorized} />}
 
     {active === 'second-class' && <SecondClassroom onUnauthorized={onUnauthorized} />}
-
-    {active === 'mail' && <section className="service-panel mail-service" role="tabpanel">
-      <div className="service-hero-icon"><Mail size={27} /></div>
-      <div><h2>南京大学学生邮箱</h2><p>邮箱接口暂未开放，敬请期待。</p></div>
-      <a className="mail-service-link" href="https://mail.smail.nju.edu.cn" target="_blank" rel="noreferrer">
-        <span><strong>打开南京大学学生邮箱</strong><small>mail.smail.nju.edu.cn</small></span><ArrowUpRight size={18} />
-      </a>
-    </section>}
 
     <dialog
       ref={noticeDialogRef}

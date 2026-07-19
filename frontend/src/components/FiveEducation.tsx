@@ -46,7 +46,7 @@ export function FiveEducation({ onUnauthorized }: { onUnauthorized: () => void }
         onUnauthorized()
         return
       }
-      setError(caught instanceof Error ? caught.message : '南京大学五育系统暂时不可用')
+      setError(caught instanceof Error ? caught.message : '我的五育暂时不可用，请连接校园网或vpn并稍后重试')
     } finally {
       setLoading(false)
     }
@@ -129,7 +129,7 @@ function FiveEducationDashboard({ overview, activities }: { overview: FiveEducat
             return <div className="five-growth-row" key={module.id}>
               <div className="five-growth-heading"><strong>{module.name}</strong><span className={module.achieved ? 'achieved' : 'pending'}>{module.achieved ? <CheckCircle2 size={14} /> : null}{module.achieved ? '已达成' : '未达成'}</span></div>
               {progress === null ? <div className="five-growth-rule">由五育系统规则直接判定</div> : <div className="five-growth-track" aria-label={`${module.name}进度 ${Math.round(progress * 100)}%`}><i style={{ width: `${progress * 100}%` }} /></div>}
-              <div className="five-growth-values"><span>实际 {formatDuration(module.actualDuration)}</span><span>{module.requiredDuration > 0 ? `达标 ${formatDuration(module.requiredDuration)}` : '无固定数值阈值'}</span></div>
+              <div className="five-growth-values"><span>实际 {formatDuration(module.actualDuration)}</span>{module.requiredDuration > 0 ? <span>达标 {formatDuration(module.requiredDuration)}</span> : null}</div>
             </div>
           })}
         </div>

@@ -155,7 +155,7 @@ export function AiAssistant({ onUnauthorized }: { onUnauthorized: () => void }) 
 
   return <div className="page-stack ai-page">
     <div className="page-heading ai-heading">
-      <div><h1>AI 助手 <span className="beta-badge">Beta</span></h1></div>
+      <div><h1>AI 助手</h1></div>
       <button type="button" className="secondary-button" onClick={clearTranscript} disabled={sending || transcript.length === 0}><RotateCcw size={16} />清空对话</button>
     </div>
 

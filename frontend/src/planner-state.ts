@@ -1,4 +1,5 @@
 import type { ScheduleCourse } from './types'
+import { courseCreditValue } from './program-requirements.ts'
 
 export type PlannerStatus = 'backlog' | 'in_progress' | 'done'
 export type PlannerTaskSource = 'manual' | 'course'
@@ -179,12 +180,17 @@ export function addCourseTask(state: PlannerState, course: Pick<ScheduleCourse, 
     source: 'course',
     courseCode,
     courseName: course.KCM || courseCode,
-    credits: course.XF || undefined,
+    credits: plannerCreditValue(course.XF),
     tags: ['课程'],
     createdAt: now,
     updatedAt: now,
   }
   return touch(state, state.plans.map((item) => item.id === plan.id ? { ...item, tasks: [...item.tasks, task], updatedAt: now } : item))
+}
+
+function plannerCreditValue(value: unknown) {
+  const credit = courseCreditValue(value)
+  return credit == null ? undefined : String(credit)
 }
 
 export function addPlannerList(state: PlannerState, name: string): PlannerState {

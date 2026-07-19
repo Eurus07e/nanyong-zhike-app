@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarDays, MapPin, RefreshCw, UserRound, X } from 'lucide-react'
-import { api, ApiError, query } from '../api'
+import { api, ApiError, query, withRefresh } from '../api'
+import { courseCreditValue, formatCourseCredit } from '../program-requirements'
 import type { ScheduleCourse, Term } from '../types'
 import { courseDisplayName, layoutScheduleSlots, parseSchedule, periods, type ScheduleSlot, weekdays } from '../utils'
 import { LoadingLines } from './Overview'
@@ -18,45 +19,85 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
   const [selected, setSelected] = useState<CourseSelection | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const scheduleRequestRef = useRef(0)
+
+  const loadTerms = useCallback(async (force = false) => {
+    const basePath = '/api/schedule/terms'
+    const hadCache = !force && api.hasCache(basePath)
+    let items = await api.cached<Term[]>(withRefresh(basePath, force), { ttl: 30 * 60_000, force })
+    if (!isValidTerms(items)) {
+      items = await api.cached<Term[]>(withRefresh(basePath, true), { ttl: 30 * 60_000, force: true })
+    }
+    if (!isValidTerms(items)) throw new Error('教务系统返回的学期数据格式异常')
+    if (force) api.setCache(basePath, items, 30 * 60_000)
+    setTerms(items)
+    setTerm((current) => current || items[0]?.DM || '')
+    if (hadCache) {
+      const fresh = await api.cached<Term[]>(withRefresh(basePath, true), { force: true })
+      if (!isValidTerms(fresh)) throw new Error('教务系统返回的学期数据格式异常')
+      api.setCache(basePath, fresh, 30 * 60_000)
+      setTerms(fresh)
+      setTerm((current) => current && fresh.some((item) => item.DM === current) ? current : fresh[0]?.DM || '')
+      return fresh
+    }
+    return items
+  }, [])
 
   useEffect(() => {
-    api.cached<Term[]>('/api/schedule/terms', { ttl: 30 * 60_000 }).then((items) => {
-      setTerms(items)
-      setTerm((current) => current || items[0]?.DM || '')
-    }).catch((caught) => {
+    loadTerms().catch((caught) => {
       if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
       setError(caught instanceof Error ? caught.message : '学期加载失败')
       setLoading(false)
     })
-  }, [onUnauthorized])
+  }, [loadTerms, onUnauthorized])
 
   const loadSchedule = useCallback(async (force = false) => {
-    if (!term) return
+    if (!term) {
+      setCourses([])
+      setLoading(false)
+      return
+    }
+    const requestId = ++scheduleRequestRef.current
     setLoading(true)
     setError('')
     try {
-      const basePath = query('/api/schedule', { term })
+      const refreshedTerms = force ? await loadTerms(true) : null
+      if (requestId !== scheduleRequestRef.current) return
+      const activeTerm = force
+        ? refreshedTerms?.some((item) => item.DM === term) ? term : refreshedTerms?.[0]?.DM || ''
+        : term
+      if (!activeTerm) return
+      if (activeTerm !== term) setTerm(activeTerm)
+      const basePath = query('/api/schedule', { term: activeTerm })
       const hadCache = !force && api.hasCache(basePath)
-      const path = force ? query('/api/schedule', { term, refresh: 'true' }) : basePath
+      const path = withRefresh(basePath, force)
       const data = await api.cached<{ rows: ScheduleCourse[] }>(path, { ttl: 2 * 60_000, force })
+      if (requestId !== scheduleRequestRef.current) return
+      if (force) api.setCache(basePath, data, 2 * 60_000)
       setCourses(data.rows || [])
       if (hadCache) {
-        const fresh = await api.cached<{ rows: ScheduleCourse[] }>(query('/api/schedule', { term, refresh: 'true' }), { force: true })
+        const fresh = await api.cached<{ rows: ScheduleCourse[] }>(withRefresh(basePath, true), { force: true })
+        if (requestId !== scheduleRequestRef.current) return
+        api.setCache(basePath, fresh, 2 * 60_000)
         setCourses(fresh.rows || [])
       }
     } catch (caught) {
+      if (requestId !== scheduleRequestRef.current) return
       if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
       setError(caught instanceof Error ? caught.message : '课表加载失败')
     } finally {
-      setLoading(false)
+      if (requestId === scheduleRequestRef.current) setLoading(false)
     }
-  }, [onUnauthorized, term])
+  }, [loadTerms, onUnauthorized, term])
 
-  useEffect(() => { void loadSchedule() }, [loadSchedule])
+  useEffect(() => {
+    void loadSchedule()
+    return () => { scheduleRequestRef.current += 1 }
+  }, [loadSchedule])
 
   const parsed = useMemo(() => parseSchedule(courses), [courses])
   const slots = useMemo(() => layoutScheduleSlots(parsed.slots), [parsed.slots])
-  const totalCredits = useMemo(() => courses.reduce((sum, course) => sum + Number(course.XF || 0), 0), [courses])
+  const totalCredits = useMemo(() => courses.reduce((sum, course) => sum + (courseCreditValue(course.XF) || 0), 0), [courses])
   const courseColor = useMemo(() => new Map(courses.map((course, index) => [course.JXBID, colors[index % colors.length]])), [courses])
 
   return (
@@ -104,7 +145,7 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
                 <small>{slot.course.JXBMC}</small>
                 <span><UserRound size={12} />{slot.course.SKJS || '教师待定'}</span>
                 <span><MapPin size={12} />{slot.room}</span>
-                <span className="course-meta">{slot.course.XF || '—'} 学分 · {courseType(slot.course)}</span>
+                <span className="course-meta">{formatCourseCredit(slot.course.XF)} 学分 · {courseType(slot.course)}</span>
               </button>
             })}
           </div>
@@ -127,7 +168,7 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
             </span>
             <span className="unrecognized-course-facts">
               <span>教师：{item.course.SKJS || '教师待定'}</span>
-              <span>{item.course.XF || '—'} 学分 · {courseType(item.course)}</span>
+              <span>{formatCourseCredit(item.course.XF)} 学分 · {courseType(item.course)}</span>
               <span>开课单位：{item.course.PKDWDM_DISPLAY || '—'}</span>
             </span>
             <span className="unrecognized-course-raw">{item.rawParts.join('；')}</span>
@@ -136,6 +177,16 @@ export function Schedule({ onUnauthorized }: { onUnauthorized: () => void }) {
       </section> : null}
       {selected && <CourseDetail selection={selected} onClose={() => setSelected(null)} />}
     </div>
+  )
+}
+
+function isValidTerms(value: unknown): value is Term[] {
+  return Array.isArray(value) && value.length > 0 && value.every((item) =>
+    item && typeof item === 'object'
+    && typeof item.DM === 'string'
+    && /^\d{4}-\d{4}-[123]$/.test(item.DM)
+    && typeof item.MC === 'string'
+    && item.MC.trim().length > 0
   )
 }
 
@@ -149,7 +200,7 @@ function CourseDetail({ selection, onClose }: { selection: CourseSelection; onCl
   const facts = [
     ['教学班', course.JXBMC || '—'],
     ['课程号', course.KCH || '—'],
-    ['学分', `${course.XF || '—'} 学分`],
+    ['学分', `${formatCourseCredit(course.XF)} 学分`],
     ['课程类型', courseType(course)],
     ['选课方式', course.XKLY_DISPLAY || '—'],
     ['授课教师', course.SKJS || '教师待定'],
@@ -208,6 +259,6 @@ function scheduleSlotTitle(slot: ScheduleSlot) {
     `教师：${slot.course.SKJS || '教师待定'}`,
     `时间：${slot.day} ${periodRangeLabel(slot)} ${slot.weeks}`,
     `地点：${slot.room}`,
-    `学分与类别：${slot.course.XF || '—'} 学分 · ${courseType(slot.course)}`,
+    `学分与类别：${formatCourseCredit(slot.course.XF)} 学分 · ${courseType(slot.course)}`,
   ].join('\n')
 }

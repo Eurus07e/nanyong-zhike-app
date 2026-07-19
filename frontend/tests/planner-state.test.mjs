@@ -45,6 +45,13 @@ test('adds a course task once and keeps the task tied to its course', () => {
   assert.equal(plan.tasks[1].courseCode, 'CS101')
 })
 
+test('does not persist missing-credit sentinels in course tasks', () => {
+  const state = createDefaultPlanner('2026-07-16')
+  const next = addCourseTask(state, { KCH: 'CS102', KCM: '编译原理', XF: 'N/A' }, '2026-07-16')
+
+  assert.equal(next.plans[0].tasks[1].credits, undefined)
+})
+
 test('moves a task between board columns without changing other tasks', () => {
   const state = createDefaultPlanner('2026-07-16')
   const task = { ...state.plans[0].tasks[0], status: 'in_progress' }

@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from backend.app.config import Settings
-from backend.app.nju_cli import NjuCli, _ProcessLimiter
+from backend.app.nju_cli import NjuCli, NjuCliError, _ProcessLimiter
 
 
 def test_child_environment_uses_allowlist(monkeypatch, tmp_path):
@@ -124,6 +124,137 @@ async def test_execute_passes_windows_no_window_flag_to_child(monkeypatch, tmp_p
     assert captured["kwargs"]["creationflags"] == NjuCli._WINDOWS_CREATE_NO_WINDOW
 
 
+@pytest.mark.asyncio
+async def test_execute_kills_and_reaps_child_on_timeout(monkeypatch, tmp_path):
+    class Process:
+        returncode = None
+        killed = False
+        communicate_calls = 0
+
+        async def communicate(self):
+            self.communicate_calls += 1
+            if self.communicate_calls == 1:
+                await asyncio.Event().wait()
+            return b"", b""
+
+        def kill(self):
+            self.killed = True
+            self.returncode = -9
+
+    process = Process()
+
+    async def create_subprocess_exec(*args, **kwargs):
+        return process
+
+    client = object.__new__(NjuCli)
+    client.binary = tmp_path / "nju-cli"
+    client.process_limiter = _ProcessLimiter(global_limit=1, owner_limit=1)
+    monkeypatch.setattr(
+        "backend.app.nju_cli.asyncio.create_subprocess_exec",
+        create_subprocess_exec,
+    )
+
+    with pytest.raises(NjuCliError, match="响应超时"):
+        await client._execute([], env={}, owner="student", timeout=0.01)
+
+    assert process.killed is True
+    assert process.communicate_calls == 2
+
+
+@pytest.mark.asyncio
+async def test_execute_kills_and_reaps_child_when_request_is_cancelled(
+    monkeypatch, tmp_path
+):
+    started = asyncio.Event()
+
+    class Process:
+        returncode = None
+        killed = False
+        communicate_calls = 0
+
+        async def communicate(self):
+            self.communicate_calls += 1
+            if self.communicate_calls == 1:
+                started.set()
+                await asyncio.Event().wait()
+            return b"", b""
+
+        def kill(self):
+            self.killed = True
+            self.returncode = -9
+
+    process = Process()
+
+    async def create_subprocess_exec(*args, **kwargs):
+        return process
+
+    client = object.__new__(NjuCli)
+    client.binary = tmp_path / "nju-cli"
+    client.process_limiter = _ProcessLimiter(global_limit=1, owner_limit=1)
+    monkeypatch.setattr(
+        "backend.app.nju_cli.asyncio.create_subprocess_exec",
+        create_subprocess_exec,
+    )
+
+    task = asyncio.create_task(
+        client._execute([], env={}, owner="student", timeout=30)
+    )
+    await started.wait()
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert process.killed is True
+    assert process.communicate_calls == 2
+
+
+@pytest.mark.asyncio
+async def test_execute_does_not_mask_cancellation_when_child_exits_first(
+    monkeypatch, tmp_path
+):
+    started = asyncio.Event()
+
+    class Process:
+        returncode = None
+        communicate_calls = 0
+
+        async def communicate(self):
+            self.communicate_calls += 1
+            if self.communicate_calls == 1:
+                started.set()
+                await asyncio.Event().wait()
+            return b"", b""
+
+        def kill(self):
+            raise ProcessLookupError
+
+    process = Process()
+
+    async def create_subprocess_exec(*args, **kwargs):
+        return process
+
+    client = object.__new__(NjuCli)
+    client.binary = tmp_path / "nju-cli"
+    client.process_limiter = _ProcessLimiter(global_limit=1, owner_limit=1)
+    monkeypatch.setattr(
+        "backend.app.nju_cli.asyncio.create_subprocess_exec",
+        create_subprocess_exec,
+    )
+
+    task = asyncio.create_task(
+        client._execute([], env={}, owner="student", timeout=30)
+    )
+    await started.wait()
+    process.returncode = 0
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert process.communicate_calls == 2
+
+
 def test_desktop_mode_never_falls_back_to_unverified_nju_cli(
     monkeypatch, tmp_path
 ):
@@ -154,6 +285,34 @@ def test_development_resolves_plugin_launcher_to_cached_binary(monkeypatch, tmp_
     monkeypatch.setenv("APP_ENV", "development")
     monkeypatch.setattr("backend.app.nju_cli.platform.system", lambda: "Darwin")
     monkeypatch.setattr("backend.app.nju_cli.platform.machine", lambda: "arm64")
+    monkeypatch.setattr("backend.app.nju_cli.shutil.which", lambda _: None)
+
+    client = NjuCli(Settings(nju_cli_bin=str(launcher)))
+
+    assert client.binary == cached
+
+
+def test_development_resolves_windows_plugin_launcher_to_cached_binary(
+    monkeypatch, tmp_path
+):
+    launcher = tmp_path / "plugin" / "scripts" / "nju-cli.ps1"
+    launcher.parent.mkdir(parents=True)
+    launcher.write_text("Write-Output nju-cli\n", encoding="ascii")
+    local_app_data = tmp_path / "LocalAppData"
+    cached = (
+        local_app_data
+        / "nju-cli-plugin"
+        / "v1.4.6"
+        / "windows-x86_64"
+        / "nju-cli.exe"
+    )
+    cached.parent.mkdir(parents=True)
+    cached.write_bytes(b"binary")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("LOCALAPPDATA", str(local_app_data))
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setattr("backend.app.nju_cli.platform.system", lambda: "Windows")
+    monkeypatch.setattr("backend.app.nju_cli.platform.machine", lambda: "AMD64")
     monkeypatch.setattr("backend.app.nju_cli.shutil.which", lambda _: None)
 
     client = NjuCli(Settings(nju_cli_bin=str(launcher)))

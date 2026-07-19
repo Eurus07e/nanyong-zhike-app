@@ -11,6 +11,7 @@ from urllib.parse import urlencode, urlsplit, urlunsplit
 from urllib.request import Request, build_opener
 
 from .nju_cli import NjuCli, NjuCliError
+from .version import APP_USER_AGENT
 
 
 NOTICE_PATTERN = re.compile(r"^(?P<id>\d+)\s+(?P<date>\d{2}-\d{2})\s+(?P<title>.+?)\s*$")
@@ -91,7 +92,7 @@ class PublicNoticeSource:
             method="POST",
             headers={
                 "Content-Type": "application/x-www-form-urlencoded",
-                "User-Agent": "NanyongZhike/2.0 read-only",
+                "User-Agent": APP_USER_AGENT,
             },
         )
         try:

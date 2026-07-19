@@ -12,6 +12,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlparse
 from urllib.request import HTTPRedirectHandler, HTTPCookieProcessor, Request, build_opener
 
+from .version import APP_USER_AGENT
+
 
 AUTH_HOST = "authserver.nju.edu.cn"
 YOUTH_HOST = "youth.nju.edu.cn"
@@ -109,15 +111,15 @@ class SecondClassroomClient:
         opener = build_opener(_YouthRedirect(), HTTPCookieProcessor(jar))
         login_url = f"https://{AUTH_HOST}/authserver/login?service={quote(SERVICE_URL, safe='')}"
         try:
-            final = opener.open(Request(login_url, headers={"User-Agent": "NanyongZhike/1.2 read-only"}), timeout=20)
+            final = opener.open(Request(login_url, headers={"User-Agent": APP_USER_AGENT}), timeout=20)
             final.read()
             if urlparse(final.geturl()).hostname == AUTH_HOST:
                 raise SecondClassroomError("统一身份认证登录已过期，请重新登录", auth_expired=True)
-            context_request = Request(CTX_URL, data=b"", method="POST", headers={"Accept": "application/json", "User-Agent": "NanyongZhike/1.2 read-only"})
+            context_request = Request(CTX_URL, data=b"", method="POST", headers={"Accept": "application/json", "User-Agent": APP_USER_AGENT})
             context = json.loads(opener.open(context_request, timeout=20).read().decode("utf-8"))
             scope = _profile_scope(context["data"])
             page_url = f"{PROFILE_URL}?{urlencode({'.me': scope})}"
-            page = opener.open(Request(page_url, headers={"User-Agent": "NanyongZhike/1.2 read-only"}), timeout=20).read().decode("utf-8", "replace")
+            page = opener.open(Request(page_url, headers={"User-Agent": APP_USER_AGENT}), timeout=20).read().decode("utf-8", "replace")
         except SecondClassroomError:
             raise
         except (HTTPError, URLError, TimeoutError, KeyError, json.JSONDecodeError) as error:
