@@ -507,6 +507,7 @@ def test_macos_release_builds_without_apple_developer_credentials() -> None:
     dmg_index = workflow.index("hdiutil create")
     assert sign_index < prepare_index < dmg_index
     assert 'codesign --verify --deep --strict "$verify_root/NanyongZhike-macos-arm64/南雍知课.app"' in workflow
+    assert 'ditto -x -k "release/NanyongZhike-macos-arm64.zip" "$verify_root"' in workflow
     assert 'hdiutil verify "release/NanyongZhike-macos-arm64.dmg"' in workflow
     for forbidden in (
         "MACOS_CERTIFICATE_P12_BASE64",

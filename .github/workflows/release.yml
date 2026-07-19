@@ -143,7 +143,7 @@ jobs:
         run: |
           set -euo pipefail
           verify_root="$(mktemp -d)"
-          unzip -q "release/NanyongZhike-macos-arm64.zip" -d "$verify_root"
+          ditto -x -k "release/NanyongZhike-macos-arm64.zip" "$verify_root"
           codesign --verify --deep --strict "$verify_root/NanyongZhike-macos-arm64/南雍知课.app"
           rm -rf "$verify_root"
           staging="release/dmg-root"
