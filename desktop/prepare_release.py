@@ -48,7 +48,11 @@ def main() -> None:
         shutil.rmtree(package)
     package.mkdir()
     if args.platform == "macos":
-        shutil.copytree(mac_application, package / mac_application.name)
+        shutil.copytree(
+            mac_application,
+            package / mac_application.name,
+            symlinks=True,
+        )
     else:
         shutil.copytree(distribution, package, dirs_exist_ok=True)
 

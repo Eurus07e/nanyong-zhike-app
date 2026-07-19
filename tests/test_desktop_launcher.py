@@ -305,7 +305,60 @@ def test_prepare_release_preserves_signed_macos_bundle_structure() -> None:
     assert '"ditto"' in source
     assert '"--sequesterRsrc"' in source
     assert '"--keepParent"' in source
+    assert "symlinks=True" in source
     assert "shutil.make_archive" in source
+
+
+def test_prepare_release_keeps_macos_framework_symlinks(monkeypatch, tmp_path) -> None:
+    distribution = tmp_path / "dist" / "NanyongZhike"
+    distribution.mkdir(parents=True)
+    application = tmp_path / "dist" / "南雍知课.app"
+    versions = application / "Contents" / "Frameworks" / "Python.framework" / "Versions"
+    (versions / "3.12").mkdir(parents=True)
+    (versions / "Current").symlink_to("3.12", target_is_directory=True)
+    usage = tmp_path / "desktop" / "使用说明.txt"
+    usage.parent.mkdir(parents=True)
+    usage.write_text("usage", encoding="utf-8")
+    for document in ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "SECURITY.md"):
+        (tmp_path / document).write_text(document, encoding="utf-8")
+    patch = tmp_path / "third_party" / "patches" / "nju-cli-v1.4.6-cache-dir.patch"
+    patch.parent.mkdir(parents=True)
+    patch.write_bytes(b"patch")
+    source = tmp_path / "nju-cli-v1.4.6-source.tar.gz"
+    source.write_bytes(b"source")
+    commands: list[list[str]] = []
+
+    monkeypatch.setattr(prepare_release, "ROOT", tmp_path)
+    monkeypatch.setattr(prepare_release.subprocess, "run", lambda command, check: commands.append(command))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prepare_release.py",
+            "--platform",
+            "macos",
+            "--arch",
+            "arm64",
+            "--nju-source",
+            str(source),
+        ],
+    )
+
+    prepare_release.main()
+
+    copied = (
+        tmp_path
+        / "release"
+        / "NanyongZhike-macos-arm64"
+        / "南雍知课.app"
+        / "Contents"
+        / "Frameworks"
+        / "Python.framework"
+        / "Versions"
+        / "Current"
+    )
+    assert copied.is_symlink()
+    assert commands[0][0] == "ditto"
 
 
 def test_launcher_uses_file_logging_when_no_console_is_available(
