@@ -163,8 +163,8 @@ Docker/Caddy 配置保留用于开发者自行部署。生产部署必须使用 
 
 ## 开源与许可
 
-南雍知课按 [GNU GPL v3](LICENSE) 发布。项目通过独立子进程调用 [nju-cli](https://github.com/nju-cli/nju-cli)，并使用 [nju-class](https://github.com/carottX/nju-class) 的公开评价数据；备忘录交互受到 MIT 许可的 [Memos](https://github.com/usememos/memos) 启发。发行包附带 nju-cli v1.4.6 对应源码与补丁；完整来源与许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。在此一并致谢！
+南雍知课按 [GNU GPL v3](LICENSE) 发布。项目调用 [nju-cli](https://github.com/nju-cli/nju-cli)，并使用 [nju-class](https://github.com/carottX/nju-class) 的公开评价数据；备忘录借鉴了 [Memos](https://github.com/usememos/memos) 。在此一并致谢！
 
 当前版本已完成最初规划的核心功能，如遇不可解决的问题，可通过站内“关于本站”页面或 github 联系维护者。
 
-如果您希望继续扩展功能，欢迎 Fork 本项目并自行维护。
+如果您希望继续扩展功能，欢迎 Fork 本项目或提 PR 。
